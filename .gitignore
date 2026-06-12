@@ -1,0 +1,12 @@
+node_modules
+.env
+dist
+build
+.DS_Store
+*.log
+backend/node_modules
+backend/dist
+frontend/node_modules
+frontend/dist
+backend/auth_info_baileys
+backend/sessions

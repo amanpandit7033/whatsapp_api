@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String       @id @default(uuid())
+  username      String       @unique
+  passwordHash  String
+  apiKey        String?      @unique @default(uuid())
+  isAdmin       Boolean      @default(false)
+  maxInstances  Int          @default(3)
+  messageLimit  Int          @default(1000)
+  permissions   String       @default("instances,broadcast,reports,docs")
+  expiresAt     DateTime?
+  instances     Instance[]
+  messageLogs   MessageLog[]
+  createdAt     DateTime     @default(now())
+}
+
+model Instance {
+  id          String       @id // This is the instance_id
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  status      String       @default("disconnected") // connected, disconnected
+  phoneNumber String?
+  createdAt   DateTime     @default(now())
+  messageLogs MessageLog[]
+}
+
+model MessageLog {
+  id         String   @id @default(uuid())
+  instanceId String
+  instance   Instance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  toNumber   String
+  message    String?
+  status     String   // "sent", "failed"
+  createdAt  DateTime @default(now())
+}
