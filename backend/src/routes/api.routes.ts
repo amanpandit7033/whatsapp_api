@@ -19,13 +19,17 @@ const upload = multer({ dest: 'uploads/' });
 const checkMessageLimit = async (userId: string): Promise<boolean> => {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return false;
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-    const count = await prisma.messageLog.count({
-        where: { userId, createdAt: { gte: startOfMonth } }
-    });
-    return count < user.messageLimit;
+    const currentMonth = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+    if ((user as any).lastMessageMonth !== currentMonth) {
+        // Reset counter for new month
+        await prisma.user.update({
+            where: { id: userId },
+            data: { messagesSentThisMonth: 0, lastMessageMonth: currentMonth }
+        });
+        return user.messageLimit > 0;
+    }
+    
+    return (user as any).messagesSentThisMonth < user.messageLimit;
 };
 
 router.post('/auth/login', async (req, res) => {
@@ -283,6 +287,16 @@ router.post('/instances/:id/send', authenticate, async (req: any, res: any) => {
                 toNumber: number,
                 message: messageVal,
                 status: 'pending'
+            }
+        });
+
+        // Increment the usage counter
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        await prisma.user.update({
+            where: { id: req.user.userId },
+            data: { 
+                messagesSentThisMonth: { increment: 1 }, 
+                lastMessageMonth: currentMonth 
             }
         });
     } catch (dbErr) { console.error('Log error:', dbErr); }
@@ -818,6 +832,41 @@ router.get('/reports/export', authenticate, async (req: any, res: any) => {
         res.send(buffer);
     } catch (err) {
         res.status(500).json({ error: 'Failed to export reports' });
+    }
+});
+
+// --- ADMIN REPORTS ---
+router.delete('/admin/reports/clear', authenticate, async (req: any, res: any) => {
+    try {
+        const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+        if (!user || !user.isAdmin) return res.status(403).json({ error: 'Admin access required' });
+
+        const searchNumber = req.query.searchNumber || '';
+        const searchMessage = req.query.searchMessage || '';
+        const searchUsername = req.query.searchUsername || '';
+        const startDate = req.query.startDate;
+        const endDate = req.query.endDate;
+
+        const where: any = {};
+
+        if (searchUsername) where.user = { username: { contains: searchUsername } };
+        if (searchNumber) where.toNumber = { contains: searchNumber };
+        if (searchMessage) where.message = { contains: searchMessage };
+        
+        if (startDate || endDate) {
+            where.createdAt = {};
+            if (startDate) where.createdAt.gte = new Date(startDate);
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                where.createdAt.lte = end;
+            }
+        }
+
+        const deleteResult = await prisma.messageLog.deleteMany({ where });
+        res.json({ success: true, message: `Deleted ${deleteResult.count} reports.` });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to clear reports' });
     }
 });
 

@@ -19,6 +19,8 @@ model User {
   expiresAt     DateTime?
   instances     Instance[]
   messageLogs   MessageLog[]
+  messagesSentThisMonth Int @default(0)
+  lastMessageMonth      String @default("")
   createdAt     DateTime     @default(now())
 }
 

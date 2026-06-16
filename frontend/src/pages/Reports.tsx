@@ -12,7 +12,8 @@ import {
   FileIcon,
   SparklesIcon,
   ChecksIcon,
-  WarningCircleIcon
+  WarningCircleIcon,
+  TrashIcon
 } from '../components/Icons';
 
 const S: Record<string, React.CSSProperties> = {
@@ -116,6 +117,31 @@ export const Reports = () => {
       }).catch(() => alert('Failed to export'));
   };
 
+  const handleClearReports = async () => {
+    const isFiltered = searchNumber || searchMessage || searchUsername || startDate || endDate;
+    const confirmMsg = isFiltered 
+      ? "Are you sure you want to permanently delete the reports MATCHING YOUR CURRENT FILTERS? This action cannot be undone."
+      : "Are you sure you want to permanently delete ALL reports? This action cannot be undone.";
+      
+    if (!window.confirm(confirmMsg)) return;
+    
+    try {
+      const query = new URLSearchParams({ searchNumber, searchMessage, searchUsername, startDate, endDate });
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/reports/clear?${query}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        setPage(1);
+        fetchReports();
+      } else {
+        alert('Failed to clear reports');
+      }
+    } catch (e) {
+      alert('Error clearing reports');
+    }
+  };
+
   const totalPages = Math.ceil(totalCount / limit) || 1;
   const sentCount = reports.filter(r => r.status === 'sent').length;
   const failedCount = reports.filter(r => r.status === 'failed' || r.status === 'Non-Whatsapp').length;
@@ -127,9 +153,16 @@ export const Reports = () => {
           <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', margin: '0 0 4px' }}>Message Reports</h2>
           <p style={{ color: '#64748B', fontSize: '14px', margin: 0, fontWeight: 500 }}>View and export logs of all sent messages.</p>
         </div>
-        <button onClick={handleExport} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-          <DownloadIcon size={16} /> Export Excel
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          {isAdmin && (
+            <button onClick={handleClearReports} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#FEE2E2', color: '#EF4444', border: 'none', padding: '0 16px', borderRadius: '8px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+              <TrashIcon size={16} color="#EF4444" /> Delete All Reports
+            </button>
+          )}
+          <button onClick={handleExport} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <DownloadIcon size={16} /> Export Excel
+          </button>
+        </div>
       </div>
 
       {/* Stat strip */}

@@ -68,6 +68,7 @@ setInterval(() => {
                 intendedClose.add(id);
                 try { sock.ws.close(); } catch (e) {}
                 instances.delete(id);
+                connectionStatus.delete(id);
                 freeConnectionSlot();
             }
             lastUsed.delete(id);
@@ -90,6 +91,8 @@ export const createInstance = async (instanceId: string) => {
         browser: ['Ubuntu', 'Chrome', '20.0.04'],
         logger: pino({ level: 'silent' })
     });
+
+    instances.set(instanceId, sock);
 
     sock.ev.on('creds.update', saveCreds);
 
@@ -144,7 +147,6 @@ export const createInstance = async (instanceId: string) => {
                     data: { status: 'connected', phoneNumber }
                 });
             } catch (e) {}
-            instances.set(instanceId, sock);
             socketIo.emit(`status-${instanceId}`, 'connected');
         }
     });
