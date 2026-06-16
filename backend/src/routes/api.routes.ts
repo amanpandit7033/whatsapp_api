@@ -998,6 +998,23 @@ router.post('/client/instance/create', clientAuthenticate, async (req: any, res:
     }
 });
 
+router.post('/client/instance/reconnect', clientAuthenticate, async (req: any, res: any) => {
+    const { instance_id } = req.body;
+    if (!instance_id) return res.status(400).json({ error: 'instance_id required' });
+
+    const inst = await prisma.instance.findFirst({ where: { id: instance_id, userId: req.user.userId } });
+    if (!inst) return res.status(404).json({ error: 'Instance not found or unauthorized' });
+
+    const { instances } = require('../services/whatsapp.service');
+    // If not already running, start it so QR can be generated
+    if (!instances?.has(instance_id)) {
+        await createInstance(instance_id);
+    }
+    
+    res.json({ success: true, message: 'Instance reconnect sequence started. Please poll /client/instance/qr for the new QR code.' });
+});
+
+
 router.get('/client/instance/qr', clientAuthenticate, async (req: any, res: any) => {
     const { instance_id } = req.query;
     if (!instance_id) return res.status(400).json({ error: 'instance_id required' });

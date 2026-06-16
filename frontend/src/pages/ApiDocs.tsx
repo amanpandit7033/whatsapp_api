@@ -320,6 +320,27 @@ export const ApiDocs = () => {
       }
     },
     {
+      method: 'POST',
+      path: '/api/client/instance/reconnect',
+      title: 'Reconnect / Start Instance',
+      desc: 'Start a disconnected instance so that it begins generating a new QR code for re-login. Call this before polling the QR endpoint if the instance is logged out.',
+      params: [
+        { name: 'api_key', type: 'string', req: true, desc: 'Your Secrets API Key.' },
+        { name: 'instance_id', type: 'string', req: true, desc: 'Target instance ID.' }
+      ],
+      reqExample: {
+        title: 'POST REQUEST URL',
+        code: `POST ${import.meta.env.VITE_API_URL}/api/client/instance/reconnect\n\n{ "api_key": "YOUR_KEY", "instance_id": "ABCDEF" }`
+      },
+      resExample: {
+        title: 'RESPONSE JSON',
+        code: JSON.stringify({
+          success: true,
+          message: "Instance reconnect sequence started. Please poll /client/instance/qr for the new QR code."
+        }, null, 2)
+      }
+    },
+    {
       method: 'GET',
       path: '/api/client/instance/status',
       title: 'Check Instance Status',
