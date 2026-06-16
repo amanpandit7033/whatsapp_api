@@ -130,15 +130,15 @@ export const Login = () => {
               <div style={{ width: 10, height: 10, background: '#10b981', borderRadius: '50%' }}></div>
             </div>
             <div style={{ background: '#fff', borderRadius: 8, height: 32, marginBottom: 8, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
-              <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#cbd5e1' }}></div>
+              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Avatar" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }} />
               <div style={{ width: 120, height: 8, background: '#e2e8f0', borderRadius: 4, marginLeft: 12 }}></div>
             </div>
             <div style={{ background: '#fff', borderRadius: 8, height: 32, marginBottom: 8, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
-              <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#cbd5e1' }}></div>
+              <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Avatar" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }} />
               <div style={{ width: 100, height: 8, background: '#e2e8f0', borderRadius: 4, marginLeft: 12 }}></div>
             </div>
             <div style={{ background: '#fff', borderRadius: 8, height: 32, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
-              <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#cbd5e1' }}></div>
+              <img src="https://randomuser.me/api/portraits/men/46.jpg" alt="Avatar" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }} />
               <div style={{ width: 80, height: 8, background: '#e2e8f0', borderRadius: 4, marginLeft: 12 }}></div>
             </div>
           </div>
