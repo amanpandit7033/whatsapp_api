@@ -12,6 +12,7 @@ export const Scan = () => {
   const [requestingCode, setRequestingCode] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [instanceId, setInstanceId] = useState('');
+  const [qrRefreshed, setQrRefreshed] = useState(false);
   
   const navigate = useNavigate();
 
@@ -50,12 +51,28 @@ export const Scan = () => {
           });
           const qrData = await qrRes.json();
           if (qrData.qr) {
-            setQr(qrData.qr);
+            setQr((prevQr) => {
+              if (prevQr && prevQr !== qrData.qr) {
+                setQrRefreshed(true);
+                setTimeout(() => setQrRefreshed(false), 3500);
+              }
+              return qrData.qr;
+            });
             setStatus((s) => s === 'initializing' ? 'awaiting_scan' : s);
-            clearInterval(pollQr);
           }
         } catch (e) {}
-      }, 1000);
+      }, 3000);
+
+      socket.on(`qr-${localInstanceId}`, (newQrUrl: string) => {
+        setQr((prevQr) => {
+          if (prevQr && prevQr !== newQrUrl) {
+            setQrRefreshed(true);
+            setTimeout(() => setQrRefreshed(false), 3500);
+          }
+          return newQrUrl;
+        });
+        setStatus((s) => s === 'initializing' ? 'awaiting_scan' : s);
+      });
 
       socket.on(`status-${localInstanceId}`, (newStatus: string) => {
         setStatus(newStatus);
@@ -206,7 +223,19 @@ export const Scan = () => {
                marginBottom: '24px', position: 'relative',
              }}>
                {qr ? (
-                 <img src={qr} alt="WhatsApp QR Code" style={{ width: '220px', height: '220px', borderRadius: '8px', display: 'block' }} />
+                 <>
+                   <img src={qr} alt="WhatsApp QR Code" style={{ width: '220px', height: '220px', borderRadius: '8px', display: 'block' }} />
+                   {qrRefreshed && (
+                     <div style={{
+                       position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
+                       background: '#10b981', color: 'white', padding: '6px 12px', borderRadius: '20px',
+                       fontSize: '12px', fontWeight: 600, boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)',
+                       animation: 'popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)', zIndex: 10, whiteSpace: 'nowrap'
+                     }}>
+                       Old QR expired. New QR generated!
+                     </div>
+                   )}
+                 </>
                ) : (
                  <div style={{ textAlign: 'center' }}>
                    <div style={{

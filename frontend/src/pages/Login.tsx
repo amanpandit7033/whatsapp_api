@@ -123,7 +123,7 @@ export const Login = () => {
             <SendIcon size={28} />
           </div>
           
-          <div style={{ position: 'absolute', right: -60, background: '#e2e8f0', width: 280, height: 200, borderRadius: '12px 12px 0 0', padding: 12, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+          <div className="auth-graphic-mockup">
             <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
               <div style={{ width: 10, height: 10, background: '#ef4444', borderRadius: '50%' }}></div>
               <div style={{ width: 10, height: 10, background: '#f59e0b', borderRadius: '50%' }}></div>

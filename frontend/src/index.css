@@ -244,6 +244,32 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes float1 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes float2 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes float3 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulse-ring {
+  0% { transform: translate(-50%, -70%) scale(1); opacity: 1; }
+  50% { transform: translate(-50%, -70%) scale(1.05); opacity: 0.8; }
+  100% { transform: translate(-50%, -70%) scale(1); opacity: 1; }
+}
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Auth Pages (Login & Expired) */
 .auth-split-screen {
   min-height: 100vh;
@@ -273,6 +299,8 @@
   text-align: center;
   z-index: 10;
   max-width: 400px;
+  animation: slideUpFade 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+  opacity: 0;
 }
 .auth-split-right-title {
   font-size: 28px;
@@ -298,12 +326,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: pulse-ring 6s ease-in-out infinite;
 }
 .auth-graphic-circle-inner {
   width: 250px;
   height: 250px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 50%;
+  animation: pulse-ring 8s ease-in-out infinite reverse;
 }
 .auth-graphic-floating {
   position: absolute;
@@ -313,6 +343,22 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+.auth-graphic-floating:nth-child(2) { animation: float1 4s ease-in-out infinite; }
+.auth-graphic-floating:nth-child(3) { animation: float2 5.5s ease-in-out infinite; }
+.auth-graphic-floating:nth-child(4) { animation: float3 4.8s ease-in-out infinite; }
+
+.auth-graphic-mockup {
+  position: absolute;
+  right: -60px;
+  background: #e2e8f0;
+  width: 280px;
+  height: 200px;
+  border-radius: 12px 12px 0 0;
+  padding: 12px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  animation: slideUpFade 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
 }
 
 .auth-card {

@@ -275,26 +275,28 @@ export const Instances = () => {
                   </td>
                   <td style={{ padding: '16px 12px' }}>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <button
-                        onClick={() => navigate(`/scan?id=${inst.id}`)}
-                        style={{
-                          background: 'var(--accent-light)',
-                          border: 'none',
-                          color: 'var(--accent-color)',
-                          cursor: 'pointer',
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '8px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'all 0.2s',
-                          padding: '0'
-                        }}
-                        title="View / Scan QR"
-                      >
-                        <EyeIcon size={18} />
-                      </button>
+                      {inst.status !== 'connected' && (
+                        <button
+                          onClick={() => navigate(`/scan?id=${inst.id}`)}
+                          style={{
+                            background: 'var(--accent-light)',
+                            border: 'none',
+                            color: 'var(--accent-color)',
+                            cursor: 'pointer',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '8px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s',
+                            padding: '0'
+                          }}
+                          title="View / Scan QR"
+                        >
+                          <EyeIcon size={18} />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleSync(inst.id)}
                         disabled={syncingId === inst.id}
