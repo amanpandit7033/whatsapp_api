@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { createInstance, sendMessage, sendInteractiveMessage, deleteInstanceSession, requestPairingCode, InteractivePayload } from '../services/whatsapp.service';
+import { createInstance, sendMessage, sendInteractiveMessage, deleteInstanceSession, InteractivePayload } from '../services/whatsapp.service';
 import fs from 'fs';
 import multer from 'multer';
 import * as XLSX from 'xlsx';
@@ -142,23 +142,6 @@ router.get('/instances/:id/qr', authenticate, async (req: any, res: any) => {
     res.json({ qr: qr || null });
 });
 
-router.post('/instances/:id/pairing-code', authenticate, async (req: any, res: any) => {
-    const instanceId = req.params.id;
-    const { number } = req.body;
-    
-    if (!number) return res.status(400).json({ error: 'Phone number is required' });
-    
-    const instance = await prisma.instance.findUnique({ where: { id: instanceId } });
-    if (!instance || instance.userId !== req.user.userId) {
-        return res.status(404).json({ error: 'Instance not found' });
-    }
-    
-    // Call the service to request the code
-    await requestPairingCode(instanceId, number);
-    
-    // The code will be emitted via WebSockets
-    res.json({ success: true, message: 'Requesting pairing code from WhatsApp...' });
-});
 
 router.post('/instances/:id/logout', authenticate, async (req: any, res: any) => {
     const instanceId = req.params.id;
@@ -630,12 +613,11 @@ router.post('/message/broadcast', authenticate, upload.single('file'), async (re
         const failed: string[] = [];
 
         const userLimit = await prisma.user.findUnique({ where: { id: req.user.userId } });
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0, 0, 0, 0);
-        let currentMonthCount = await prisma.messageLog.count({
-            where: { userId: req.user.userId, createdAt: { gte: startOfMonth } }
-        });
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        let currentMonthCount = (userLimit as any)?.messagesSentThisMonth || 0;
+        if ((userLimit as any)?.lastMessageMonth !== currentMonth) {
+            currentMonthCount = 0;
+        }
 
         // Round-robin distribution
         for (let i = 0; i < targetNumbers.length; i++) {
@@ -893,12 +875,11 @@ router.get('/me', authenticate, async (req: any, res: any) => {
             });
         }
         
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0, 0, 0, 0);
-        const messagesSentThisMonth = await prisma.messageLog.count({
-            where: { userId: user.id, createdAt: { gte: startOfMonth } }
-        });
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        let messagesSentThisMonth = (user as any).messagesSentThisMonth || 0;
+        if ((user as any).lastMessageMonth !== currentMonth) {
+            messagesSentThisMonth = 0;
+        }
         
         res.json({ username: user.username, apiKey: user.apiKey, isAdmin: user.isAdmin, maxInstances: user.maxInstances, messageLimit: user.messageLimit, messagesSentThisMonth, permissions: user.permissions });
     } catch (err) {

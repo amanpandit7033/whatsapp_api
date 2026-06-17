@@ -7,12 +7,9 @@ export const Scan = () => {
   const [qr, setQr] = useState<string>('');
   const [status, setStatus] = useState<string>('initializing');
   const [linkMethod, setLinkMethod] = useState<'qr' | 'phone'>('qr');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [pairingCode, setPairingCode] = useState('');
-  const [requestingCode, setRequestingCode] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
   const [instanceId, setInstanceId] = useState('');
   const [qrRefreshed, setQrRefreshed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const navigate = useNavigate();
 
@@ -33,6 +30,11 @@ export const Scan = () => {
         });
         if (res.status === 401) { navigate('/login'); return; }
         const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || 'Failed to create instance');
+          setStatus('error');
+          return;
+        }
         localInstanceId = data.instanceId;
         isNew = true;
       } else {
@@ -44,7 +46,7 @@ export const Scan = () => {
       }
       setInstanceId(localInstanceId);
 
-      const pollQr = setInterval(async () => {
+      const pollAction = async () => {
         try {
           const qrRes = await fetch(`${import.meta.env.VITE_API_URL}/api/instances/${localInstanceId}/qr`, {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
@@ -61,7 +63,10 @@ export const Scan = () => {
             setStatus((s) => s === 'initializing' ? 'awaiting_scan' : s);
           }
         } catch (e) {}
-      }, 3000);
+      };
+
+      pollAction(); // immediate check
+      const pollQr = setInterval(pollAction, 1500);
 
       socket.on(`qr-${localInstanceId}`, (newQrUrl: string) => {
         setQr((prevQr) => {
@@ -147,30 +152,7 @@ export const Scan = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      {!isConnected && (
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: 'white', padding: '6px', borderRadius: '12px', border: '1px solid rgba(0,0,0,0.05)', width: 'fit-content' }}>
-          <button 
-            onClick={() => setLinkMethod('qr')}
-            style={{ 
-              padding: '8px 16px', borderRadius: '8px', fontWeight: 600, fontSize: '14px', border: 'none', cursor: 'pointer',
-              background: linkMethod === 'qr' ? '#f1f5f9' : 'transparent',
-              color: linkMethod === 'qr' ? '#0f172a' : '#64748b'
-            }}>
-            Scan QR Code
-          </button>
-          <button 
-            onClick={() => setLinkMethod('phone')}
-            style={{ 
-              padding: '8px 16px', borderRadius: '8px', fontWeight: 600, fontSize: '14px', border: 'none', cursor: 'pointer',
-              background: linkMethod === 'phone' ? '#f1f5f9' : 'transparent',
-              color: linkMethod === 'phone' ? '#0f172a' : '#64748b'
-            }}>
-            Link with Phone Number
-          </button>
-        </div>
-      )}
-
+      {/* No tabs needed */}
       <div className="scan-grid">
         {/* Main Card */}
         <div style={{
@@ -214,15 +196,23 @@ export const Scan = () => {
                </div>
                <p style={{ fontWeight: 700, color: '#16a34a', fontSize: '15px', margin: 0 }}>Connected!</p>
              </div>
-          ) : linkMethod === 'qr' ? (
+           ) : (
              <div style={{
                width: '260px', height: '260px',
-               background: 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
-               borderRadius: '20px', border: '2px solid #e2e8f0',
+               background: error ? '#fef2f2' : 'linear-gradient(135deg, #f8fafc, #f1f5f9)',
+               borderRadius: '20px', border: `2px solid ${error ? '#fca5a5' : '#e2e8f0'}`,
                display: 'flex', alignItems: 'center', justifyContent: 'center',
-               marginBottom: '24px', position: 'relative',
+               marginBottom: '24px', position: 'relative', padding: '20px', textAlign: 'center'
              }}>
-               {qr ? (
+               {error ? (
+                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                   <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                     <span style={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold' }}>!</span>
+                   </div>
+                   <p style={{ margin: 0, fontWeight: 700, color: '#b91c1c', fontSize: '15px' }}>Access Denied</p>
+                   <p style={{ margin: 0, color: '#ef4444', fontSize: '13px', fontWeight: 500, lineHeight: 1.5 }}>{error}</p>
+                 </div>
+               ) : qr ? (
                  <>
                    <img src={qr} alt="WhatsApp QR Code" style={{ width: '220px', height: '220px', borderRadius: '8px', display: 'block' }} />
                    {qrRefreshed && (
@@ -246,51 +236,11 @@ export const Scan = () => {
                  </div>
                )}
              </div>
-          ) : (
-             <div style={{ width: '100%', maxWidth: '320px', marginBottom: '24px' }}>
-                {!pairingCode ? (
-                  <>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Phone Number (with country code)</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. 1234567890" 
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      style={{ 
-                        width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', 
-                        fontSize: '15px', marginBottom: '16px', outline: 'none'
-                      }} 
-                    />
-                    {errorMsg && <p style={{ color: '#ef4444', fontSize: '13px', margin: '0 0 16px 0', fontWeight: 500 }}>{errorMsg}</p>}
-                    <button 
-                      onClick={handleRequestCode}
-                      disabled={requestingCode || !phoneNumber}
-                      style={{
-                        width: '100%', background: '#4F46E5', color: 'white', border: 'none', borderRadius: '12px',
-                        padding: '12px', fontSize: '15px', fontWeight: 600, cursor: requestingCode || !phoneNumber ? 'not-allowed' : 'pointer',
-                        opacity: requestingCode || !phoneNumber ? 0.7 : 1
-                      }}>
-                      {requestingCode ? 'Requesting Code...' : 'Get Pairing Code'}
-                    </button>
-                  </>
-                ) : (
-                  <div style={{ textAlign: 'center', animation: 'popIn 0.3s ease' }}>
-                    <p style={{ fontSize: '14px', color: '#64748b', fontWeight: 500, marginBottom: '12px' }}>Enter this code on your phone:</p>
-                    <div style={{ 
-                      fontSize: '32px', fontWeight: 800, letterSpacing: '4px', color: '#0f172a',
-                      background: '#f1f5f9', padding: '16px', borderRadius: '16px', border: '2px dashed #cbd5e1'
-                    }}>
-                      {pairingCode.substring(0, 4)}-{pairingCode.substring(4)}
-                    </div>
-                  </div>
-                )}
-             </div>
           )}
         </div>
 
         {/* Instructions Card */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {linkMethod === 'qr' ? (
             <div style={{ background: '#4F46E5', borderRadius: '24px', padding: '28px', color: 'white' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                 <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -305,28 +255,11 @@ export const Scan = () => {
                 Open WhatsApp on your phone and link this device by scanning the QR code on the left.
               </p>
             </div>
-          ) : (
-            <div style={{ background: '#4F46E5', borderRadius: '24px', padding: '28px', color: 'white' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <DeviceIcon size={24} color="white" />
-                </div>
-                <div>
-                  <h3 style={{ fontWeight: 800, fontSize: '16px', margin: 0 }}>Link with Phone Number</h3>
-                  <p style={{ fontSize: '13px', opacity: 0.7, margin: '2px 0 0', fontWeight: 500 }}>Use the 8-character code</p>
-                </div>
-              </div>
-              <p style={{ fontSize: '14px', lineHeight: '1.7', opacity: 0.85, margin: 0, fontWeight: 500 }}>
-                1. Tap "Link with phone number instead" on your phone's Linked Devices screen. <br/>
-                2. Enter the code shown on the left into your phone.
-              </p>
-            </div>
-          )}
 
           {[
             { step: 1, icon: DeviceIcon, title: 'Open WhatsApp', desc: 'Launch the WhatsApp app on your phone.' },
             { step: 2, icon: DotsHorizontalIcon, title: 'Go to Settings', desc: 'Tap the three-dot menu → Linked Devices.' },
-            { step: 3, icon: linkMethod === 'qr' ? QrCodeIcon : DeviceIcon, title: 'Link a Device', desc: linkMethod === 'qr' ? 'Tap "Link a Device" then point your camera at the QR.' : 'Tap "Link with phone number instead" and enter the code.' },
+            { step: 3, icon: QrCodeIcon, title: 'Link a Device', desc: 'Tap "Link a Device" then point your camera at the QR.' },
             { step: 4, icon: CheckCircleIcon, title: 'Done!', desc: 'You\'re connected. Your instance is now live.' },
           ].map(({ step, icon: IconComponent, title, desc }) => (
             <div key={step} className="card" style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', padding: '16px 20px' }}>

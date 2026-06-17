@@ -88,7 +88,7 @@ export const createInstance = async (instanceId: string) => {
     const sock = makeWASocket({
         auth: state,
         printQRInTerminal: false,
-        browser: ['Ubuntu', 'Chrome', '20.0.04'],
+        browser: Browsers.macOS('Desktop'),
         logger: pino({ level: 'silent' })
     });
 
@@ -415,24 +415,3 @@ export const deleteInstanceSession = async (instanceId: string) => {
     }
 };
 
-export const requestPairingCode = async (instanceId: string, number: string) => {
-    let sock = instances.get(instanceId);
-    if (!sock) {
-        sock = await createInstance(instanceId);
-    }
-    
-    const cleanNumber = number.replace(/[^0-9]/g, '');
-    
-    setTimeout(async () => {
-        try {
-            const code = await sock.requestPairingCode(cleanNumber, '');
-            console.log(`[${instanceId}] Pairing code generated: ${code}`);
-            socketIo.emit(`pairing-${instanceId}`, code);
-        } catch (e) {
-            console.error(`[${instanceId}] Pairing code error:`, e);
-            socketIo.emit(`pairing-error-${instanceId}`, 'Failed to generate code. Try again.');
-        }
-    }, 1500);
-
-    return true;
-};
