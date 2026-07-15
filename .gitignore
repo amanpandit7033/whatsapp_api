@@ -9,5 +9,9 @@ frontend/node_modules
 frontend/dist
 backend/auth_info_baileys
 backend/sessions
+backend/uploads
+backend/prisma/*.db
+backend/prisma/*.db-journal
+backend/reset_instance.js
 .env
 .env.local

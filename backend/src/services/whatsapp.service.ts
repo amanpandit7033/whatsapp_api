@@ -1,6 +1,7 @@
 import makeWASocket, {
     useMultiFileAuthState, DisconnectReason, Browsers,
-    prepareWAMessageMedia, proto, generateWAMessageFromContent
+    prepareWAMessageMedia, proto, generateWAMessageFromContent,
+    fetchLatestWaWebVersion
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import * as QRCode from 'qrcode';
@@ -82,13 +83,24 @@ export const initWhatsAppService = async () => {
     console.log('Lazy Loading mode active: Skipping bulk WhatsApp connections on startup.');
 };
 
-export const createInstance = async (instanceId: string) => {
+export const createInstance = async (instanceId: string, retryCount = 0) => {
     const { state, saveCreds } = await useMultiFileAuthState(`sessions/${instanceId}`);
 
+    // Always fetch the latest WhatsApp Web version to avoid 428 errors
+    let version: [number, number, number] = [2, 3000, 1042626022];
+    try {
+        const result = await fetchLatestWaWebVersion();
+        if (result?.version) version = result.version;
+        console.log(`[${instanceId}] Using WA Web version: ${version.join('.')}`);
+    } catch (e) {
+        console.warn(`[${instanceId}] Could not fetch latest WA version, using fallback.`);
+    }
+
     const sock = makeWASocket({
+        version,
         auth: state,
         printQRInTerminal: false,
-        browser: Browsers.macOS('Desktop'),
+        browser: ['Ubuntu', 'Chrome', '20.0.04'],
         logger: pino({ level: 'silent' })
     });
 
@@ -126,8 +138,10 @@ export const createInstance = async (instanceId: string) => {
 
             const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
             if (shouldReconnect) {
-                console.log(`[${instanceId}] Reconnecting in 5s...`);
-                setTimeout(() => createInstance(instanceId), 5000);
+                // Exponential backoff: 5s, 10s, 20s, 40s ... max 60s — prevents IP rate-limiting
+                const delay = Math.min(5000 * Math.pow(2, retryCount), 60000);
+                console.log(`[${instanceId}] Reconnecting in ${delay / 1000}s (attempt ${retryCount + 1})...`);
+                setTimeout(() => createInstance(instanceId, retryCount + 1), delay);
             } else {
                 try {
                     await prisma.instance.update({ where: { id: instanceId }, data: { status: 'disconnected', phoneNumber: null } });
@@ -237,11 +251,23 @@ const doSend = async (sock: any, payload: any, instanceId: string) => {
             headerContent = { hasMediaAttachment: false, title: p.headerText };
         } else if (p.headerType === 'image' && p.headerImageUrl) {
             try {
-                const mediaContent = await prepareWAMessageMedia({ image: { url: p.headerImageUrl } }, { upload: sock.waUploadToServer });
+                let mediaData: any;
+                if (p.isLocalFile) {
+                    const fs = require('fs');
+                    mediaData = fs.readFileSync(p.headerImageUrl);
+                } else {
+                    mediaData = { url: p.headerImageUrl };
+                }
+                const mediaContent = await prepareWAMessageMedia({ image: mediaData }, { upload: sock.waUploadToServer });
                 headerContent = { hasMediaAttachment: true, imageMessage: mediaContent.imageMessage };
             } catch (e) {
                 console.warn('Could not prepare image header, using no header:', e);
                 headerContent = { hasMediaAttachment: false };
+            } finally {
+                if (p.isLocalFile) {
+                    const fs = require('fs');
+                    try { fs.unlinkSync(p.headerImageUrl); } catch (e) {}
+                }
             }
         }
 
@@ -258,12 +284,29 @@ const doSend = async (sock: any, payload: any, instanceId: string) => {
     } else {
         if (payload.file) {
             const caption = payload.text ? payload.text : undefined;
-            if (payload.file.mimetype.startsWith('image/')) {
-                await sock.sendMessage(formattedJid, { image: { url: payload.file.url }, caption });
-            } else if (payload.file.mimetype.startsWith('video/')) {
-                await sock.sendMessage(formattedJid, { video: { url: payload.file.url }, caption });
+            let mediaData: any;
+
+            if (payload.file.isLocalFile) {
+                const fs = require('fs');
+                mediaData = fs.readFileSync(payload.file.url);
             } else {
-                await sock.sendMessage(formattedJid, { document: { url: payload.file.url }, mimetype: payload.file.mimetype, fileName: payload.file.fileName, caption });
+                mediaData = { url: payload.file.url };
+            }
+
+            try {
+                if (payload.file.mimetype.startsWith('image/')) {
+                    await sock.sendMessage(formattedJid, { image: mediaData, caption });
+                } else if (payload.file.mimetype.startsWith('video/')) {
+                    await sock.sendMessage(formattedJid, { video: mediaData, caption });
+                } else {
+                    await sock.sendMessage(formattedJid, { document: mediaData, mimetype: payload.file.mimetype, fileName: payload.file.fileName, caption });
+                }
+            } finally {
+                // Always clean up local file
+                if (payload.file.isLocalFile) {
+                    const fs = require('fs');
+                    try { fs.unlinkSync(payload.file.url); } catch (e) { console.error('Failed to cleanup local file', e); }
+                }
             }
         } else {
             if (!payload.text) throw new Error('Message text is required');
@@ -351,7 +394,7 @@ export const sendMessage = async (
     instanceId: string,
     jid: string,
     text: string,
-    file?: { url: string; mimetype: string; fileName: string }
+    file?: { url: string; mimetype: string; fileName: string; isLocalFile?: boolean }
 ) => {
     return enqueueMessage(instanceId, { isInteractive: false, jid, text, file });
 };
@@ -372,6 +415,7 @@ export interface InteractivePayload {
     headerType: 'none' | 'text' | 'image';
     headerText?: string;
     headerImageUrl?: string;
+    isLocalFile?: boolean;
     body: string;
     footer?: string;
     buttons: InteractiveButton[];

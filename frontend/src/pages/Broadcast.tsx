@@ -115,11 +115,13 @@ export const Broadcast = () => {
   // Text/Media fields
   const [message, setMessage] = useState('');
   const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
 
   // Interactive fields
   const [headerType, setHeaderType] = useState<'none' | 'text' | 'image'>('none');
   const [headerText, setHeaderText] = useState('');
   const [headerImageUrl, setHeaderImageUrl] = useState('');
+  const [headerImageFile, setHeaderImageFile] = useState<File | null>(null);
   const [body, setBody] = useState('');
   const [footer, setFooter] = useState('');
   const [buttons, setButtons] = useState<IButton[]>([{ type: 'quick_reply', label: '', id: 'btn_1' }]);
@@ -185,10 +187,18 @@ export const Broadcast = () => {
           };
         }
 
+        const formData = new FormData();
+        formData.append('payload', JSON.stringify(payload));
+        if (mode === 'text' && mediaFile) {
+            formData.append('file', mediaFile);
+        } else if (mode === 'interactive' && headerImageFile) {
+            formData.append('file', headerImageFile);
+        }
+
         const res = await fetch(`${import.meta.env.VITE_API_URL}/api/instances/${instanceId}/send`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-          body: JSON.stringify(payload)
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          body: formData
         });
         const data = await res.json();
 
@@ -326,7 +336,16 @@ export const Broadcast = () => {
                 </div>
                 <div>
                   <label style={labelStyle}>Media URL <span style={{ color: '#94a3b8', fontWeight: 500 }}>(optional)</span></label>
-                  <input type="text" placeholder="https://example.com/image.jpg" value={mediaUrl} onChange={e => setMediaUrl(e.target.value)} style={inputStyle} />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input type="text" placeholder="https://example.com/image.jpg" value={mediaUrl} onChange={e => { setMediaUrl(e.target.value); setMediaFile(null); }} style={{ ...inputStyle, flex: 1, opacity: mediaFile ? 0.5 : 1 }} disabled={!!mediaFile} />
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: mediaFile ? '#e0e7ff' : '#f1f5f9', border: '1px solid', borderColor: mediaFile ? '#818cf8' : '#cbd5e1', borderRadius: '12px', padding: '0 16px', cursor: 'pointer', position: 'relative', transition: 'all 0.2s', color: mediaFile ? '#4338ca' : '#475569' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{mediaFile ? mediaFile.name : 'Choose File'}</span>
+                      <input type="file" onChange={e => { const f = e.target.files?.[0]; if (f) { setMediaFile(f); setMediaUrl(''); } }} style={{ position: 'absolute', opacity: 0, inset: 0, cursor: 'pointer' }} />
+                      {mediaFile && (
+                        <button onClick={(e) => { e.preventDefault(); setMediaFile(null); }} style={{ marginLeft: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontWeight: 'bold', fontSize: '16px', padding: '0 4px' }}>×</button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -360,7 +379,16 @@ export const Broadcast = () => {
                 {headerType === 'image' && (
                   <div>
                     <label style={labelStyle}>Header Image URL</label>
-                    <input type="text" placeholder="https://example.com/banner.jpg" value={headerImageUrl} onChange={e => setHeaderImageUrl(e.target.value)} style={inputStyle} />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input type="text" placeholder="https://example.com/banner.jpg" value={headerImageUrl} onChange={e => { setHeaderImageUrl(e.target.value); setHeaderImageFile(null); }} style={{ ...inputStyle, flex: 1, opacity: headerImageFile ? 0.5 : 1 }} disabled={!!headerImageFile} />
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: headerImageFile ? '#e0e7ff' : '#f1f5f9', border: '1px solid', borderColor: headerImageFile ? '#818cf8' : '#cbd5e1', borderRadius: '12px', padding: '0 16px', cursor: 'pointer', position: 'relative', transition: 'all 0.2s', color: headerImageFile ? '#4338ca' : '#475569' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{headerImageFile ? headerImageFile.name : 'Choose File'}</span>
+                        <input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) { setHeaderImageFile(f); setHeaderImageUrl(''); } }} style={{ position: 'absolute', opacity: 0, inset: 0, cursor: 'pointer' }} />
+                        {headerImageFile && (
+                          <button onClick={(e) => { e.preventDefault(); setHeaderImageFile(null); }} style={{ marginLeft: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontWeight: 'bold', fontSize: '16px', padding: '0 4px' }}>×</button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
 

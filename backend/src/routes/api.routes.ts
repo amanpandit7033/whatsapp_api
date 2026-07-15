@@ -222,9 +222,39 @@ router.post('/instances/:id/sync', authenticate, async (req: any, res: any) => {
 });
 
 // --- AUTHENTICATED SEND (used by dashboard broadcast) ---
-router.post('/instances/:id/send', authenticate, async (req: any, res: any) => {
+router.post('/instances/:id/send', authenticate, upload.single('file'), async (req: any, res: any) => {
     const instanceId = req.params.id;
-    const { number, message, media, interactive } = req.body;
+    let number, message, media, interactive;
+
+    if (req.body.payload) {
+        try {
+            const p = JSON.parse(req.body.payload);
+            number = p.number;
+            message = p.message;
+            media = p.media;
+            interactive = p.interactive;
+        } catch (e) {
+            return res.status(400).json({ error: 'Invalid payload JSON' });
+        }
+    } else {
+        number = req.body.number;
+        message = req.body.message;
+        media = req.body.media;
+        interactive = req.body.interactive;
+    }
+
+    if (req.file) {
+        if (interactive && interactive.headerType === 'image') {
+            interactive.headerImageUrl = req.file.path;
+            interactive.isLocalFile = true;
+        } else {
+            media = {
+                url: req.file.path,
+                filename: req.file.originalname,
+                isLocalFile: true
+            };
+        }
+    }
 
     if (!number) return res.status(400).json({ error: 'number is required' });
     if (typeof number !== 'string' || number.includes(',')) {
@@ -248,6 +278,7 @@ router.post('/instances/:id/send', authenticate, async (req: any, res: any) => {
             headerType: interactive.headerType || 'none',
             headerText: interactive.headerText || '',
             headerImageUrl: interactive.headerImageUrl || '',
+            isLocalFile: interactive.isLocalFile || false,
             footer: interactive.footer || '',
             buttons: interactive.buttons || [],
             usedFallback: false
@@ -321,7 +352,7 @@ router.post('/instances/:id/send', authenticate, async (req: any, res: any) => {
                 else if (lowerUrl.endsWith('.jpg') || lowerUrl.endsWith('.jpeg')) mimetype = 'image/jpeg';
                 else if (lowerUrl.endsWith('.mp4')) mimetype = 'video/mp4';
                 else if (lowerUrl.endsWith('.pdf')) mimetype = 'application/pdf';
-                await sendMessage(instanceId, number, message || '', { url: media.url, mimetype, fileName: media.filename || media.url.split('/').pop() || 'file' });
+                await sendMessage(instanceId, number, message || '', { url: media.url, mimetype, fileName: media.filename || media.url.split('/').pop() || 'file', isLocalFile: media.isLocalFile });
             } else {
                 await sendMessage(instanceId, number, message || '');
             }
