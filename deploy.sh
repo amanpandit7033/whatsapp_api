@@ -41,10 +41,7 @@ fi
 # 3. BACKEND SETUP
 echo "Setting up Backend..."
 cd backend
-if [ ! -f .env ]; then
-    cp .env.example .env
-    echo "Created backend/.env (using defaults)"
-fi
+echo "PORT=5000" > .env
 
 # Limit npm install concurrency to save RAM
 npm install --no-fund --no-audit
