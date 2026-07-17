@@ -58,10 +58,8 @@ cd ..
 # 4. FRONTEND SETUP
 echo "Setting up Frontend..."
 cd frontend
-if [ ! -f .env ]; then
-    cp .env.example .env
-    echo "Created frontend/.env (using defaults)"
-fi
+echo "VITE_API_URL=/api" > .env
+echo "Created frontend/.env dynamically for Nginx relative routing"
 
 # Build React app (RAM intensive)
 npm install --no-fund --no-audit
