@@ -24,6 +24,19 @@ export const socketIo = io;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Sanitize URLs to fix double-slashes (e.g. from PHP portals)
+app.use((req, res, next) => {
+    req.url = req.url.replace(/\/{2,}/g, '/');
+    next();
+});
+
+// Global Request Logger to help debug PHP portal
+app.use((req, res, next) => {
+    console.log(`[GLOBAL LOG] ${req.method} ${req.originalUrl} - Body:`, req.body);
+    next();
+});
 
 // Load routes
 app.use('/api', apiRoutes);

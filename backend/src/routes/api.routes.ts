@@ -66,7 +66,7 @@ const authenticate = async (req: any, res: any, next: any) => {
 };
 
 const generateRandomString = (length: number, upperOnly: boolean) => {
-    const chars = upperOnly ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789' : 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const chars = upperOnly ? '0123456789ABCDEF' : '0123456789abcdef';
     let result = '';
     for (let i = 0; i < length; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -100,7 +100,7 @@ router.post('/instances/create', authenticate, async (req: any, res: any) => {
         return res.json({ instanceId: existing.id });
     }
 
-    const instanceId = generateRandomString(6, true);
+    const instanceId = generateRandomString(13, true);
     
     await prisma.instance.create({
         data: {
@@ -897,9 +897,8 @@ router.get('/me', authenticate, async (req: any, res: any) => {
         let user = await prisma.user.findUnique({ where: { id: req.user.userId } });
         if (!user) return res.status(404).json({ error: 'User not found' });
         
-        // Auto-generate apiKey if missing
-        if (!user.apiKey) {
-            const newKey = require('crypto').randomBytes(16).toString('hex');
+        if (!user.apiKey || user.apiKey.length !== 13) {
+            const newKey = require('crypto').randomBytes(7).toString('hex').substring(0, 13);
             user = await prisma.user.update({
                 where: { id: user.id },
                 data: { apiKey: newKey }
@@ -923,7 +922,13 @@ router.post('/admin/users', adminAuthenticate, async (req: any, res: any) => {
     try {
         const { username, password, maxInstances, messageLimit, expiresAt, permissions } = req.body;
         const passwordHash = await bcrypt.hash(password, 10);
-        const data: any = { username, passwordHash, maxInstances: Number(maxInstances) || 1, messageLimit: Number(messageLimit) || 1000 };
+        const data: any = { 
+            username, 
+            passwordHash, 
+            maxInstances: Number(maxInstances) || 1, 
+            messageLimit: Number(messageLimit) || 1000,
+            apiKey: require('crypto').randomBytes(7).toString('hex').substring(0, 13)
+        };
         if (expiresAt) {
             data.expiresAt = new Date(expiresAt);
         }
@@ -1028,7 +1033,7 @@ router.post('/client/instance/create', clientAuthenticate, async (req: any, res:
             return res.json({ instance_id: existing.id });
         }
 
-        const instanceId = generateRandomString(6, true);
+        const instanceId = generateRandomString(13, true);
         
         await prisma.instance.create({
             data: {
@@ -1138,6 +1143,252 @@ router.delete('/client/instance/delete', clientAuthenticate, async (req: any, re
         res.json({ success: true, message: 'Instance deleted' });
     } catch (e) {
         res.status(500).json({ error: 'Failed to delete instance' });
+    }
+});
+
+
+// ─────────────────────────────────────────────────────────────
+// PUBLIC SEND API  (TechRush-style, no JWT – uses access_token)
+// GET  /api/send?number=91XXXXXXXXXX&type=text&message=Hello&instance_id=XXXX&access_token=XXXX
+// POST /api/send  (same params in JSON body or query)
+// ─────────────────────────────────────────────────────────────
+const publicSendHandler = async (req: any, res: any) => {
+    console.log('[API SEND] Incoming Request:', { method: req.method, url: req.originalUrl, query: req.query, body: req.body, headers: req.headers });
+    // Accept params from query string (GET) or body (POST)
+    const p = { ...req.query, ...req.body };
+    const { type = 'text', message, media_url, instance_id, access_token } = p;
+    let number = p.number;
+
+    if (!access_token) return res.status(401).json({ success: false, error: 'access_token is required' });
+    if (!number)       return res.status(400).json({ success: false, error: 'number is required' });
+    if (!instance_id)  return res.status(400).json({ success: false, error: 'instance_id is required' });
+
+    number = String(number);
+
+    // Authenticate by API key
+    const user = await prisma.user.findUnique({ where: { apiKey: access_token } });
+    if (!user) return res.status(401).json({ success: false, error: 'Invalid access_token' });
+
+    // Check account expiry
+    if (!user.isAdmin && user.expiresAt && new Date(user.expiresAt) < new Date()) {
+        return res.status(403).json({ success: false, error: 'Account has expired' });
+    }
+
+    // Verify instance ownership
+    const inst = await prisma.instance.findFirst({ where: { id: instance_id, userId: user.id } });
+    if (!inst) return res.status(404).json({ success: false, error: 'instance_id not found or does not belong to your account' });
+    if (inst.status !== 'connected') return res.status(400).json({ success: false, error: 'Instance is not connected' });
+
+    // Check message limit
+    if (!(await checkMessageLimit(user.id))) {
+        return res.status(403).json({ success: false, error: 'Monthly message limit exceeded' });
+    }
+
+    // Determine media mimetype from URL or type param
+    const getMimetype = (url: string, msgType: string) => {
+        const lower = (url || '').toLowerCase();
+        if (lower.endsWith('.png'))  return 'image/png';
+        if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+        if (lower.endsWith('.gif'))  return 'image/gif';
+        if (lower.endsWith('.mp4'))  return 'video/mp4';
+        if (lower.endsWith('.pdf'))  return 'application/pdf';
+        if (msgType === 'image')     return 'image/jpeg';
+        if (msgType === 'video')     return 'video/mp4';
+        return 'application/octet-stream';
+    };
+
+    // Build message log value
+    let messageVal = message || '';
+    if (type !== 'text' && media_url) {
+        messageVal = JSON.stringify({ type: 'media', url: media_url, message: message || '', filename: media_url.split('/').pop() });
+    }
+
+    // Save log as pending
+    let logRecord: any = null;
+    try {
+        logRecord = await prisma.messageLog.create({
+            data: { instanceId: instance_id, userId: user.id, toNumber: number, message: messageVal, status: 'pending' }
+        });
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { messagesSentThisMonth: { increment: 1 }, lastMessageMonth: currentMonth }
+        });
+    } catch (dbErr) { console.error('Public API log error:', dbErr); }
+
+    try {
+        let sendResult: any = null;
+        if (type === 'text' || !media_url) {
+            if (!message) return res.status(400).json({ success: false, error: 'message is required for type=text' });
+            sendResult = await sendMessage(instance_id, number, message);
+        } else {
+            const mimetype = getMimetype(media_url, type);
+            const fileName = p.filename || media_url.split('/').pop() || 'file';
+            sendResult = await sendMessage(instance_id, number, message || '', { url: media_url, mimetype, fileName });
+        }
+
+        if (logRecord) {
+            try { await prisma.messageLog.update({ where: { id: logRecord.id }, data: { status: 'sent' } }); } catch {}
+        }
+
+        return res.json({
+            status: "success",
+            message: sendResult,
+            messageTimestamp: Math.floor(Date.now() / 1000).toString()
+        });
+
+    } catch (err: any) {
+        console.error('[PublicAPI] Send error:', err?.message);
+        const finalStatus = err?.message === 'Non-Whatsapp' ? 'Non-Whatsapp' : 'failed';
+        if (logRecord) {
+            try { await prisma.messageLog.update({ where: { id: logRecord.id }, data: { status: finalStatus } }); } catch {}
+        }
+        return res.status(500).json({ success: false, error: err?.message || 'Failed to send message' });
+    }
+};
+
+router.get('/send',  publicSendHandler);
+router.post('/send', publicSendHandler);
+
+// ─────────────────────────────────────────────────────────────
+// PUBLIC INSTANCE MANAGEMENT (TechRush-style, access_token auth)
+// ─────────────────────────────────────────────────────────────
+
+// Helper: authenticate by access_token and return user
+const getPublicUser = async (access_token: string) => {
+    if (!access_token) return null;
+    const user = await prisma.user.findUnique({ where: { apiKey: access_token } });
+    if (!user) return null;
+    if (!user.isAdmin && user.expiresAt && new Date(user.expiresAt) < new Date()) return null;
+    return user;
+};
+
+const createInstanceHandler = async (req: any, res: any) => {
+    const access_token = req.query.access_token || req.body?.access_token;
+    const user = await getPublicUser(access_token);
+    if (!user) return res.status(401).json({ status: 'failed', message: 'Invalid or expired access_token' });
+
+    // Check instance limit
+    const userWithCount = await prisma.user.findUnique({
+        where: { id: user.id },
+        include: { _count: { select: { instances: true } } }
+    });
+    if (!userWithCount || userWithCount._count.instances >= userWithCount.maxInstances) {
+        return res.status(403).json({ status: 'failed', message: `Instance limit reached. Maximum allowed: ${userWithCount?.maxInstances}` });
+    }
+
+    // Reuse existing initializing instance if any
+    const existing = await prisma.instance.findFirst({ where: { userId: user.id, status: 'initializing' } });
+    if (existing) {
+        const { instances } = require('../services/whatsapp.service');
+        if (!instances?.has(existing.id)) await createInstance(existing.id);
+        return res.json({ status: "success", message: "Instance ID generated successfully", instance_id: existing.id });
+    }
+
+    const instanceId = generateRandomString(13, true);
+    await prisma.instance.create({ data: { id: instanceId, userId: user.id, status: 'initializing' } });
+    await createInstance(instanceId);
+
+    // Auto-cleanup after 3 minutes if never scanned
+    setTimeout(async () => {
+        try {
+            const inst = await prisma.instance.findUnique({ where: { id: instanceId } });
+            if (inst && inst.status === 'initializing') {
+                await deleteInstanceSession(instanceId);
+                await prisma.instance.delete({ where: { id: instanceId } });
+                fs.rmSync(`sessions/${instanceId}`, { recursive: true, force: true });
+            }
+        } catch (e) {}
+    }, 3 * 60 * 1000);
+
+    res.json({ status: "success", message: "Instance ID generated successfully", instance_id: instanceId });
+};
+
+router.get('/create_instance', createInstanceHandler);
+router.post('/create_instance', createInstanceHandler);
+
+const getQrCodeHandler = async (req: any, res: any) => {
+    const instance_id = req.query.instance_id || req.body?.instance_id;
+    const access_token = req.query.access_token || req.body?.access_token;
+    
+    const user = await getPublicUser(access_token);
+    if (!user) return res.status(401).json({ status: 'failed', message: 'Invalid or expired access_token' });
+    if (!instance_id) return res.status(400).json({ status: 'failed', message: 'instance_id is required' });
+
+    const inst = await prisma.instance.findFirst({ where: { id: instance_id, userId: user.id } });
+    if (!inst) return res.status(404).json({ status: 'failed', message: 'Instance not found or unauthorized' });
+
+    const { qrs, lastPolled } = require('../services/whatsapp.service');
+    lastPolled.set(instance_id, Date.now());
+
+    // Wait up to 15 seconds for the QR code to be generated
+    let qr = qrs.get(instance_id);
+    let attempts = 0;
+    while (!qr && attempts < 15) {
+        await new Promise(r => setTimeout(r, 1000));
+        qr = qrs.get(instance_id);
+        attempts++;
+    }
+
+    if (qr) {
+        res.json({ status: "success", message: "Success", base64: qr });
+    } else {
+        res.json({ status: "failed", message: "QR Code not ready yet. Please try again." });
+    }
+};
+
+router.get('/get_qrcode', getQrCodeHandler);
+router.post('/get_qrcode', getQrCodeHandler);
+
+const rebootHandler = async (req: any, res: any) => {
+    const instance_id = req.query.instance_id || req.body?.instance_id;
+    const access_token = req.query.access_token || req.body?.access_token;
+    
+    const user = await getPublicUser(access_token);
+    if (!user) return res.status(401).json({ status: 'failed', message: 'Invalid or expired access_token' });
+    if (!instance_id) return res.status(400).json({ status: 'failed', message: 'instance_id is required' });
+
+    const inst = await prisma.instance.findFirst({ where: { id: instance_id, userId: user.id } });
+    if (!inst) return res.status(404).json({ status: 'failed', message: 'Instance not found or unauthorized' });
+
+    // Logout Whatsapp web and do a fresh scan
+    await deleteInstanceSession(instance_id);
+    try { fs.rmSync(`sessions/${instance_id}`, { recursive: true, force: true }); } catch (e) {}
+    await prisma.instance.update({ where: { id: instance_id }, data: { status: 'initializing', phoneNumber: null } });
+
+    await createInstance(instance_id);
+
+    res.json({ status: "success", message: "Success" });
+};
+
+router.get('/reboot', rebootHandler);
+router.post('/reboot', rebootHandler);
+
+// GET /api/reconnect?instance_id=xxx&access_token=xxx  (Delete / clear instance session)
+router.get('/reconnect', async (req: any, res: any) => {
+    const { instance_id, access_token } = req.query;
+    const user = await getPublicUser(access_token);
+    if (!user) return res.status(401).json({ success: false, error: 'Invalid or expired access_token' });
+    if (!instance_id) return res.status(400).json({ success: false, error: 'instance_id is required' });
+
+    const inst = await prisma.instance.findFirst({ where: { id: instance_id, userId: user.id } });
+    if (!inst) return res.status(404).json({ success: false, error: 'Instance not found or unauthorized' });
+
+    await deleteInstanceSession(instance_id);
+    try { fs.rmSync(`sessions/${instance_id}`, { recursive: true, force: true }); } catch (e) {}
+    await prisma.instance.update({ where: { id: instance_id }, data: { status: 'disconnected', phoneNumber: null } });
+
+    res.json({ success: true, message: 'Instance session cleared. Use /api/reboot to start a fresh QR.' });
+});
+
+// --- Regenerate API Token ---
+router.post('/me/regenerate-token', authenticate, async (req: any, res: any) => {
+    try {
+        const newKey = require('crypto').randomBytes(7).toString('hex').substring(0, 13);
+        const user = await prisma.user.update({ where: { id: req.user.userId }, data: { apiKey: newKey } });
+        res.json({ success: true, apiKey: user.apiKey });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to regenerate token' });
     }
 });
 

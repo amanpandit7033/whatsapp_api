@@ -23,7 +23,8 @@ async function main() {
                 username,
                 passwordHash,
                 isAdmin: true,
-                maxInstances: 100
+                maxInstances: 100,
+                apiKey: require('crypto').randomBytes(7).toString('hex').substring(0, 13)
             }
         });
         console.log(`Created new admin user. Username: ${username}, Password: ${password}`);

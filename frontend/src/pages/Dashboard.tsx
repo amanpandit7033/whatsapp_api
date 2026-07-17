@@ -16,6 +16,8 @@ export const Dashboard = () => {
   const [apiKey, setApiKey] = useState('Loading...');
   const [userData, setUserData] = useState<any>(null);
   const [copied, setCopied] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -68,6 +70,29 @@ export const Dashboard = () => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+  };
+
+  const copyApiUrl = (instanceId: string) => {
+    const baseUrl = import.meta.env.VITE_API_URL;
+    const url = `${baseUrl}/api/send?number=91XXXXXXXXXX&type=text&message=Hello&instance_id=${instanceId}&access_token=${apiKey}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 2000);
+    });
+  };
+
+  const regenerateToken = async () => {
+    if (!confirm('Regenerate your access token? Your existing API integrations using the old token will stop working.')) return;
+    setRegenerating(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/me/regenerate-token`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      if (data.apiKey) setApiKey(data.apiKey);
+    } catch { alert('Failed to regenerate token'); }
+    setRegenerating(false);
   };
 
   const activeCount = instances.filter(i => i.status === 'connected').length;
@@ -319,13 +344,22 @@ export const Dashboard = () => {
           <div className="card" style={{ background: '#0F172A', border: 'none', color: '#FFFFFF' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <KeyIcon size={22} color="#FBBF24" />
-              <div>
-                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Integration Credentials</h4>
-                <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#94A3B8' }}>Base URL: {import.meta.env.VITE_API_URL}</p>
+              <div style={{ flex: 1 }}>
+                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>API Access</h4>
+                <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#94A3B8' }}>Use this token to send messages from any app</p>
               </div>
+              <button onClick={regenerateToken} disabled={regenerating} style={{
+                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                color: '#94A3B8', padding: '5px 10px', borderRadius: '6px',
+                fontSize: '10px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap'
+              }}>
+                {regenerating ? '...' : '↻ Regenerate'}
+              </button>
             </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.08)', padding: '10px 14px', borderRadius: '8px' }}>
+
+            {/* Access Token Row */}
+            <p style={{ margin: '0 0 6px', fontSize: '11px', color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Access Token</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.08)', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px' }}>
               <code style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: '12px', color: '#FBBF24', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {apiKey}
               </code>
@@ -334,13 +368,39 @@ export const Dashboard = () => {
                 padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
                 display: 'inline-flex', alignItems: 'center', gap: '4px', transition: 'all 0.2s'
               }}>
-                {copied ? 'Copied' : 'Copy'}
+                {copied ? '✓ Copied' : 'Copy'}
               </button>
             </div>
-            
-            <p style={{ margin: '14px 0 0', fontSize: '11px', color: '#64748B', fontWeight: 500, textAlign: 'center' }}>
-              View full details under <span onClick={() => navigate('/docs')} style={{ color: 'var(--accent-color)', cursor: 'pointer', textDecoration: 'underline' }}>API Docs</span>
-            </p>
+
+            {/* Live API URL Example */}
+            <p style={{ margin: '0 0 6px', fontSize: '11px', color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Send API (GET)</p>
+            <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '12px 14px', marginBottom: '12px' }}>
+              <code style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: '#A5F3FC', wordBreak: 'break-all', lineHeight: 1.7 }}>
+                <span style={{ color: '#94A3B8' }}>{import.meta.env.VITE_API_URL}</span>
+                <span style={{ color: '#FBBF24' }}>/api/send</span>
+                <span style={{ color: '#E2E8F0' }}>?number=</span><span style={{ color: '#86EFAC' }}>91XXXXXXXXXX</span>
+                <span style={{ color: '#E2E8F0' }}>&type=</span><span style={{ color: '#86EFAC' }}>text</span>
+                <span style={{ color: '#E2E8F0' }}>&message=</span><span style={{ color: '#86EFAC' }}>Hello</span>
+                <span style={{ color: '#E2E8F0' }}>&instance_id=</span><span style={{ color: '#86EFAC' }}>{instances.find(i => i.status === 'connected')?.id || 'YOUR_INSTANCE_ID'}</span>
+                <span style={{ color: '#E2E8F0' }}>&access_token=</span><span style={{ color: '#FBBF24' }}>{apiKey}</span>
+              </code>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => copyApiUrl(instances.find(i => i.status === 'connected')?.id || 'YOUR_INSTANCE_ID')} style={{
+                flex: 1, background: copiedUrl ? '#059669' : '#4F46E5', border: 'none', color: 'white',
+                padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
+              }}>
+                {copiedUrl ? '✓ URL Copied!' : '⎘ Copy API URL'}
+              </button>
+              <button onClick={() => navigate('/docs')} style={{
+                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
+                color: '#94A3B8', padding: '8px 12px', borderRadius: '8px',
+                fontSize: '12px', fontWeight: 700, cursor: 'pointer'
+              }}>
+                Docs
+              </button>
+            </div>
           </div>
 
         </div>

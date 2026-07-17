@@ -67,7 +67,7 @@ setInterval(() => {
             if (sock) {
                 console.log(`[${id}] Sleeping instance due to 5 minutes of inactivity (Lazy Loading).`);
                 intendedClose.add(id);
-                try { sock.ws.close(); } catch (e) {}
+                try { sock.ws.close(); } catch (e) { }
                 instances.delete(id);
                 connectionStatus.delete(id);
                 freeConnectionSlot();
@@ -122,13 +122,13 @@ export const createInstance = async (instanceId: string, retryCount = 0) => {
                 if (inst && inst.status === 'connected') {
                     await prisma.instance.update({ where: { id: instanceId }, data: { status: 'disconnected' } });
                 }
-            } catch (e) {}
+            } catch (e) { }
         }
 
         if (connection === 'close') {
             connectionStatus.set(instanceId, 'close');
             qrs.delete(instanceId);
-            
+
             if (intendedClose.has(instanceId)) {
                 console.log(`[${instanceId}] Connection closed intentionally (Lazy Loading).`);
                 intendedClose.delete(instanceId);
@@ -145,7 +145,7 @@ export const createInstance = async (instanceId: string, retryCount = 0) => {
             } else {
                 try {
                     await prisma.instance.update({ where: { id: instanceId }, data: { status: 'disconnected', phoneNumber: null } });
-                } catch (e) {}
+                } catch (e) { }
                 instances.delete(instanceId);
                 socketIo.emit(`status-${instanceId}`, 'disconnected');
             }
@@ -160,7 +160,7 @@ export const createInstance = async (instanceId: string, retryCount = 0) => {
                     where: { id: instanceId },
                     data: { status: 'connected', phoneNumber }
                 });
-            } catch (e) {}
+            } catch (e) { }
             socketIo.emit(`status-${instanceId}`, 'connected');
         }
     });
@@ -205,7 +205,7 @@ const enqueueMessage = (instanceId: string, payload: any): Promise<void> => {
             messageQueues.set(instanceId, []);
         }
         messageQueues.get(instanceId)!.push({ ...payload, resolve, reject });
-        
+
         // Boot socket if needed, tracking active load limits
         getSocket(instanceId).then(() => {
             drainQueue(instanceId);
@@ -266,21 +266,22 @@ const doSend = async (sock: any, payload: any, instanceId: string) => {
             } finally {
                 if (p.isLocalFile) {
                     const fs = require('fs');
-                    try { fs.unlinkSync(p.headerImageUrl); } catch (e) {}
+                    try { fs.unlinkSync(p.headerImageUrl); } catch (e) { }
                 }
             }
         }
 
         const interactiveMsg = proto.Message.InteractiveMessage.fromObject({
-            header:  proto.Message.InteractiveMessage.Header.fromObject(headerContent),
-            body:    proto.Message.InteractiveMessage.Body.fromObject({ text: p.body }),
-            footer:  proto.Message.InteractiveMessage.Footer.fromObject({ text: p.footer || '' }),
+            header: proto.Message.InteractiveMessage.Header.fromObject(headerContent),
+            body: proto.Message.InteractiveMessage.Body.fromObject({ text: p.body }),
+            footer: proto.Message.InteractiveMessage.Footer.fromObject({ text: p.footer || '' }),
             nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({ buttons: nativeButtons }),
         });
 
         const waMessage = generateWAMessageFromContent(formattedJid, proto.Message.fromObject({ interactiveMessage: interactiveMsg }), { userJid: sock.user?.id || '' });
-        await sock.relayMessage(formattedJid, waMessage.message!, { messageId: waMessage.key?.id! });
+        const res = await sock.relayMessage(formattedJid, waMessage.message!, { messageId: waMessage.key?.id! });
         console.log(`[${instanceId}] ✅ Interactive message sent to ${payload.jid} (${nativeButtons.length} button(s))`);
+        return waMessage;
     } else {
         if (payload.file) {
             const caption = payload.text ? payload.text : undefined;
@@ -295,11 +296,11 @@ const doSend = async (sock: any, payload: any, instanceId: string) => {
 
             try {
                 if (payload.file.mimetype.startsWith('image/')) {
-                    await sock.sendMessage(formattedJid, { image: mediaData, caption });
+                    return await sock.sendMessage(formattedJid, { image: mediaData, caption });
                 } else if (payload.file.mimetype.startsWith('video/')) {
-                    await sock.sendMessage(formattedJid, { video: mediaData, caption });
+                    return await sock.sendMessage(formattedJid, { video: mediaData, caption });
                 } else {
-                    await sock.sendMessage(formattedJid, { document: mediaData, mimetype: payload.file.mimetype, fileName: payload.file.fileName, caption });
+                    return await sock.sendMessage(formattedJid, { document: mediaData, mimetype: payload.file.mimetype, fileName: payload.file.fileName, caption });
                 }
             } finally {
                 // Always clean up local file
@@ -310,7 +311,7 @@ const doSend = async (sock: any, payload: any, instanceId: string) => {
             }
         } else {
             if (!payload.text) throw new Error('Message text is required');
-            await sock.sendMessage(formattedJid, { text: payload.text });
+            return await sock.sendMessage(formattedJid, { text: payload.text });
         }
     }
 };
@@ -318,12 +319,12 @@ const doSend = async (sock: any, payload: any, instanceId: string) => {
 const drainQueue = async (instanceId: string) => {
     if (isDraining.get(instanceId)) return;
     isDraining.set(instanceId, true);
-    
+
     const queue = messageQueues.get(instanceId)!;
-    
+
     while (queue && queue.length > 0) {
         const payload = queue[0];
-        
+
         const isOpen = await waitUntilConnected(instanceId);
         if (!isOpen) {
             console.error(`[${instanceId}] Timeout waiting for socket to open. Dropping message.`);
@@ -343,25 +344,26 @@ const drainQueue = async (instanceId: string) => {
         let success = false;
         let attempt = 1;
         let lastError: any = null;
-        
+        let sendResult: any = null;
+
         while (attempt <= 3 && !success) {
             try {
                 if (connectionStatus.get(instanceId) !== 'open') {
                     const reconnected = await waitUntilConnected(instanceId);
                     if (!reconnected) throw new Error('Socket disconnected during retry wait');
                 }
-                
-                await doSend(sock, payload, instanceId);
+
+                sendResult = await doSend(sock, payload, instanceId);
                 success = true;
             } catch (err: any) {
                 lastError = err;
                 console.warn(`[${instanceId}] Send failed (attempt ${attempt}/3):`, err.message || err);
-                
+
                 // If it's explicitly a non-whatsapp number, don't retry. Fast-fail it.
                 if (err.message === 'Non-Whatsapp') {
                     break;
                 }
-                
+
                 if (attempt === 3) {
                     console.error(`[${instanceId}] Failed to send message after 3 attempts. Dropping.`);
                     break;
@@ -370,20 +372,20 @@ const drainQueue = async (instanceId: string) => {
                 attempt++;
             }
         }
-        
+
         queue.shift();
-        
+
         if (success) {
-            payload.resolve();
+            payload.resolve(sendResult);
         } else {
             payload.reject(lastError || new Error('Failed to send after 3 attempts'));
         }
-        
+
         if (queue.length > 0) {
             await new Promise(r => setTimeout(r, 500));
         }
     }
-    
+
     isDraining.set(instanceId, false);
 };
 
@@ -439,7 +441,7 @@ export const getSocket = async (instanceId: string) => {
         console.log(`[${instanceId}] Connection limit reached. Waiting in queue...`);
         await new Promise((resolve) => waitingQueue.push({ instanceId, resolve }));
     }
-    
+
     if (instances.has(instanceId)) {
         freeConnectionSlot();
         return instances.get(instanceId)!;

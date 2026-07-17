@@ -131,6 +131,8 @@ const EndpointDoc = ({ method, path, title, desc, params, reqExample, resExample
 export const ApiDocs = () => {
   const [apiKey, setApiKey] = useState<string>('Loading...');
   const [copied, setCopied] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -148,7 +150,104 @@ export const ApiDocs = () => {
     });
   };
 
+  const copyApiUrl = () => {
+    const url = `${import.meta.env.VITE_API_URL}/api/send?number=919876543210&type=text&message=Hello&instance_id=YOUR_INSTANCE_ID&access_token=${apiKey}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 2000);
+    });
+  };
+
+  const regenerateToken = async () => {
+    if (!confirm('Regenerate your access token? Existing integrations using the old token will stop working.')) return;
+    setRegenerating(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/me/regenerate-token`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      if (data.apiKey) setApiKey(data.apiKey);
+    } catch { alert('Failed to regenerate token'); }
+    setRegenerating(false);
+  };
+
   const messagingEndpoints: IEndpoint[] = [
+    {
+      method: 'GET',
+      path: '/api/send',
+      title: 'Quick Send API (Simple URL)',
+      desc: 'The easiest way to send a WhatsApp message — just paste the URL in a browser or call it from any language. No JSON body or JWT token needed, only your access_token.',
+      params: [
+        { name: 'number', type: 'string', req: true, desc: 'Recipient phone number with country code. E.g. 919876543210' },
+        { name: 'type', type: 'string', req: false, desc: 'Message type: text (default), image, video, document' },
+        { name: 'message', type: 'string', req: true, desc: 'Text content of the message (also used as caption for media).' },
+        { name: 'instance_id', type: 'string', req: true, desc: 'Your connected WhatsApp instance ID.' },
+        { name: 'access_token', type: 'string', req: true, desc: 'Your personal API access token (shown on this page).' },
+        { name: 'media_url', type: 'string', req: false, desc: 'Public URL of the media file. Required when type is image/video/document.' },
+      ],
+      reqExample: {
+        title: 'GET REQUEST URL (Text)',
+        code: `GET ${import.meta.env.VITE_API_URL}/api/send?number=919876543210&type=text&message=Hello+World&instance_id=YOUR_INSTANCE_ID&access_token=YOUR_ACCESS_TOKEN`
+      },
+      resExample: {
+        title: 'RESPONSE JSON',
+        code: JSON.stringify({
+          success: true,
+          message: "Message queued",
+          message_id: "uuid-xxxx-xxxx"
+        }, null, 2)
+      }
+    },
+    {
+      method: 'POST',
+      path: '/api/send',
+      title: 'Send Media & File',
+      desc: 'Send a media or file with message to a phone number through the app.',
+      params: [
+        { name: 'number', type: 'int', req: true, desc: 'Recipient phone number with country code. E.g. 84933313xxx' },
+        { name: 'type', type: 'string', req: true, desc: 'Must be set to "media"' },
+        { name: 'message', type: 'string', req: false, desc: 'Caption for the media file.' },
+        { name: 'media_url', type: 'string', req: true, desc: 'Public URL of the media file (image, video, document).' },
+        { name: 'filename', type: 'string', req: false, desc: '(Just use for send document) Custom filename.' },
+        { name: 'instance_id', type: 'string', req: true, desc: 'Your connected WhatsApp instance ID.' },
+        { name: 'access_token', type: 'string', req: true, desc: 'Your personal API access token.' }
+      ],
+      reqExample: {
+        title: 'POST REQUEST JSON BODY',
+        code: JSON.stringify({
+          number: "84933313123",
+          type: "media",
+          message: "test message",
+          media_url: "https://i.pravatar.cc",
+          filename: "file_test.jpg",
+          instance_id: "609ACF283XXXX",
+          access_token: "678fab7d0622c"
+        }, null, 2)
+      },
+      resExample: {
+        title: 'RESPONSE JSON',
+        code: JSON.stringify({
+          status: "success",
+          message: {
+            key: {
+              remoteJid: "84933313123@s.whatsapp.net",
+              fromMe: true,
+              id: "3EB000942D2822315D8255"
+            },
+            message: {
+              imageMessage: {
+                url: "https://mmg.whatsapp.net/...",
+                mimetype: "image/jpeg",
+                caption: "test message"
+              }
+            },
+            messageTimestamp: "1784269041",
+            status: "SUCCESS"
+          }
+        }, null, 2)
+      }
+    },
     {
       method: 'POST',
       path: '/api/message/send',
@@ -405,6 +504,88 @@ export const ApiDocs = () => {
     }
   ];
 
+  const publicInstanceEndpoints: IEndpoint[] = [
+    {
+      method: 'POST',
+      path: '/api/create_instance',
+      title: 'Programmatic Create Instance',
+      desc: 'Create a new WhatsApp instance programmatically. Returns an instance_id you can use to poll the QR code. Respects your account instance limit.',
+      params: [
+        { name: 'access_token', type: 'string', req: true, desc: 'Your personal API access token.' },
+      ],
+      reqExample: {
+        title: 'POST REQUEST URL',
+        code: `POST ${import.meta.env.VITE_API_URL}/api/create_instance?access_token=YOUR_ACCESS_TOKEN`
+      },
+      resExample: {
+        title: 'RESPONSE JSON',
+        code: JSON.stringify({ 
+          status: "success", 
+          message: "Instance ID generated successfully", 
+          instance_id: 'ABC123XXX' 
+        }, null, 2)
+      }
+    },
+    {
+      method: 'POST',
+      path: '/api/get_qrcode',
+      title: 'Fetch Connection QR Code',
+      desc: 'Poll this endpoint every 3 seconds after creating an instance to retrieve the Base64 QR code image for scanning. Returns null if QR is not yet ready.',
+      params: [
+        { name: 'instance_id', type: 'string', req: true, desc: 'The instance ID returned by /api/create_instance.' },
+        { name: 'access_token', type: 'string', req: true, desc: 'Your personal API access token.' },
+      ],
+      reqExample: {
+        title: 'POST REQUEST URL',
+        code: `POST ${import.meta.env.VITE_API_URL}/api/get_qrcode?instance_id=ABC123XXX&access_token=YOUR_ACCESS_TOKEN`
+      },
+      resExample: {
+        title: 'RESPONSE JSON',
+        code: JSON.stringify({ 
+          status: "success", 
+          message: "Success", 
+          base64: 'data:image/png;base64,iVBORw0KGgo...' 
+        }, null, 2)
+      }
+    },
+    {
+      method: 'POST',
+      path: '/api/reboot',
+      title: 'Reboot Instance',
+      desc: 'Logout Whatsapp web and do a fresh scan.',
+      params: [
+        { name: 'instance_id', type: 'string', req: true, desc: 'Target instance ID.' },
+        { name: 'access_token', type: 'string', req: true, desc: 'Your personal API access token.' },
+      ],
+      reqExample: {
+        title: 'POST REQUEST URL',
+        code: `POST ${import.meta.env.VITE_API_URL}/api/reboot?instance_id=ABC123XXX&access_token=YOUR_ACCESS_TOKEN`
+      },
+      resExample: {
+        title: 'RESPONSE JSON',
+        code: JSON.stringify({ status: "success", message: 'Success' }, null, 2)
+      }
+    },
+    {
+      method: 'GET',
+      path: '/api/reconnect',
+      title: 'Delete Instance Session',
+      desc: 'Clear and wipe the WhatsApp session for this instance. The device will be logged out and the session files deleted. Use /api/reboot afterwards to start fresh.',
+      params: [
+        { name: 'instance_id', type: 'string', req: true, desc: 'Target instance ID.' },
+        { name: 'access_token', type: 'string', req: true, desc: 'Your personal API access token.' },
+      ],
+      reqExample: {
+        title: 'GET REQUEST URL',
+        code: `GET ${import.meta.env.VITE_API_URL}/api/reconnect?instance_id=ABC123&access_token=YOUR_ACCESS_TOKEN`
+      },
+      resExample: {
+        title: 'RESPONSE JSON',
+        code: JSON.stringify({ success: true, message: 'Instance session cleared. Use /api/reboot to start a fresh QR.' }, null, 2)
+      }
+    },
+  ];
+
   return (
     <div className="animate-in" style={S.container}>
       {/* Top Banner: Page Intro & API Key Display */}
@@ -430,6 +611,7 @@ export const ApiDocs = () => {
             </div>
           </div>
 
+          {/* Access Token Row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '14px 18px' }}>
             <code style={{ flex: 1, fontSize: '14px', fontFamily: 'var(--font-mono)', color: '#FBBF24', fontWeight: 700, letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {apiKey}
@@ -442,7 +624,50 @@ export const ApiDocs = () => {
               {copied ? <CheckIcon size={14} color="white" /> : <CopyIcon size={14} color="white" />}
               {copied ? 'Copied!' : 'Copy Key'}
             </button>
+            <button onClick={regenerateToken} disabled={regenerating} style={{
+              background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px',
+              padding: '8px 14px', color: '#94A3B8', fontSize: '12px', fontWeight: 700, cursor: 'pointer', flexShrink: 0
+            }}>
+              {regenerating ? '...' : '↻ Regenerate'}
+            </button>
           </div>
+
+          {/* Live URL Builder */}
+          <div>
+            <p style={{ margin: '0 0 8px', fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Quick Send URL — paste in browser to test</p>
+            <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '12px', padding: '14px 18px', marginBottom: '12px' }}>
+              <code style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: '#A5F3FC', wordBreak: 'break-all', lineHeight: 1.8 }}>
+                <span style={{ color: '#94A3B8' }}>{import.meta.env.VITE_API_URL}</span>
+                <span style={{ color: '#FBBF24' }}>/api/send</span>
+                <span style={{ color: '#E2E8F0' }}>?number=</span><span style={{ color: '#86EFAC' }}>919876543210</span>
+                <span style={{ color: '#E2E8F0' }}>&type=</span><span style={{ color: '#86EFAC' }}>text</span>
+                <span style={{ color: '#E2E8F0' }}>&message=</span><span style={{ color: '#86EFAC' }}>Hello</span>
+                <span style={{ color: '#E2E8F0' }}>&instance_id=</span><span style={{ color: '#86EFAC' }}>YOUR_INSTANCE_ID</span>
+                <span style={{ color: '#E2E8F0' }}>&access_token=</span><span style={{ color: '#FBBF24' }}>{apiKey}</span>
+              </code>
+            </div>
+            <button onClick={copyApiUrl} style={{
+              width: '100%', background: copiedUrl ? '#059669' : '#4F46E5', border: 'none', borderRadius: '10px',
+              padding: '10px', color: 'white', fontSize: '13px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
+            }}>
+              {copiedUrl ? '✓ URL Copied to Clipboard!' : '⎘ Copy Quick Send URL'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 0: Public Instance Management */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '8px', marginTop: '16px' }}>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <DeviceIcon size={20} color="#059669" /> Public Instance Management API
+          </h3>
+          <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#64748B', fontWeight: 500 }}>Manage instances using only your <code style={{ background: '#F1F5F9', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>access_token</code> — no JWT needed. Compatible with any language or platform.</p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {publicInstanceEndpoints.map(ep => (
+            <EndpointDoc key={ep.method + ep.path} {...ep} />
+          ))}
         </div>
       </div>
 
