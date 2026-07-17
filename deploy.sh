@@ -114,6 +114,11 @@ sudo ln -sf $NGINX_CONF /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl restart nginx
 
+# Open Firewall for Web Traffic
+echo "Opening firewall for port 80..."
+sudo ufw allow 80/tcp || true
+sudo ufw allow 'Nginx Full' || true
+
 echo "==============================================="
 echo "✅ DEPLOYMENT COMPLETE!"
 echo "Dashboard available at: http://$DOMAIN"
