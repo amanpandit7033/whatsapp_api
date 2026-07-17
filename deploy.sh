@@ -74,6 +74,12 @@ cd ..
 
 # 6. CONFIGURE NGINX
 echo "Configuring Nginx..."
+
+# Move frontend to /var/www to avoid permission issues if run from /root
+sudo mkdir -p /var/www/whatsapp_api
+sudo cp -r $(pwd)/frontend/dist/* /var/www/whatsapp_api/
+sudo chown -R www-data:www-data /var/www/whatsapp_api
+
 DOMAIN=$(curl -s http://checkip.amazonaws.com || echo "localhost")
 NGINX_CONF="/etc/nginx/sites-available/whatsapp-api"
 sudo bash -c "cat > $NGINX_CONF" << EOL
@@ -83,7 +89,7 @@ server {
 
     # Frontend
     location / {
-        root $(pwd)/frontend/dist;
+        root /var/www/whatsapp_api;
         index index.html index.htm;
         try_files \$uri \$uri/ /index.html;
     }
