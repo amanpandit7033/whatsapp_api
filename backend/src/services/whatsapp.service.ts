@@ -90,7 +90,7 @@ export const createInstance = async (instanceId: string, retryCount = 0) => {
     let version: [number, number, number] = [2, 3000, 1042626022];
     try {
         const result = await fetchLatestWaWebVersion();
-        if (result?.version) version = result.version;
+        if (result?.version) version = result.version as [number, number, number];
         console.log(`[${instanceId}] Using WA Web version: ${version.join('.')}`);
     } catch (e) {
         console.warn(`[${instanceId}] Could not fetch latest WA version, using fallback.`);
