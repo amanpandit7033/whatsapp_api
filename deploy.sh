@@ -55,7 +55,7 @@ cd ..
 # 4. FRONTEND SETUP
 echo "Setting up Frontend..."
 cd frontend
-echo "VITE_API_URL=/api" > .env
+echo "VITE_API_URL=" > .env
 echo "Created frontend/.env dynamically for Nginx relative routing"
 
 # Build React app (RAM intensive)
