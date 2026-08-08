@@ -18,11 +18,13 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
   const username = localStorage.getItem('username') || (isAdmin ? 'Admin' : 'User');
   const avatarLetter = username.charAt(0).toUpperCase();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
 
-  // Auto-close sidebar on page change (for mobile viewports)
+  // Auto-close sidebar on page change for mobile/tablet viewports
   useEffect(() => {
-    setIsSidebarOpen(false);
+    if (window.innerWidth < 1024) {
+      setIsSidebarOpen(false);
+    }
   }, [location.pathname]);
 
   const handleLogout = () => {
@@ -51,19 +53,6 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="app-container">
-      {/* Mobile Top Header */}
-      <header className="mobile-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#2563EB', fontWeight: 800, fontSize: '18px', letterSpacing: '-0.03em' }}>
-          <div style={{ width: 26, height: 26, background: '#2563EB', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 900, fontSize: '14px' }}>
-            W
-          </div>
-          WhatsApp API
-        </div>
-        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="mobile-hamburger">
-          {isSidebarOpen ? <XIcon size={24} color="#0F172A" /> : <ListIcon size={24} color="#0F172A" />}
-        </button>
-      </header>
-
       {/* Sidebar Backdrop Overlay */}
       <div
         className={`sidebar-backdrop ${isSidebarOpen ? 'show' : ''}`}
@@ -71,7 +60,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       />
 
       {/* Shopeers Style Clean Sidebar */}
-      <aside className={`app-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+      <aside className={`app-sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
         {/* Brand Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px', padding: '0 4px', color: '#0F172A', fontWeight: 800, fontSize: '20px', letterSpacing: '-0.03em' }}>
           <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 900, fontSize: '16px', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)' }}>
@@ -130,6 +119,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       <main className="content-area custom-scrollbar">
         {/* Top Header Bar with Royal Blue Brand Gradient */}
         <header
+          className="top-header-bar"
           style={{
             padding: '16px 32px',
             background: 'linear-gradient(135deg, #1E40AF 0%, #2563EB 50%, #1D4ED8 100%)',
@@ -144,18 +134,27 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             zIndex: 10,
           }}
         >
-          {/* Left Side: Page Title Indicator */}
-          <div>
-            <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
-              {location.pathname === '/' ? 'Dashboard' :
-               location.pathname.startsWith('/profile') ? 'Profile & Security' :
-               location.pathname.startsWith('/instances') ? 'Instances' :
-               location.pathname.startsWith('/broadcast') ? 'Broadcast' :
-               location.pathname.startsWith('/reports') ? 'Reports' :
-               location.pathname.startsWith('/docs') ? 'API Documentation' :
-               location.pathname.startsWith('/admin') ? 'Admin Panel' : 'Overview'}
-            </h3>
-            <span style={{ fontSize: '12px', color: '#DBEAFE', fontWeight: 600 }}>WhatsApp API Gateway</span>
+          {/* Left Side: Hamburger Toggle (Mobile) + Page Title Indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+              className="top-header-hamburger"
+              aria-label="Toggle Navigation"
+            >
+              {isSidebarOpen ? <XIcon size={22} color="#FFFFFF" /> : <ListIcon size={22} color="#FFFFFF" />}
+            </button>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
+                {location.pathname === '/' ? 'Dashboard' :
+                 location.pathname.startsWith('/profile') ? 'Profile & Security' :
+                 location.pathname.startsWith('/instances') ? 'Instances' :
+                 location.pathname.startsWith('/broadcast') ? 'Broadcast' :
+                 location.pathname.startsWith('/reports') ? 'Reports' :
+                 location.pathname.startsWith('/docs') ? 'API Documentation' :
+                 location.pathname.startsWith('/admin') ? 'Admin Panel' : 'Overview'}
+              </h3>
+              <span style={{ fontSize: '12px', color: '#DBEAFE', fontWeight: 600 }}>WhatsApp API Gateway</span>
+            </div>
           </div>
 
           {/* Right Side: Profile Card (Clickable to /profile) */}

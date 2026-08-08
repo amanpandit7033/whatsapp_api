@@ -200,7 +200,7 @@ export const Profile = () => {
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div className="profile-pw-grid">
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '6px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>New Password</label>
               <input

@@ -201,7 +201,7 @@ export const Dashboard = () => {
       </div>
 
       {/* 2. Middle Grid Section */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr', gap: '24px' }}>
+      <div className="dashboard-grid">
         
         {/* Left Hand Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>

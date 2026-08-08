@@ -243,7 +243,7 @@ export const Broadcast = () => {
       </div>
 
       {/* Mode Selector Tabs (Shopeers SaaS Style) */}
-      <div style={{ display: 'flex', gap: '12px' }}>
+      <div className="mode-tabs-container" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
         {([
           { key: 'text', icon: SendIcon, label: 'Text / Media Campaign' },
           { key: 'interactive', icon: SparklesIcon, label: 'Interactive CTA Buttons' },
@@ -275,7 +275,7 @@ export const Broadcast = () => {
         })}
       </div>
 
-      <div className="broadcast-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '24px' }}>
+      <div className="broadcast-grid">
         {/* LEFT COLUMN */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
@@ -515,7 +515,7 @@ export const Broadcast = () => {
 
           {/* Step 5: Summary + Send */}
           <div className="card">
-            <div style={{ background: '#F8FAFC', borderRadius: '14px', padding: '16px 20px', border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div className="summary-strip-card">
               {[
                 { label: 'SELECTED INSTANCES', val: selectedInstances.length, color: '#2563EB' },
                 { label: 'TOTAL RECIPIENTS', val: numberList.length, color: '#059669' },

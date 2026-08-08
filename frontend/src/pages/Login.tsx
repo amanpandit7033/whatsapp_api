@@ -73,7 +73,7 @@ export const Login = () => {
               </div>
             </div>
 
-            <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#0F172A', margin: '0 0 8px', letterSpacing: '-0.02em' }}>
+            <h2 className="auth-card-title" style={{ fontSize: '26px', fontWeight: 800, color: '#0F172A', margin: '0 0 8px', letterSpacing: '-0.02em' }}>
               Sign In to Your Account
             </h2>
             <p style={{ fontSize: '14px', color: '#64748B', margin: 0, fontWeight: 500, lineHeight: 1.5 }}>
@@ -162,7 +162,7 @@ export const Login = () => {
         <div style={{ position: 'absolute', width: '500px', height: '500px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 70%)', bottom: '-100px', left: '-100px', pointerEvents: 'none' }} />
 
         {/* API Console Showcase Window */}
-        <div style={{ position: 'relative', width: '100%', maxWidth: '480px', marginBottom: '40px', zIndex: 10 }}>
+        <div className="auth-terminal-window" style={{ position: 'relative', width: '100%', maxWidth: '480px', marginBottom: '40px', zIndex: 10 }}>
           
           {/* Glassmorphic Card Container */}
           <div style={{ background: 'rgba(255, 255, 255, 0.12)', backdropFilter: 'blur(20px)', borderRadius: '24px', padding: '24px', border: '1px solid rgba(255, 255, 255, 0.25)', boxShadow: '0 25px 60px rgba(0, 0, 0, 0.25)' }}>
@@ -194,12 +194,12 @@ export const Login = () => {
           </div>
 
           {/* Floating Pill Badges with SVG Icons */}
-          <div style={{ position: 'absolute', top: '-18px', right: '-18px', background: '#FFFFFF', padding: '10px 18px', borderRadius: '14px', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="floating-badge-top" style={{ position: 'absolute', top: '-18px', right: '-18px', background: '#FFFFFF', padding: '10px 18px', borderRadius: '14px', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <DeviceIcon size={18} color="#2563EB" />
             <span style={{ fontSize: '12px', fontWeight: 800, color: '#0F172A' }}>Multi-Instance Router</span>
           </div>
 
-          <div style={{ position: 'absolute', bottom: '-18px', left: '-18px', background: '#FFFFFF', padding: '10px 18px', borderRadius: '14px', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="floating-badge-bottom" style={{ position: 'absolute', bottom: '-18px', left: '-18px', background: '#FFFFFF', padding: '10px 18px', borderRadius: '14px', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <CheckCircleIcon size={18} color="#059669" />
             <span style={{ fontSize: '12px', fontWeight: 800, color: '#0F172A' }}>99.9% Delivery Guarantee</span>
           </div>

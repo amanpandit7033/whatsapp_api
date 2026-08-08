@@ -241,7 +241,7 @@ export const AdminPanel = () => {
 
             <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {/* 2-Column Grid for Form Fields */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+              <div className="admin-form-grid">
                 <div>
                   <label style={S.label}>Username</label>
                   <input type="text" placeholder="e.g. john_doe" value={newUsername} onChange={e => setNewUsername(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
@@ -268,7 +268,7 @@ export const AdminPanel = () => {
               {/* Menu Permissions as Styled Interactive Chips */}
               <div>
                 <label style={S.label}>Menu Permissions</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginTop: '6px' }}>
+                <div className="admin-perms-grid">
                   {[
                     { id: 'instances', name: 'Instances' },
                     { id: 'broadcast', name: 'Broadcast' },
@@ -359,7 +359,7 @@ export const AdminPanel = () => {
 
             <form onSubmit={handleUpdateUser} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {/* 2-Column Grid Layout */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+              <div className="admin-form-grid">
                 <div>
                   <label style={S.label}>New Password <span style={{ color: '#94A3B8', fontWeight: 500 }}>(leave blank to keep)</span></label>
                   <input type="password" value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="••••••••" className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
@@ -381,7 +381,7 @@ export const AdminPanel = () => {
               {/* Menu Permissions as Styled Interactive Chips */}
               <div>
                 <label style={S.label}>Menu Permissions</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginTop: '6px' }}>
+                <div className="admin-perms-grid">
                   {[
                     { id: 'instances', name: 'Instances' },
                     { id: 'broadcast', name: 'Broadcast' },
