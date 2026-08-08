@@ -41,7 +41,7 @@ router.post('/auth/login', async (req, res) => {
     const isExpired = !user.isAdmin && user.expiresAt && new Date(user.expiresAt) < new Date();
     
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1d' });
-    res.json({ token, isAdmin: user.isAdmin, isExpired, permissions: user.permissions });
+    res.json({ token, isAdmin: user.isAdmin, isExpired, permissions: user.permissions, username: user.username });
 });
 
 // Middleware for user auth
@@ -64,6 +64,58 @@ const authenticate = async (req: any, res: any, next: any) => {
         res.status(401).json({ error: 'Invalid token' });
     }
 };
+
+// --- USER PROFILE & PASSWORD ---
+router.get('/auth/profile', authenticate, async (req: any, res: any) => {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: req.user.userId },
+            select: {
+                id: true,
+                username: true,
+                isAdmin: true,
+                maxInstances: true,
+                messageLimit: true,
+                messagesSentThisMonth: true,
+                expiresAt: true,
+                createdAt: true,
+                permissions: true,
+                _count: { select: { instances: true } }
+            }
+        });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        res.json({ user });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message || 'Failed to fetch profile' });
+    }
+});
+
+router.put('/auth/profile', authenticate, async (req: any, res: any) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        if (newPassword) {
+            if (!currentPassword) {
+                return res.status(400).json({ error: 'Current password is required to change password' });
+            }
+            const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+            if (!isMatch) {
+                return res.status(400).json({ error: 'Incorrect current password' });
+            }
+            const passwordHash = await bcrypt.hash(newPassword, 10);
+            await prisma.user.update({
+                where: { id: req.user.userId },
+                data: { passwordHash }
+            });
+        }
+
+        res.json({ success: true, message: 'Profile updated successfully' });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message || 'Failed to update profile' });
+    }
+});
 
 const generateRandomString = (length: number, upperOnly: boolean) => {
     const chars = upperOnly ? '0123456789ABCDEF' : '0123456789abcdef';

@@ -9,6 +9,7 @@ import { ApiDocs } from './pages/ApiDocs';
 import { Reports } from './pages/Reports';
 import { AdminPanel } from './pages/AdminPanel';
 import { Expired } from './pages/Expired';
+import { Profile } from './pages/Profile';
 import { Layout } from './components/Layout';
 
 const ProtectedRoute = ({ children, requiredPermission }: { children: React.ReactNode, requiredPermission?: string }) => {
@@ -34,6 +35,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/expired" element={<Expired />} />
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/instances" element={<ProtectedRoute requiredPermission="instances"><Instances /></ProtectedRoute>} />
         <Route path="/scan" element={<ProtectedRoute requiredPermission="instances"><Scan /></ProtectedRoute>} />
         <Route path="/broadcast" element={<ProtectedRoute requiredPermission="broadcast"><Broadcast /></ProtectedRoute>} />

@@ -16,6 +16,8 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
+  const username = localStorage.getItem('username') || (isAdmin ? 'Admin' : 'User');
+  const avatarLetter = username.charAt(0).toUpperCase();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Auto-close sidebar on page change (for mobile viewports)
@@ -26,6 +28,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('isAdmin');
+    localStorage.removeItem('username');
     navigate('/login');
   };
 
@@ -125,12 +128,13 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
 
       {/* Main Content Area */}
       <main className="content-area custom-scrollbar">
-        {/* Top Header Bar with Profile Section */}
+        {/* Top Header Bar with Royal Blue Brand Gradient */}
         <header
           style={{
-            padding: '14px 32px',
-            background: '#FFFFFF',
-            borderBottom: '1px solid #E2E8F0',
+            padding: '16px 32px',
+            background: 'linear-gradient(135deg, #1E40AF 0%, #2563EB 50%, #1D4ED8 100%)',
+            borderBottom: 'none',
+            boxShadow: '0 4px 20px rgba(37, 99, 235, 0.2)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -142,65 +146,59 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         >
           {/* Left Side: Page Title Indicator */}
           <div>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em' }}>
+            <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
               {location.pathname === '/' ? 'Dashboard' :
+               location.pathname.startsWith('/profile') ? 'Profile & Security' :
                location.pathname.startsWith('/instances') ? 'Instances' :
                location.pathname.startsWith('/broadcast') ? 'Broadcast' :
                location.pathname.startsWith('/reports') ? 'Reports' :
                location.pathname.startsWith('/docs') ? 'API Documentation' :
                location.pathname.startsWith('/admin') ? 'Admin Panel' : 'Overview'}
             </h3>
-            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: 500 }}>WhatsApp API Gateway</span>
+            <span style={{ fontSize: '12px', color: '#DBEAFE', fontWeight: 600 }}>WhatsApp API Gateway</span>
           </div>
 
-          {/* Right Side: Profile Section */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F8FAFC', padding: '6px 12px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981' }}></span>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#059669' }}>Live</span>
-            </div>
-
-            <div 
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '10px', 
-                padding: '5px 12px 5px 6px', 
-                borderRadius: '12px', 
-                background: '#FFFFFF', 
-                border: '1px solid #E2E8F0',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+          {/* Right Side: Profile Card (Clickable to /profile) */}
+          <div 
+            onClick={() => navigate('/profile')}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '12px', 
+              padding: '6px 16px 6px 8px', 
+              borderRadius: '12px', 
+              background: 'rgba(255, 255, 255, 0.15)', 
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {/* Profile Avatar */}
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: '8px',
+                background: '#FFFFFF',
+                color: '#2563EB',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: '14px',
+                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
+                flexShrink: 0,
               }}
             >
-              {/* Profile Avatar */}
-              <div
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  fontSize: '14px',
-                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
-                }}
-              >
-                {isAdmin ? 'A' : 'U'}
-              </div>
-
-              {/* Profile Name & Badge */}
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
-                  {isAdmin ? 'System Admin' : 'API User'}
-                </span>
-                <span style={{ fontSize: '11px', color: '#2563EB', fontWeight: 700, marginTop: '2px' }}>
-                  {isAdmin ? 'Administrator' : 'Standard Plan'}
-                </span>
-              </div>
+              {avatarLetter}
             </div>
+
+            {/* Profile Username Only */}
+            <span style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
+              {username}
+            </span>
           </div>
         </header>
 

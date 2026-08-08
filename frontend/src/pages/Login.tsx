@@ -1,25 +1,34 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MailIcon, LockIcon, WhatsAppIcon, ApiIcon, SendIcon } from '../components/Icons';
+import { LockIcon, WhatsAppIcon, UserIcon, ShieldIcon, CheckCircleIcon, DeviceIcon, SendIcon } from '../components/Icons';
 
 export const Login = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+    setError(null);
+    setLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}${endpoint}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
       const data = await res.json();
+      setLoading(false);
+      
       if (data.token) {
         localStorage.setItem('token', data.token);
+        if (data.username) {
+          localStorage.setItem('username', data.username);
+        } else {
+          localStorage.setItem('username', username);
+        }
         if (data.isAdmin) {
           localStorage.setItem('isAdmin', 'true');
         } else {
@@ -36,124 +45,177 @@ export const Login = () => {
           localStorage.removeItem('isExpired');
           navigate('/');
         }
-      } else if (!isLogin && data.message) {
-        setIsLogin(true);
-        alert('Registered successfully. Please login.');
       } else {
-        alert(data.error);
+        setError(data.error || 'Invalid credentials');
       }
     } catch (e) {
-      alert('Network error');
+      setLoading(false);
+      setError('Unable to connect to authentication server');
     }
   };
 
   return (
-    <div className="auth-split-screen">
+    <div className="auth-split-screen" style={{ background: '#F8FAFC', minHeight: '100vh', display: 'flex' }}>
       
-      {/* LEFT SIDE: Form */}
-      <div className="auth-split-left">
-        <div className="auth-card animate-in">
-          <div style={{ textAlign: 'left', marginBottom: '32px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '40px', color: '#0b47ff', fontWeight: 800, fontSize: '20px' }}>
-              <div style={{ width: 24, height: 24, background: '#0b47ff', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ width: 8, height: 8, background: '#fff', borderRadius: '50%' }}></div>
+      {/* LEFT SIDE: Login Form */}
+      <div className="auth-split-left" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 32px' }}>
+        <div className="auth-card animate-in" style={{ width: '100%', maxWidth: '400px', padding: 0 }}>
+          
+          {/* Brand Header */}
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #2563EB, #1D4ED8)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px rgba(37, 99, 235, 0.25)' }}>
+                <WhatsAppIcon size={24} color="#FFFFFF" />
               </div>
-              dotwork
+              <div>
+                <h1 style={{ margin: 0, fontSize: '19px', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1.2 }}>WhatsApp Gateway</h1>
+                <p style={{ margin: 0, fontSize: '11px', fontWeight: 800, color: '#2563EB', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Enterprise Control Panel</p>
+              </div>
             </div>
-            <h2 className="auth-title">
-              Welcome Back
+
+            <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#0F172A', margin: '0 0 8px', letterSpacing: '-0.02em' }}>
+              Sign In to Your Account
             </h2>
-            <p className="auth-subtitle">Sign in to WA API Gateway</p>
+            <p style={{ fontSize: '14px', color: '#64748B', margin: 0, fontWeight: 500, lineHeight: 1.5 }}>
+              Enter your administrative or account credentials below to access the gateway panel.
+            </p>
           </div>
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div className="form-group" style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
-                <MailIcon size={18} />
+          {error && (
+            <div style={{ background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '12px', padding: '12px 16px', color: '#DC2626', fontSize: '13px', fontWeight: 600, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>⚠️</span> {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '8px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Username</label>
+              <div style={{ position: 'relative' }}>
+                <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                  <UserIcon size={18} />
+                </div>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  className="rounded-input"
+                  style={{ paddingLeft: '46px', width: '100%', height: '48px', fontSize: '14px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid #E2E8F0' }}
+                  placeholder="Enter username"
+                  required
+                />
               </div>
-              <input
-                type="text"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                className="rounded-input"
-                style={{ paddingLeft: '44px', width: '100%', boxSizing: 'border-box' }}
-                placeholder="Username"
-                required
-              />
             </div>
-            <div className="form-group" style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#9CA3AF', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
-                <LockIcon size={18} />
+
+            <div className="form-group" style={{ margin: 0 }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '8px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Password</label>
+              <div style={{ position: 'relative' }}>
+                <div style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                  <LockIcon size={18} />
+                </div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="rounded-input"
+                  style={{ paddingLeft: '46px', width: '100%', height: '48px', fontSize: '14px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid #E2E8F0' }}
+                  placeholder="••••••••••••"
+                  required
+                />
               </div>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="rounded-input"
-                style={{ paddingLeft: '44px', width: '100%', boxSizing: 'border-box' }}
-                placeholder="Password"
-                required
-              />
             </div>
-            
-            <div style={{ marginTop: '24px' }}>
-              <button
-                type="submit"
-                className="btn-primary"
-                style={{ width: '100%' }}
-              >
-                Login
-              </button>
-            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary"
+              style={{
+                width: '100%', height: '50px', fontSize: '15px', fontWeight: 800, borderRadius: '12px', marginTop: '6px',
+                background: '#2563EB', border: 'none', color: '#FFFFFF', cursor: 'pointer',
+                fontFamily: 'var(--font-sans)', letterSpacing: '-0.01em',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                boxShadow: '0 4px 16px rgba(37, 99, 235, 0.35)', transition: 'all 0.2s ease'
+              }}
+            >
+              {loading ? (
+                'Authenticating...'
+              ) : (
+                <>
+                  <span>Sign In to Panel</span>
+                  <SendIcon size={16} color="#FFFFFF" />
+                </>
+              )}
+            </button>
           </form>
+
+          {/* Security Footnote */}
+          <div style={{ marginTop: '36px', paddingTop: '20px', borderTop: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#94A3B8', fontSize: '12px', fontWeight: 600 }}>
+            <ShieldIcon size={14} color="#94A3B8" /> 256-Bit SSL Encrypted Admin Access
+          </div>
         </div>
       </div>
 
-      {/* RIGHT SIDE: Blue Graphic */}
-      <div className="auth-split-right">
-        <div className="auth-graphic-circle">
-          <div className="auth-graphic-circle-inner"></div>
-          <div className="auth-graphic-floating" style={{ width: 48, height: 48, top: 40, left: 60, color: '#0b47ff' }}>
-            <WhatsAppIcon size={24} />
-          </div>
-          <div className="auth-graphic-floating" style={{ width: 64, height: 64, left: -32, color: '#0b47ff' }}>
-            <ApiIcon size={32} />
-          </div>
-          <div className="auth-graphic-floating" style={{ width: 56, height: 56, bottom: 40, left: 80, color: '#0b47ff' }}>
-            <SendIcon size={28} />
-          </div>
+      {/* RIGHT SIDE: Vibrant Royal Blue SaaS Visual Panel */}
+      <div className="auth-split-right" style={{ flex: 1.2, background: 'linear-gradient(135deg, #1E40AF 0%, #2563EB 50%, #1D4ED8 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px', position: 'relative', overflow: 'hidden' }}>
+        
+        {/* Glowing Background Orbs */}
+        <div style={{ position: 'absolute', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 70%)', top: '-120px', right: '-120px', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', width: '500px', height: '500px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 70%)', bottom: '-100px', left: '-100px', pointerEvents: 'none' }} />
+
+        {/* API Console Showcase Window */}
+        <div style={{ position: 'relative', width: '100%', maxWidth: '480px', marginBottom: '40px', zIndex: 10 }}>
           
-          <div className="auth-graphic-mockup">
-            <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-              <div style={{ width: 10, height: 10, background: '#ef4444', borderRadius: '50%' }}></div>
-              <div style={{ width: 10, height: 10, background: '#f59e0b', borderRadius: '50%' }}></div>
-              <div style={{ width: 10, height: 10, background: '#10b981', borderRadius: '50%' }}></div>
+          {/* Glassmorphic Card Container */}
+          <div style={{ background: 'rgba(255, 255, 255, 0.12)', backdropFilter: 'blur(20px)', borderRadius: '24px', padding: '24px', border: '1px solid rgba(255, 255, 255, 0.25)', boxShadow: '0 25px 60px rgba(0, 0, 0, 0.25)' }}>
+            {/* Header bar */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#FF5F56' }} />
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#FFBD2E' }} />
+                <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#27C93F' }} />
+                <span style={{ fontSize: '12px', fontWeight: 800, color: '#FFFFFF', fontFamily: 'var(--font-mono)', marginLeft: '8px', letterSpacing: '0.04em' }}>
+                  api_gateway.log
+                </span>
+              </div>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: '#059669', background: '#D1FAE5', padding: '4px 12px', borderRadius: '9999px', boxShadow: '0 2px 6px rgba(0,0,0,0.06)' }}>
+                ● 200 OK
+              </span>
             </div>
-            <div style={{ background: '#fff', borderRadius: 8, height: 32, marginBottom: 8, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
-              <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Avatar" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }} />
-              <div style={{ width: 120, height: 8, background: '#e2e8f0', borderRadius: 4, marginLeft: 12 }}></div>
+
+            {/* Code Output Box */}
+            <div style={{ background: '#0F172A', borderRadius: '16px', padding: '20px', color: '#F8FAFC', fontFamily: 'var(--font-mono)', fontSize: '13px', lineHeight: '1.7', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div style={{ color: '#38BDF8', marginBottom: '6px', fontWeight: 700 }}>POST /api/v1/broadcast/send</div>
+              <div style={{ color: '#94A3B8' }}>&#123;</div>
+              <div style={{ paddingLeft: '16px' }}><span style={{ color: '#A7F3D0' }}>"instanceId"</span>: <span style={{ color: '#FDE047' }}>"inst_sales_01"</span>,</div>
+              <div style={{ paddingLeft: '16px' }}><span style={{ color: '#A7F3D0' }}>"recipient"</span>: <span style={{ color: '#FDE047' }}>"+919876543210"</span>,</div>
+              <div style={{ paddingLeft: '16px' }}><span style={{ color: '#A7F3D0' }}>"deliveryStatus"</span>: <span style={{ color: '#6EE7B7' }}>"DELIVERED"</span>,</div>
+              <div style={{ paddingLeft: '16px' }}><span style={{ color: '#A7F3D0' }}>"latencyMs"</span>: <span style={{ color: '#F472B6' }}>14</span></div>
+              <div style={{ color: '#94A3B8' }}>&#125;</div>
             </div>
-            <div style={{ background: '#fff', borderRadius: 8, height: 32, marginBottom: 8, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
-              <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Avatar" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }} />
-              <div style={{ width: 100, height: 8, background: '#e2e8f0', borderRadius: 4, marginLeft: 12 }}></div>
-            </div>
-            <div style={{ background: '#fff', borderRadius: 8, height: 32, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
-              <img src="https://randomuser.me/api/portraits/men/46.jpg" alt="Avatar" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }} />
-              <div style={{ width: 80, height: 8, background: '#e2e8f0', borderRadius: 4, marginLeft: 12 }}></div>
-            </div>
+          </div>
+
+          {/* Floating Pill Badges with SVG Icons */}
+          <div style={{ position: 'absolute', top: '-18px', right: '-18px', background: '#FFFFFF', padding: '10px 18px', borderRadius: '14px', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <DeviceIcon size={18} color="#2563EB" />
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#0F172A' }}>Multi-Instance Router</span>
+          </div>
+
+          <div style={{ position: 'absolute', bottom: '-18px', left: '-18px', background: '#FFFFFF', padding: '10px 18px', borderRadius: '14px', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <CheckCircleIcon size={18} color="#059669" />
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#0F172A' }}>99.9% Delivery Guarantee</span>
           </div>
         </div>
 
-        <div className="auth-split-right-content" style={{ marginTop: '300px' }}>
-          <h2 className="auth-split-right-title">connect with every applications</h2>
-          <p className="auth-split-right-subtitle">Everything you need a customizable dashboard</p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 32 }}>
-            <div style={{ width: 8, height: 8, background: '#fff', borderRadius: '50%' }}></div>
-            <div style={{ width: 8, height: 8, background: '#fff', borderRadius: '50%', opacity: 0.5 }}></div>
-            <div style={{ width: 8, height: 8, background: '#fff', borderRadius: '50%', opacity: 0.5 }}></div>
-          </div>
+        {/* Text Copy */}
+        <div style={{ textAlign: 'center', zIndex: 10, maxWidth: '440px' }}>
+          <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 10px', letterSpacing: '-0.02em' }}>
+            Enterprise WhatsApp Control Panel
+          </h2>
+          <p style={{ fontSize: '14px', color: '#DBEAFE', margin: 0, fontWeight: 500, lineHeight: 1.6 }}>
+            Streamlined authentication portal for managing WhatsApp paired instances, automated broadcasts, and RESTful webhooks.
+          </p>
         </div>
       </div>
     </div>
   );
 };
+
