@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { UserIcon, ShieldIcon, WarningIcon, UserPlusIcon, SearchIcon, EditIcon, CheckCircleIcon } from '../components/Icons';
+import { UserIcon, ShieldIcon, WarningIcon, UserPlusIcon, SearchIcon, EditIcon, CheckCircleIcon, GlassIcon } from '../components/Icons';
 
 const S: Record<string, React.CSSProperties> = {
   label: { display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748B', marginBottom: '8px' },
@@ -78,118 +78,135 @@ export const AdminPanel = () => {
         </button>
       </div>
 
-      {/* Stat strip */}
+      {/* Stat strip (Shopeers Style) */}
       <div className="stats-grid">
         {[
-          { label: 'Total Users', val: totalUsers, icon: UserIcon, color: '#7C3AED', bg: '#F3E8FF' },
-          { label: 'Admins', val: adminCount, icon: ShieldIcon, color: '#3B82F6', bg: '#DBEAFE' },
-          { label: 'Active', val: activeCount, icon: CheckCircleIcon, color: '#10B981', bg: '#D1FAE5' },
-          { label: 'Expired', val: expiredCount, icon: WarningIcon, color: '#EF4444', bg: '#FEE2E2' },
-        ].map(({ label, val, icon: IconComponent, color, bg }) => (
-          <div key={label} className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '24px 28px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <IconComponent size={16} color={color} />
+          { label: 'Total Users', val: totalUsers, sub: 'Registered accounts', badge: 'Total', bg: '#EFF6FF', color: '#2563EB', icon: UserIcon },
+          { label: 'Admins', val: adminCount, sub: 'System Managers', badge: 'Admin', bg: '#EFF6FF', color: '#2563EB', icon: ShieldIcon },
+          { label: 'Active Users', val: activeCount, sub: 'Valid Subscriptions', badge: 'Active', bg: '#D1FAE5', color: '#059669', icon: CheckCircleIcon },
+          { label: 'Expired Users', val: expiredCount, sub: 'Needs Renewal', badge: 'Expired', bg: '#FEE2E2', color: '#DC2626', icon: WarningIcon },
+        ].map(({ label, val, sub, badge, bg, color, icon: IconComp }) => (
+          <div key={label} className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>{label}</span>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconComp size={16} color={color} />
               </div>
             </div>
             <div>
-              <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A', margin: 0 }}>{label}</p>
-              <p style={{ fontSize: '13px', fontWeight: 500, color: '#64748B', margin: '2px 0 0' }}>{val} accounts</p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+                <span style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>{val}</span>
+                <span className={`badge ${badge === 'Expired' ? 'badge-danger' : 'badge-success'}`}>▲ {badge}</span>
+              </div>
+              <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>{sub}</span>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Users Table */}
+      {/* Users Table Card (Shopeers Redesigned SaaS Style) */}
       <div className="card" style={{ padding: '24px 0', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '16px', padding: '0 32px' }}>
-            <h3 style={{ fontWeight: 800, fontSize: '15px', color: '#0F172A', margin: 0 }}>Manage Users</h3>
-            <div style={{ position: 'relative' }}>
-              <SearchIcon size={14} color="#94A3B8" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-              <input
-                type="text" placeholder="Search…" value={search}
-                onChange={e => { setSearch(e.target.value); setPage(1); }}
-                className="rounded-input" style={{ width: '240px', paddingRight: '36px' }}
-              />
-            </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '20px', padding: '0 28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em' }}>Manage System Users</h3>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#2563EB', background: '#EFF6FF', padding: '3px 10px', borderRadius: '9999px' }}>
+              {totalUsers} Accounts
+            </span>
           </div>
-
-          <div style={{ overflowX: 'auto' }} className="custom-scrollbar">
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
-                  {['User', 'Instances', 'Monthly Limit', 'Expiry', 'Joined', 'Action'].map(h => (
-                    <th key={h} style={{ padding: '16px 32px', fontSize: '13px', fontWeight: 600, color: '#64748B' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user, i) => {
-                  const isExpired = user.expiresAt && new Date(user.expiresAt) < new Date();
-                  const usagePct = Math.min(100, (user._count.instances / user.maxInstances) * 100);
-                  const Icon = user.isAdmin ? ShieldIcon : UserIcon;
-                  return (
-                    <tr key={user.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                      <td style={{ padding: '16px 32px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: user.isAdmin ? '#F3E8FF' : '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <Icon size={18} color={user.isAdmin ? '#7C3AED' : '#64748B'} />
-                          </div>
-                          <div>
-                            <p style={{ fontWeight: 600, fontSize: '14px', color: '#0F172A', margin: 0 }}>{user.username}</p>
-                            {user.isAdmin && <span style={{ background: '#F3E8FF', color: '#7C3AED', padding: '1px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 800 }}>ADMIN</span>}
-                          </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: '16px 32px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '14px' }}>{user._count.instances}</span>
-                          <span style={{ color: '#94A3B8', fontSize: '13px', fontWeight: 500 }}>/ {user.maxInstances}</span>
-                        </div>
-                        <div style={{ height: '4px', background: '#F1F5F9', borderRadius: '9999px', marginTop: '6px', width: '60px', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', borderRadius: '9999px', background: usagePct >= 100 ? '#EF4444' : '#7C3AED', width: `${usagePct}%`, transition: 'width 0.5s' }} />
-                        </div>
-                      </td>
-                      <td style={{ padding: '16px 32px' }}>
-                        <span style={{ fontWeight: 600, color: '#0F172A', fontSize: '14px' }}>{user.messageLimit}</span>
-                      </td>
-                      <td style={{ padding: '16px 32px' }}>
-                        {user.expiresAt ? (
-                          <span style={{ fontSize: '13px', fontWeight: 600, color: isExpired ? '#DC2626' : '#0F172A' }}>
-                            {isExpired ? '⚠ ' : ''}{new Date(user.expiresAt).toLocaleDateString()}
-                          </span>
-                        ) : <span style={{ fontSize: '13px', color: '#94A3B8', fontStyle: 'italic', fontWeight: 500 }}>Never</span>}
-                      </td>
-                      <td style={{ padding: '16px 32px', fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </td>
-                      <td style={{ padding: '16px 32px' }}>
-                        <button onClick={() => { setEditingUser({ ...user }); setEditPassword(''); }} style={{
-                          background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '8px',
-                          padding: '6px 12px', fontSize: '13px', fontWeight: 600, color: '#0F172A',
-                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
-                        }}>
-                          <EditIcon size={14} color="#0F172A" /> Edit
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {users.length === 0 && (
-                  <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#94A3B8', fontWeight: 500 }}>No users found</td></tr>
-                )}
-              </tbody>
-            </table>
+          <div style={{ position: 'relative', width: '240px' }}>
+            <input
+              type="text" 
+              placeholder="Search user..." 
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+              className="rounded-input" 
+              style={{ height: '38px', paddingLeft: '38px', paddingRight: '16px', fontSize: '13px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0' }}
+            />
+            <SearchIcon size={16} color="#94A3B8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
           </div>
-
-          {totalPages > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 32px 0' }}>
-              <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ background: 'none', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '6px 14px', fontSize: '13px', fontWeight: 600, color: page === 1 ? '#CBD5E1' : '#0F172A', cursor: page === 1 ? 'not-allowed' : 'pointer' }}>← Prev</button>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748B' }}>Page {page} / {totalPages}</span>
-              <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} style={{ background: 'none', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '6px 14px', fontSize: '13px', fontWeight: 600, color: page === totalPages ? '#CBD5E1' : '#0F172A', cursor: page === totalPages ? 'not-allowed' : 'pointer' }}>Next →</button>
-            </div>
-          )}
         </div>
+
+        <div style={{ overflowX: 'auto' }} className="custom-scrollbar">
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
+                <th style={{ padding: '14px 28px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>USER ACCOUNT</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>INSTANCES</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>MONTHLY LIMIT</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>EXPIRY</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>JOINED</th>
+                <th style={{ padding: '14px 28px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase', textAlign: 'right' }}>ACTION</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => {
+                const isExpired = user.expiresAt && new Date(user.expiresAt) < new Date();
+                const usagePct = Math.min(100, (user._count.instances / user.maxInstances) * 100);
+                const Icon = user.isAdmin ? ShieldIcon : UserIcon;
+                return (
+                  <tr key={user.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.15s ease' }}>
+                    <td style={{ padding: '16px 28px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: user.isAdmin ? '#F3E8FF' : '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Icon size={18} color={user.isAdmin ? '#7C3AED' : '#2563EB'} />
+                        </div>
+                        <div>
+                          <p style={{ fontWeight: 800, fontSize: '14px', color: '#0F172A', margin: 0, lineHeight: 1.2 }}>{user.username}</p>
+                          {user.isAdmin && <span style={{ background: '#F3E8FF', color: '#7C3AED', padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 800, marginTop: '2px', display: 'inline-block' }}>ADMIN</span>}
+                        </div>
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontWeight: 800, color: '#0F172A', fontSize: '14px' }}>{user._count.instances}</span>
+                        <span style={{ color: '#94A3B8', fontSize: '13px', fontWeight: 600 }}>/ {user.maxInstances}</span>
+                      </div>
+                      <div style={{ height: '5px', background: '#F1F5F9', borderRadius: '9999px', marginTop: '6px', width: '70px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', borderRadius: '9999px', background: usagePct >= 100 ? '#EF4444' : '#2563EB', width: `${usagePct}%`, transition: 'width 0.5s' }} />
+                      </div>
+                    </td>
+                    <td style={{ padding: '16px 16px' }}>
+                      <span style={{ fontWeight: 800, color: '#0F172A', fontSize: '14px', fontFamily: 'var(--font-mono)' }}>{user.messageLimit.toLocaleString()}</span>
+                    </td>
+                    <td style={{ padding: '16px 16px' }}>
+                      {user.expiresAt ? (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: isExpired ? '#FEE2E2' : '#EFF6FF', padding: '4px 10px', borderRadius: '8px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 800, color: isExpired ? '#DC2626' : '#2563EB' }}>
+                            {isExpired ? '⚠️ ' : '📅 '}{new Date(user.expiresAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      ) : <span style={{ fontSize: '12px', color: '#94A3B8', fontStyle: 'italic', fontWeight: 600 }}>Never</span>}
+                    </td>
+                    <td style={{ padding: '16px 16px', fontSize: '13px', color: '#64748B', fontWeight: 600 }}>
+                      {new Date(user.createdAt).toLocaleDateString()}
+                    </td>
+                    <td style={{ padding: '16px 28px', textAlign: 'right' }}>
+                      <button onClick={() => { setEditingUser({ ...user }); setEditPassword(''); }} style={{
+                        background: '#EFF6FF', border: 'none', borderRadius: '10px',
+                        padding: '8px 14px', fontSize: '13px', fontWeight: 700, color: '#2563EB',
+                        cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease'
+                      }}>
+                        <EditIcon size={14} color="#2563EB" /> Edit
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {users.length === 0 && (
+                <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: '#94A3B8', fontWeight: 500 }}>No users found</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 28px 0' }}>
+            <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '6px 16px', fontSize: '13px', fontWeight: 700, color: page === 1 ? '#CBD5E1' : '#0F172A', cursor: page === 1 ? 'not-allowed' : 'pointer' }}>← Prev</button>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>Page {page} of {totalPages}</span>
+            <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '6px 16px', fontSize: '13px', fontWeight: 700, color: page === totalPages ? '#CBD5E1' : '#0F172A', cursor: page === totalPages ? 'not-allowed' : 'pointer' }}>Next →</button>
+          </div>
+        )}
+      </div>
 
       {/* Add User Modal */}
       {isAddUserModalOpen && createPortal(

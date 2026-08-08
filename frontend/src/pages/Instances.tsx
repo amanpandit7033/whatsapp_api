@@ -2,9 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   PlusIcon, 
-  DeviceIcon, 
-  CheckCircleIcon, 
-  ChartIcon, 
   SearchIcon, 
   ExportIcon, 
   TrashIcon, 
@@ -13,9 +10,18 @@ import {
   EyeIcon,
   LogoutIcon,
   XIcon,
-  WarningCircleIcon,
-  RefreshIcon
+  RefreshIcon,
+  DeviceIcon,
+  CheckCircleIcon,
+  ChartIcon,
+  WarningIcon,
 } from '../components/Icons';
+import {
+  Glass3DDeviceIcon,
+  Glass3DShieldIcon,
+  Glass3DChartIcon,
+  Glass3DCalendarIcon,
+} from '../components/Glass3DIcons';
 
 export const Instances = () => {
   const [instances, setInstances] = useState<any[]>([]);
@@ -149,11 +155,11 @@ export const Instances = () => {
   const paginatedInstances = filteredInstances.slice(startIndex, startIndex + itemsPerPage);
 
   return (
-    <div className="animate-in">
+    <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', margin: '0 0 4px' }}>WhatsApp Instances</h2>
+          <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', margin: '0 0 4px', letterSpacing: '-0.02em' }}>WhatsApp Instances</h2>
           <p style={{ color: '#64748B', fontSize: '14px', margin: 0, fontWeight: 500 }}>Create and link multiple WhatsApp numbers to use via API.</p>
         </div>
         <button onClick={() => navigate('/scan')} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
@@ -161,76 +167,57 @@ export const Instances = () => {
         </button>
       </div>
       
-      {/* Stat Cards Row */}
-      <div className="stats-grid" style={{ marginBottom: '24px' }}>
-        
-        {/* Total Instances */}
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '20px 24px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <DeviceIcon size={16} color="#0F172A" />
+      {/* Stat Cards Row (Shopeers Style) */}
+      <div className="stats-grid">
+        {[
+          { label: 'Total Instances', val: instances.length, sub: 'Registered', badge: 'Active', bg: '#EFF6FF', color: '#2563EB', icon: DeviceIcon },
+          { label: 'Active Connections', val: activeCount, sub: 'Connected', badge: 'Online', bg: '#D1FAE5', color: '#059669', icon: CheckCircleIcon },
+          { label: 'Connection Rate', val: `${connectionRate}%`, sub: 'Overall', badge: 'High SLA', bg: '#EFF6FF', color: '#2563EB', icon: ChartIcon },
+          { label: 'Offline Instances', val: instances.length - activeCount, sub: 'Disconnected', badge: 'Attention', bg: '#FEE2E2', color: '#DC2626', icon: WarningIcon },
+        ].map(({ label, val, sub, badge, bg, color, icon: IconComp }) => (
+          <div key={label} className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>{label}</span>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconComp size={16} color={color} />
+              </div>
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+                <span style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>{val}</span>
+                <span className={`badge ${badge === 'Attention' ? 'badge-danger' : 'badge-success'}`}>▲ {badge}</span>
+              </div>
+              <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>{sub}</span>
+            </div>
           </div>
-          <div>
-            <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>Total Instances</p>
-            <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748B', fontWeight: 500 }}>{instances.length} Registered</p>
-          </div>
-        </div>
-
-        {/* Active Connections */}
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '20px 24px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CheckCircleIcon size={16} color="#059669" />
-          </div>
-          <div>
-            <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>Active Connections</p>
-            <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748B', fontWeight: 500 }}>{activeCount} Connected</p>
-          </div>
-        </div>
-
-        {/* Connection Rate */}
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '20px 24px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#F3E8FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ChartIcon size={16} color="#7C3AED" />
-          </div>
-          <div>
-            <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>Connection Rate</p>
-            <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748B', fontWeight: 500 }}>{connectionRate}% Overall</p>
-          </div>
-        </div>
-
-        {/* Offline Instances */}
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '20px 24px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <WarningCircleIcon size={16} color="#EF4444" />
-          </div>
-          <div>
-            <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>Offline Instances</p>
-            <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748B', fontWeight: 500 }}>{instances.length - activeCount} Disconnected</p>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Instances Table Card */}
+        ))}
+      </div>      {/* Instances Table Card (Shopeers Redesigned SaaS Style) */}
       <div className="card" style={{ padding: '24px 0' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', padding: '0 24px', marginBottom: '20px', gap: '16px' }}>
-          <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>Instances List</h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', padding: '0 28px', marginBottom: '20px', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em' }}>Instances Directory</h3>
+            <span style={{ fontSize: '12px', fontWeight: 800, color: '#2563EB', background: '#EFF6FF', padding: '3px 10px', borderRadius: '9999px' }}>
+              {totalCount} Active
+            </span>
+          </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
-            <div style={{ position: 'relative', width: '200px' }}>
+            <div style={{ position: 'relative', width: '220px' }}>
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search phone or ID..."
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 className="rounded-input"
-                style={{ height: '36px', paddingRight: '36px', fontSize: '13px' }}
+                style={{ height: '38px', paddingLeft: '38px', paddingRight: '16px', fontSize: '13px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0' }}
               />
-              <SearchIcon size={16} color="#94A3B8" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <SearchIcon size={16} color="#94A3B8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             </div>
             <button onClick={handleExportCSV} style={{ 
-              background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '0 16px', height: '36px', 
-              fontSize: '13px', fontWeight: 600, color: '#0F172A', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' 
+              background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0 16px', height: '38px', 
+              fontSize: '13px', fontWeight: 700, color: '#0F172A', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.02)', transition: 'all 0.2s ease'
             }}>
-              Export CSV <ExportIcon size={14} color="#0F172A" />
+              <ExportIcon size={14} color="#2563EB" /> Export CSV
             </button>
           </div>
         </div>
@@ -239,85 +226,85 @@ export const Instances = () => {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
             <thead>
               <tr style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
-                <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: '#64748B', width: '60px' }}>#</th>
-                <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: 600, color: '#64748B' }}>Instance ID</th>
-                <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: 600, color: '#64748B' }}>Phone</th>
-                <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: 600, color: '#64748B' }}>Status</th>
-                <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: 600, color: '#64748B' }}>Manage</th>
-                <th style={{ padding: '16px 24px', fontSize: '13px', fontWeight: 600, color: '#64748B', textAlign: 'right' }}>Action</th>
+                <th style={{ padding: '14px 28px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase', width: '60px' }}>#</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Instance ID</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Linked Phone</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Status</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Manage</th>
+                <th style={{ padding: '14px 28px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase', textAlign: 'right' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {paginatedInstances.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#94A3B8', fontSize: '14px', fontWeight: 500 }}>
+                  <td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: '#94A3B8', fontSize: '14px', fontWeight: 500 }}>
                     No instances found.
                   </td>
                 </tr>
               ) : paginatedInstances.map((inst, idx) => (
-                <tr key={inst.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ padding: '16px 24px', fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>
+                <tr key={inst.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.15s ease' }}>
+                  <td style={{ padding: '16px 28px', fontSize: '13px', fontWeight: 700, color: '#64748B' }}>
                     {(startIndex + idx + 1).toString().padStart(2, '0')}
                   </td>
-                  <td style={{ padding: '16px 12px', fontSize: '14px', fontWeight: 500, color: '#0F172A' }}>
+                  <td style={{ padding: '16px 16px', fontSize: '14px', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)' }}>
                     {inst.id}
                   </td>
-                  <td style={{ padding: '16px 12px', fontSize: '14px', fontWeight: 500, color: '#0F172A' }}>
-                    {inst.phoneNumber ? `+${inst.phoneNumber}` : '-'}
+                  <td style={{ padding: '16px 16px', fontSize: '14px', fontWeight: 700, color: '#0F172A' }}>
+                    {inst.phoneNumber ? `+${inst.phoneNumber}` : <span style={{ color: '#94A3B8', fontWeight: 500 }}>Not paired</span>}
                   </td>
-                  <td style={{ padding: '16px 12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className={`status-dot ${inst.status === 'connected' ? 'active' : 'suspended'}`}></span>
-                      <span style={{ fontSize: '13px', fontWeight: 500, color: inst.status === 'connected' ? 'var(--success-color)' : 'var(--danger-color)', textTransform: 'capitalize' }}>
+                  <td style={{ padding: '16px 16px' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: inst.status === 'connected' ? '#D1FAE5' : '#FEE2E2', padding: '4px 12px', borderRadius: '9999px' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: inst.status === 'connected' ? '#059669' : '#DC2626' }}></span>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: inst.status === 'connected' ? '#059669' : '#DC2626', textTransform: 'capitalize' }}>
                         {inst.status}
                       </span>
                     </div>
                   </td>
-                  <td style={{ padding: '16px 12px' }}>
+                  <td style={{ padding: '16px 16px' }}>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       {inst.status !== 'connected' && (
                         <button
                           onClick={() => navigate(`/scan?id=${inst.id}`)}
                           style={{
-                            background: 'var(--accent-light)',
+                            background: '#EFF6FF',
                             border: 'none',
-                            color: 'var(--accent-color)',
+                            color: '#2563EB',
                             cursor: 'pointer',
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
+                            width: '34px',
+                            height: '34px',
+                            borderRadius: '10px',
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            transition: 'all 0.2s',
+                            transition: 'all 0.2s ease',
                             padding: '0'
                           }}
-                          title="View / Scan QR"
+                          title="View / Scan QR Code"
                         >
-                          <EyeIcon size={18} />
+                          <EyeIcon size={16} color="#2563EB" />
                         </button>
                       )}
                       <button
                         onClick={() => handleSync(inst.id)}
                         disabled={syncingId === inst.id}
                         style={{
-                          background: 'var(--accent-light)',
+                          background: '#EFF6FF',
                           border: 'none',
-                          color: 'var(--accent-color)',
+                          color: '#2563EB',
                           cursor: syncingId === inst.id ? 'not-allowed' : 'pointer',
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '8px',
+                          width: '34px',
+                          height: '34px',
+                          borderRadius: '10px',
                           display: 'inline-flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          transition: 'all 0.2s',
+                          transition: 'all 0.2s ease',
                           padding: '0',
                           opacity: syncingId === inst.id ? 0.5 : 1
                         }}
-                        title="Sync Status"
+                        title="Sync Instance Status"
                       >
-                        <RefreshIcon size={16} />
+                        <RefreshIcon size={16} color="#2563EB" />
                       </button>
                       {inst.status === 'connected' && (
                         <button
@@ -325,28 +312,32 @@ export const Instances = () => {
                           style={{
                             background: '#FEE2E2',
                             border: 'none',
-                            color: 'var(--danger-color)',
+                            color: '#DC2626',
                             cursor: 'pointer',
-                            width: '32px',
-                            height: '32px',
-                            borderRadius: '8px',
+                            width: '34px',
+                            height: '34px',
+                            borderRadius: '10px',
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            transition: 'all 0.2s',
+                            transition: 'all 0.2s ease',
                             padding: '0'
                           }}
                           title="Logout Session"
                         >
-                          <LogoutIcon size={18} color="var(--danger-color)" />
+                          <LogoutIcon size={16} color="#DC2626" />
                         </button>
                       )}
                     </div>
                   </td>
-                  <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                  <td style={{ padding: '16px 28px', textAlign: 'right' }}>
                     <button 
                       onClick={() => handleDelete(inst.id)}
-                      style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '6px', borderRadius: '6px', transition: 'all 0.2s' }}
+                      style={{ 
+                        background: '#FEF2F2', border: 'none', color: '#EF4444', cursor: 'pointer', 
+                        width: '34px', height: '34px', borderRadius: '10px', display: 'inline-flex', 
+                        alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s ease' 
+                      }}
                       title="Delete Instance"
                     >
                       <TrashIcon size={16} color="#EF4444" />

@@ -3,17 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { copyToClipboard } from '../utils/clipboard';
 import { 
   DeviceIcon, 
-  PlusIcon, 
   SendIcon, 
   ChartIcon, 
-  KeyIcon 
+  KeyIcon,
+  CheckCircleIcon,
+  CalendarIcon,
+  PlusIcon,
+  EyeIcon,
 } from '../components/Icons';
 
 export const Dashboard = () => {
   const [instances, setInstances] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
   const [totalMessages, setTotalMessages] = useState(0);
-  const [weeklyStats, setWeeklyStats] = useState<any[]>([]);
+  const [weeklyStats, setWeeklyStats] = useState<{ day: string; count: number }[]>([]);
+  const [messageTypes, setMessageTypes] = useState({ text: 0, media: 0, interactive: 0 });
+  const [deliverySla, setDeliverySla] = useState({ sent: 0, failed: 0, successRate: 100 });
   const [apiKey, setApiKey] = useState('Loading...');
   const [userData, setUserData] = useState<any>(null);
   const [copied, setCopied] = useState(false);
@@ -51,6 +56,8 @@ export const Dashboard = () => {
       const statsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/reports/stats`, { headers });
       const statsData = await statsRes.json();
       setWeeklyStats(statsData.stats || []);
+      if (statsData.messageTypes) setMessageTypes(statsData.messageTypes);
+      if (statsData.deliverySla) setDeliverySla(statsData.deliverySla);
 
       // Fetch API Key
       const meRes = await fetch(`${import.meta.env.VITE_API_URL}/api/me`, { headers });
@@ -99,219 +106,149 @@ export const Dashboard = () => {
   };
 
   const activeCount = instances.filter(i => i.status === 'connected').length;
-  const sentCount = reports.filter(r => r.status === 'sent').length;
-  // Calculate success rate on the current page logs or statically
-  const successRate = reports.length 
-    ? Math.round((reports.filter(r => r.status === 'sent').length / reports.length) * 100) 
-    : 100;
-
+  const successRate = deliverySla.successRate;
+  const slaRate = deliverySla.successRate;
   const maxChartCount = Math.max(...weeklyStats.map(d => d.count), 1);
+  const peakDayObj = weeklyStats.reduce((max, curr) => curr.count > max.count ? curr : max, { day: 'Mon', count: 0 });
+
+  const arcTotal = 204.2;
+  const arcOffset = arcTotal * (1 - Math.min(100, Math.max(0, slaRate)) / 100);
 
   return (
-    <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      {/* Welcome Banner */}
-      <div>
-        <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', margin: '0 0 4px' }}>Overview Dashboard</h2>
-        <p style={{ color: '#64748B', fontSize: '14px', margin: 0, fontWeight: 500 }}>
-          Real-time delivery statistics and developer shortcuts for your WhatsApp API server.
-        </p>
-      </div>
-
-      {/* Stats Grid */}
+    <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      
+      {/* 1. Top 4 Metric Stat Cards (Shopeers Style) */}
       <div className="stats-grid">
-        {/* Linked Devices */}
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '24px 28px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--accent-color)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-              <line x1="12" y1="18" x2="12.01" y2="18" />
-            </svg>
+        {/* Card 1: Linked Devices */}
+        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Linked Devices</span>
+            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <DeviceIcon size={16} color="#2563EB" />
+            </div>
           </div>
           <div>
-            <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A', margin: 0 }}>Linked Devices</p>
-            <p style={{ fontSize: '18px', fontWeight: 800, color: 'var(--accent-color)', margin: '4px 0 0' }}>
-              {activeCount} / {instances.length} Connected
-            </p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+              <span style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
+                {activeCount} / {instances.length}
+              </span>
+              <span className="badge badge-success">▲ Connected</span>
+            </div>
+            <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>vs. {instances.length} total registered</span>
           </div>
         </div>
 
-        {/* Total Deliveries */}
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '24px 28px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13" />
-              <polygon points="22 2 15 22 11 13 2 9 22 2" />
-            </svg>
+        {/* Card 2: Total Deliveries */}
+        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Total Messages</span>
+            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <SendIcon size={16} color="#2563EB" />
+            </div>
           </div>
           <div>
-            <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A', margin: 0 }}>Total Messages</p>
-            <p style={{ fontSize: '18px', fontWeight: 800, color: '#2563EB', margin: '4px 0 0' }}>
-              {totalMessages} Sent Logs
-            </p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+              <span style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
+                {totalMessages.toLocaleString()}
+              </span>
+              <span className="badge badge-success">▲ Real-time</span>
+            </div>
+            <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>All-time total dispatches</span>
           </div>
         </div>
 
-        {/* Success Rate */}
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '24px 28px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
+        {/* Card 3: Success Rate */}
+        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Delivery Rate</span>
+            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircleIcon size={16} color="#059669" />
+            </div>
           </div>
           <div>
-            <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A', margin: 0 }}>Delivery Rate</p>
-            <p style={{ fontSize: '18px', fontWeight: 800, color: '#059669', margin: '4px 0 0' }}>
-              {successRate}% Success
-            </p>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+              <span style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
+                {successRate}%
+              </span>
+              <span className="badge badge-success">▲ Reliable</span>
+            </div>
+            <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>Live delivery SLA</span>
           </div>
         </div>
 
-        {/* Monthly Limit */}
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '24px 28px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#EF4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
+        {/* Card 4: Monthly Quota */}
+        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Monthly Quota</span>
+            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CalendarIcon size={16} color="#D97706" />
+            </div>
           </div>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A', margin: 0 }}>Monthly Limit</p>
-            <p style={{ fontSize: '18px', fontWeight: 800, color: '#EF4444', margin: '4px 0 0' }}>
-              {userData ? `${userData.messagesSentThisMonth} / ${userData.messageLimit}` : '...'}
-            </p>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+              <span style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
+                {userData ? userData.messagesSentThisMonth : 0}
+              </span>
+              <span className="badge badge-info">/ {userData ? userData.messageLimit : 1000}</span>
+            </div>
             {userData && (
-              <div style={{ height: '4px', background: '#F1F5F9', borderRadius: '9999px', marginTop: '6px', width: '100%', overflow: 'hidden' }}>
-                <div style={{ height: '100%', borderRadius: '9999px', background: (userData.messagesSentThisMonth / userData.messageLimit) > 0.9 ? '#EF4444' : '#F87171', width: `${Math.min(100, (userData.messagesSentThisMonth / userData.messageLimit) * 100)}%`, transition: 'width 0.5s' }} />
+              <div style={{ height: '6px', background: '#F1F5F9', borderRadius: '9999px', marginTop: '8px', width: '100%', overflow: 'hidden' }}>
+                <div style={{ height: '100%', borderRadius: '9999px', background: '#2563EB', width: `${Math.min(100, (userData.messagesSentThisMonth / userData.messageLimit) * 100)}%`, transition: 'width 0.5s' }} />
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Main Splits Panel */}
-      <div className="api-doc-grid" style={{ alignItems: 'flex-start' }}>
-        {/* Left Hand side: Metrics Visualizations & Logs */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-          
-          {/* SVG Weekly chart */}
-          <div className="card">
-            <h3 style={{ margin: '0 0 16px', fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>Weekly Delivery Volume</h3>
-            <div style={{ position: 'relative', height: '170px', width: '100%', display: 'flex', alignItems: 'flex-end' }}>
-              {weeklyStats.length === 0 ? (
-                <div style={{ width: '100%', textAlign: 'center', color: '#94A3B8', fontSize: '13px', fontWeight: 500, paddingBottom: '20px' }}>
-                  No delivery stats available.
-                </div>
-              ) : (
-                <svg width="100%" height="100%" viewBox="0 0 500 160" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-                  <defs>
-                    <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#8B5CF6" />
-                      <stop offset="100%" stopColor="#C4B5FD" />
-                    </linearGradient>
-                  </defs>
-                  
-                  {/* Horizontal Grid Lines */}
-                  {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
-                    <line 
-                      key={i} 
-                      x1="0" 
-                      y1={130 - ratio * 110} 
-                      x2="500" 
-                      y2={130 - ratio * 110} 
-                      stroke="#F1F5F9" 
-                      strokeWidth="1" 
-                    />
-                  ))}
+      {/* 2. Middle Grid Section */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr', gap: '24px' }}>
+        
+        {/* Left Hand Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-                  {/* Bars */}
-                  {weeklyStats.map((item, idx) => {
-                    const barWidth = 32;
-                    const x = idx * (500 / Math.max(weeklyStats.length, 1)) + (500 / Math.max(weeklyStats.length, 1)) / 2 - barWidth / 2;
-                    const barHeight = Math.max((item.count / maxChartCount) * 110, 8);
-                    const y = 130 - barHeight;
-                    
-                    return (
-                      <g key={item.day + idx}>
-                        {/* Bar Value Count */}
-                        <text 
-                          x={x + barWidth / 2} 
-                          y={y - 8} 
-                          textAnchor="middle" 
-                          fill="#64748B" 
-                          fontSize="11" 
-                          fontWeight="700"
-                        >
-                          {item.count}
-                        </text>
-                        
-                        {/* Rounded Bar */}
-                        <rect 
-                          x={x} 
-                          y={y} 
-                          width={barWidth} 
-                          height={barHeight} 
-                          rx="6" 
-                          ry="6" 
-                          fill="url(#barGradient)" 
-                          style={{ transition: 'all 0.5s ease' }}
-                        />
-
-                        {/* X Axis Label */}
-                        <text 
-                          x={x + barWidth / 2} 
-                          y="152" 
-                          textAnchor="middle" 
-                          fill="#94A3B8" 
-                          fontSize="11" 
-                          fontWeight="700"
-                        >
-                          {item.day}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </svg>
-              )}
-            </div>
-          </div>
-
-          {/* Recent Activity Logs */}
+          {/* Bottom Products / Deliveries Table (Shopeers Style) */}
           <div className="card" style={{ padding: '24px 0' }}>
-            <h3 style={{ margin: '0 0 16px 24px', fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>Recent Deliveries</h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px 16px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>Recent Deliveries Log</h3>
+              <button onClick={() => navigate('/reports')} className="btn-outline" style={{ padding: '6px 12px', fontSize: '12px' }}>View All</button>
+            </div>
+            
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
-                    <th style={{ padding: '12px 24px', fontSize: '12px', fontWeight: 600, color: '#64748B' }}>Time</th>
-                    <th style={{ padding: '12px 12px', fontSize: '12px', fontWeight: 600, color: '#64748B' }}>Recipient</th>
-                    <th style={{ padding: '12px 24px', fontSize: '12px', fontWeight: 600, color: '#64748B', textAlign: 'right' }}>Status</th>
+                    <th style={{ padding: '12px 24px', fontSize: '12px', fontWeight: 700, color: '#64748B' }}>LOG ID</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: 700, color: '#64748B' }}>RECIPIENT</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: 700, color: '#64748B' }}>TYPE</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', fontWeight: 700, color: '#64748B' }}>STATUS</th>
+                    <th style={{ padding: '12px 24px', fontSize: '12px', fontWeight: 700, color: '#64748B', textAlign: 'right' }}>TIME</th>
                   </tr>
                 </thead>
                 <tbody>
                   {reports.length === 0 ? (
                     <tr>
-                      <td colSpan={3} style={{ padding: '24px', textAlign: 'center', color: '#94A3B8', fontSize: '13px', fontWeight: 500 }}>
-                        No recent delivery logs.
+                      <td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
+                        No delivery records yet.
                       </td>
                     </tr>
-                  ) : reports.map(r => (
+                  ) : reports.map((r, i) => (
                     <tr key={r.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                      <td style={{ padding: '12px 24px', fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
-                        {new Date(r.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                      <td style={{ padding: '14px 24px', fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#64748B' }}>
+                        #{r.id ? r.id.substring(0, 6) : `8300${i+1}`}
                       </td>
-                      <td style={{ padding: '12px 12px', fontSize: '13px', fontWeight: 600, color: '#0F172A' }}>
+                      <td style={{ padding: '14px 16px', fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
                         +{r.toNumber}
                       </td>
-                      <td style={{ padding: '12px 24px', textAlign: 'right' }}>
-                        <span style={{ 
-                          fontSize: '11px', 
-                          fontWeight: 700, 
-                          color: r.status === 'sent' ? 'var(--success-color)' : 'var(--danger-color)',
-                          textTransform: 'uppercase'
-                        }}>{r.status}</span>
+                      <td style={{ padding: '14px 16px', fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
+                        {r.message?.includes('"type":"media"') ? 'Media Attachment' : r.message?.includes('"type":"interactive"') ? 'Interactive CTA' : 'Text Message'}
+                      </td>
+                      <td style={{ padding: '14px 16px' }}>
+                        <span className={`badge ${r.status === 'sent' ? 'badge-success' : 'badge-danger'}`}>
+                          {r.status === 'sent' ? '✓ SENT' : '✕ FAILED'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '14px 24px', textAlign: 'right', fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
+                        {new Date(r.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </td>
                     </tr>
                   ))}
@@ -319,96 +256,49 @@ export const Dashboard = () => {
               </table>
             </div>
           </div>
+
         </div>
 
-        {/* Right Hand side: Quick Actions & Integration Info */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+        {/* Right Hand Column (Widgets & Peak Activity & SLA) */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           
-          {/* Quick Actions Panel */}
+          {/* Most Active Days Bar Chart (Real Database Numbers) */}
           <div className="card">
-            <h3 style={{ margin: '0 0 16px', fontSize: '15px', fontWeight: 700, color: '#0F172A' }}>Quick Actions</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <button onClick={() => navigate('/instances')} className="btn-primary" style={{ width: '100%', justifyContent: 'flex-start', background: '#F8FAFC', color: '#0F172A', border: '1px solid #E2E8F0', display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
-                <DeviceIcon size={18} color="var(--accent-color)" /> Manage Linked Numbers
-              </button>
-              <button onClick={() => navigate('/scan')} className="btn-primary" style={{ width: '100%', justifyContent: 'flex-start', background: '#F8FAFC', color: '#0F172A', border: '1px solid #E2E8F0', display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
-                <PlusIcon size={18} color="var(--success-color)" /> Register New Device
-              </button>
-              <button onClick={() => navigate('/broadcast')} className="btn-primary" style={{ width: '100%', justifyContent: 'flex-start', background: '#F8FAFC', color: '#0F172A', border: '1px solid #E2E8F0', display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
-                <SendIcon size={18} color="#2563EB" /> Create Bulk Broadcast
-              </button>
-              <button onClick={() => navigate('/reports')} className="btn-primary" style={{ width: '100%', justifyContent: 'flex-start', background: '#F8FAFC', color: '#0F172A', border: '1px solid #E2E8F0', display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
-                <ChartIcon size={18} color="#F59E0B" /> Check Full Log History
-              </button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>Peak Activity Day</h3>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#2563EB' }}>
+                {peakDayObj.count > 0 ? `${peakDayObj.day} (${peakDayObj.count} logs)` : 'No activity yet'}
+              </span>
+            </div>
+
+            {/* Vertical Bar Chart (Real Activity Data) */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '140px', paddingTop: '20px' }}>
+              {weeklyStats.length === 0 ? (
+                <div style={{ width: '100%', textAlign: 'center', color: '#94A3B8', fontSize: '12px' }}>No weekly stats</div>
+              ) : weeklyStats.map((item) => {
+                const isPeak = item.count === peakDayObj.count && item.count > 0;
+                const barHeight = item.count > 0 ? Math.max(16, Math.round((item.count / maxChartCount) * 110)) : 10;
+                return (
+                  <div key={item.day} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', flex: 1 }}>
+                    <div
+                      title={`${item.day}: ${item.count} logs`}
+                      style={{
+                        width: '24px',
+                        height: `${barHeight}px`,
+                        borderRadius: '8px',
+                        background: isPeak ? 'linear-gradient(180deg, #3B82F6 0%, #2563EB 100%)' : item.count > 0 ? '#93C5FD' : '#E2E8F0',
+                        boxShadow: isPeak ? '0 4px 12px rgba(37, 99, 235, 0.4)' : 'none',
+                        transition: 'all 0.3s ease',
+                      }}
+                    />
+                    <span style={{ fontSize: '11px', fontWeight: isPeak ? 800 : 600, color: isPeak ? '#2563EB' : '#94A3B8' }}>{item.day}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
-
-          {/* Integration Credentials Box */}
-          <div className="card" style={{ background: '#0F172A', border: 'none', color: '#FFFFFF' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <KeyIcon size={22} color="#FBBF24" />
-              <div style={{ flex: 1 }}>
-                <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>API Access</h4>
-                <p style={{ margin: '2px 0 0', fontSize: '11px', color: '#94A3B8' }}>Use this token to send messages from any app</p>
-              </div>
-              <button onClick={regenerateToken} disabled={regenerating} style={{
-                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-                color: '#94A3B8', padding: '5px 10px', borderRadius: '6px',
-                fontSize: '10px', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap'
-              }}>
-                {regenerating ? '...' : '↻ Regenerate'}
-              </button>
-            </div>
-
-            {/* Access Token Row */}
-            <p style={{ margin: '0 0 6px', fontSize: '11px', color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Access Token</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.08)', padding: '10px 14px', borderRadius: '8px', marginBottom: '16px' }}>
-              <code style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: '12px', color: '#FBBF24', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {apiKey}
-              </code>
-              <button onClick={copyApiKey} style={{
-                background: copied ? '#10B981' : 'rgba(255,255,255,0.15)', border: 'none', color: 'white',
-                padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
-                display: 'inline-flex', alignItems: 'center', gap: '4px', transition: 'all 0.2s'
-              }}>
-                {copied ? '✓ Copied' : 'Copy'}
-              </button>
-            </div>
-
-            {/* Live API URL Example */}
-            <p style={{ margin: '0 0 6px', fontSize: '11px', color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Send API (GET)</p>
-            <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: '8px', padding: '12px 14px', marginBottom: '12px' }}>
-              <code style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: '#A5F3FC', wordBreak: 'break-all', lineHeight: 1.7 }}>
-                <span style={{ color: '#94A3B8' }}>{import.meta.env.VITE_API_URL}</span>
-                <span style={{ color: '#FBBF24' }}>/api/send</span>
-                <span style={{ color: '#E2E8F0' }}>?number=</span><span style={{ color: '#86EFAC' }}>91XXXXXXXXXX</span>
-                <span style={{ color: '#E2E8F0' }}>&type=</span><span style={{ color: '#86EFAC' }}>text</span>
-                <span style={{ color: '#E2E8F0' }}>&message=</span><span style={{ color: '#86EFAC' }}>Hello</span>
-                <span style={{ color: '#E2E8F0' }}>&instance_id=</span><span style={{ color: '#86EFAC' }}>{instances.find(i => i.status === 'connected')?.id || 'YOUR_INSTANCE_ID'}</span>
-                <span style={{ color: '#E2E8F0' }}>&access_token=</span><span style={{ color: '#FBBF24' }}>{apiKey}</span>
-              </code>
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => copyApiUrl(instances.find(i => i.status === 'connected')?.id || 'YOUR_INSTANCE_ID')} style={{
-                flex: 1, background: copiedUrl ? '#059669' : '#4F46E5', border: 'none', color: 'white',
-                padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
-              }}>
-                {copiedUrl ? '✓ URL Copied!' : '⎘ Copy API URL'}
-              </button>
-              <button onClick={() => navigate('/docs')} style={{
-                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-                color: '#94A3B8', padding: '8px 12px', borderRadius: '8px',
-                fontSize: '12px', fontWeight: 700, cursor: 'pointer'
-              }}>
-                Docs
-              </button>
-            </div>
-          </div>
-
         </div>
       </div>
-
     </div>
   );
 };

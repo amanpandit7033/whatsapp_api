@@ -74,7 +74,7 @@ interface IEndpoint {
 const EndpointDoc = ({ method, path, title, desc, params, reqExample, resExample }: IEndpoint) => {
   const mStyle = METHOD_STYLES[method] || METHOD_STYLES.GET;
   return (
-    <div className="card" style={{ padding: '24px', borderRadius: '18px', display: 'flex', flexDirection: 'column', gap: '20px', border: '1px solid #E2E8F0', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', transition: 'all 0.2s ease' }}>
+    <div className="card" style={{ padding: '24px', borderRadius: '18px', display: 'flex', flexDirection: 'column', gap: '20px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', transition: 'all 0.2s ease' }}>
       {/* Title / Badges */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -535,74 +535,121 @@ export const ApiDocs = () => {
         </div>
       </div>
 
-      {/* API Key Credentials Card */}
-      <div className="card" style={{ padding: '28px', borderRadius: '20px', background: 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)', border: 'none', boxShadow: '0 20px 40px rgba(49, 46, 129, 0.2)', color: '#FFFFFF', position: 'relative', overflow: 'hidden' }}>
-        {/* Glow Accent */}
-        <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '200px', height: '200px', background: 'radial-gradient(circle, rgba(124,58,237,0.4) 0%, rgba(0,0,0,0) 70%)', pointerEvents: 'none' }} />
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(255, 255, 255, 0.12)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <BookIcon size={24} color="#FBBF24" />
+      {/* API Key Credentials Card (Shopeers High-Contrast SaaS Style) */}
+      <div 
+        className="card" 
+        style={{ 
+          padding: '28px', 
+          borderRadius: '20px', 
+          background: '#FFFFFF', 
+          border: 'none', 
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.04)', 
+          color: '#0F172A', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: '20px' 
+        }}
+      >
+        {/* Header Row */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <BookIcon size={22} color="#2563EB" />
+            </div>
+            <div>
+              <h4 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em' }}>
+                API Credentials & Endpoint Host
+              </h4>
+              <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
+                Base Host URL: <code style={{ color: '#2563EB', fontFamily: 'var(--font-mono)', fontWeight: 700, background: '#EFF6FF', padding: '2px 8px', borderRadius: '6px' }}>{import.meta.env.VITE_API_URL}</code>
+              </p>
+            </div>
           </div>
-          <div>
-            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800, letterSpacing: '-0.01em' }}>API Credentials & Endpoint Host</h4>
-            <p style={{ margin: '3px 0 0', fontSize: '13px', color: '#CBD5E1', fontWeight: 500 }}>
-              Base URL: <code style={{ color: '#FBBF24', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{import.meta.env.VITE_API_URL}</code>
-            </p>
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={copyKey}
+              className="btn-primary"
+              style={{ padding: '10px 18px', fontSize: '13px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
+              {copied ? <CheckIcon size={16} color="white" /> : <CopyIcon size={16} color="white" />}
+              {copied ? 'Token Copied!' : 'Copy Access Token'}
+            </button>
+
+            <button
+              onClick={regenerateToken}
+              disabled={regenerating}
+              className="btn-outline"
+              style={{ padding: '10px 16px', fontSize: '13px', borderRadius: '10px' }}
+            >
+              {regenerating ? 'Regenerating...' : '↻ Regenerate Token'}
+            </button>
           </div>
         </div>
 
-        {/* API Token Box */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', background: 'rgba(0, 0, 0, 0.35)', backdropFilter: 'blur(8px)', borderRadius: '14px', padding: '18px 20px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1 }}>
-              <span style={{ fontSize: '10px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Your Personal Access Token</span>
-              <code style={{ fontSize: '15px', fontFamily: 'var(--font-mono)', color: '#FBBF24', fontWeight: 700, letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {apiKey}
-              </code>
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={copyKey}
-                style={{
-                  background: copied ? '#10B981' : 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
-                  border: 'none', borderRadius: '10px', padding: '10px 18px', color: 'white', fontSize: '13px', fontWeight: 700,
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease', boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
-                }}
-              >
-                {copied ? <CheckIcon size={16} color="white" /> : <CopyIcon size={16} color="white" />}
-                {copied ? 'Token Copied!' : 'Copy Access Token'}
-              </button>
-              <button
-                onClick={regenerateToken}
-                disabled={regenerating}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '10px',
-                  padding: '10px 16px', color: '#E2E8F0', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s ease'
-                }}
-              >
-                {regenerating ? '...' : '↻ Regenerate Token'}
-              </button>
-            </div>
+        {/* Access Token Box (Midnight High Contrast Code Block) */}
+        <div 
+          style={{ 
+            background: '#0F172A', 
+            borderRadius: '14px', 
+            padding: '16px 20px', 
+            border: '1px solid #1E293B', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '6px' 
+          }}
+        >
+          <span style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            YOUR PERSONAL ACCESS TOKEN
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <code style={{ fontSize: '16px', fontFamily: 'var(--font-mono)', color: '#FBBF24', fontWeight: 700, letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {apiKey}
+            </code>
+            <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600, background: 'rgba(255,255,255,0.06)', padding: '3px 8px', borderRadius: '6px' }}>
+              SECRET KEY
+            </span>
           </div>
+        </div>
 
-          {/* Quick Test URL */}
-          <div style={{ paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <span style={{ fontSize: '10px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>1-Click Quick Send URL (Test in Browser)</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(0, 0, 0, 0.4)', padding: '12px 16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
-              <code style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: '12px', color: '#A5F3FC', wordBreak: 'break-all', lineHeight: 1.6 }}>
-                {import.meta.env.VITE_API_URL}/api/send?number=919876543210&type=text&message=Hello&instance_id=YOUR_INSTANCE_ID&access_token={apiKey}
-              </code>
-              <button
-                onClick={copyApiUrl}
-                style={{
-                  background: copiedUrl ? '#10B981' : 'rgba(255, 255, 255, 0.15)', border: 'none', borderRadius: '8px',
-                  padding: '6px 12px', color: 'white', fontSize: '11px', fontWeight: 700, cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s ease'
-                }}
-              >
-                {copiedUrl ? 'Copied URL!' : 'Copy Test URL'}
-              </button>
-            </div>
+        {/* Quick Test Send URL */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            1-CLICK QUICK SEND URL (TEST IN BROWSER)
+          </span>
+          <div 
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justify: 'space-between', 
+              gap: '14px', 
+              background: '#1E293B', 
+              padding: '12px 18px', 
+              borderRadius: '12px', 
+              border: '1px solid #334155' 
+            }}
+          >
+            <code style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: '12.5px', color: '#38BDF8', wordBreak: 'break-all', lineHeight: 1.6 }}>
+              {import.meta.env.VITE_API_URL}/api/send?number=919876543210&type=text&message=Hello&instance_id=YOUR_INSTANCE_ID&access_token={apiKey}
+            </code>
+            <button
+              onClick={copyApiUrl}
+              style={{
+                background: copiedUrl ? '#10B981' : '#2563EB',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '8px 14px',
+                color: 'white',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                flexShrink: 0,
+                transition: 'all 0.2s ease',
+                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)',
+              }}
+            >
+              {copiedUrl ? '✓ URL Copied!' : 'Copy Test URL'}
+            </button>
           </div>
         </div>
       </div>

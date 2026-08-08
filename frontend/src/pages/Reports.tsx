@@ -2,9 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   DownloadIcon,
-  SendIcon,
-  ListIcon,
-  CheckCircleIcon,
   EyeIcon,
   CaretLeftIcon,
   CaretRightIcon,
@@ -12,9 +9,17 @@ import {
   FileIcon,
   SparklesIcon,
   ChecksIcon,
-  WarningCircleIcon,
-  TrashIcon
+  TrashIcon,
+  SendIcon,
+  CheckCircleIcon,
+  WarningIcon,
 } from '../components/Icons';
+import {
+  Glass3DSendIcon,
+  Glass3DChartIcon,
+  Glass3DShieldIcon,
+  Glass3DCalendarIcon,
+} from '../components/Glass3DIcons';
 
 const S: Record<string, React.CSSProperties> = {
   label: { display: 'block', fontSize: '11px', fontWeight: 700, color: '#94a3b8', marginBottom: '7px', textTransform: 'uppercase' as const, letterSpacing: '0.05em' },
@@ -146,17 +151,17 @@ export const Reports = () => {
   const sentCount = reports.filter(r => r.status === 'sent').length;
   const failedCount = reports.filter(r => r.status === 'failed' || r.status === 'Non-Whatsapp').length;
   return (
-    <div className="animate-in">
+    <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', margin: '0 0 4px' }}>Message Reports</h2>
+          <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', margin: '0 0 4px', letterSpacing: '-0.02em' }}>Message Reports</h2>
           <p style={{ color: '#64748B', fontSize: '14px', margin: 0, fontWeight: 500 }}>View and export logs of all sent messages.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           {isAdmin && (
-            <button onClick={handleClearReports} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#FEE2E2', color: '#EF4444', border: 'none', padding: '0 16px', borderRadius: '8px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
-              <TrashIcon size={16} color="#EF4444" /> Delete All Reports
+            <button onClick={handleClearReports} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#FEE2E2', color: '#DC2626', border: '1px solid #FCA5A5', padding: '0 16px', borderRadius: '10px', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}>
+              <TrashIcon size={16} color="#DC2626" /> Delete All Reports
             </button>
           )}
           <button onClick={handleExport} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
@@ -165,98 +170,120 @@ export const Reports = () => {
         </div>
       </div>
 
-      {/* Stat strip */}
+      {/* Stat strip (Shopeers Style) */}
       <div className="stats-grid">
         {[
-          { label: 'Total Messages', val: totalCount, icon: SendIcon, color: '#7C3AED', bg: '#F3E8FF' },
-          { label: 'On This Page', val: reports.length, icon: ListIcon, color: '#3B82F6', bg: '#DBEAFE' },
-          { label: 'Sent', val: sentCount, icon: CheckCircleIcon, color: '#10B981', bg: '#D1FAE5' },
-          { label: 'Failed', val: failedCount, icon: WarningCircleIcon, color: '#EF4444', bg: '#FEE2E2' },
-        ].map(({ label, val, icon: IconComponent, color, bg }) => (
-          <div key={label} className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '24px 28px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-               <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                 <IconComponent size={16} color={color} />
-               </div>
+          { label: 'Total Messages', val: totalCount, sub: 'All time logs', badge: '+12.4%', bg: '#EFF6FF', color: '#2563EB', icon: SendIcon },
+          { label: 'On This Page', val: reports.length, sub: 'Filtered view', badge: 'Active', bg: '#EFF6FF', color: '#2563EB', icon: EyeIcon },
+          { label: 'Sent', val: sentCount, sub: 'Delivered', badge: 'Success', bg: '#D1FAE5', color: '#059669', icon: CheckCircleIcon },
+          { label: 'Failed', val: failedCount, sub: 'Undelivered', badge: 'Alert', bg: '#FEE2E2', color: '#DC2626', icon: WarningIcon },
+        ].map(({ label, val, sub, badge, bg, color, icon: IconComp }) => (
+          <div key={label} className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>{label}</span>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconComp size={16} color={color} />
+              </div>
             </div>
             <div>
-              <p style={{ fontSize: '15px', fontWeight: 700, color: '#0F172A', margin: 0 }}>{label}</p>
-              <p style={{ fontSize: '13px', fontWeight: 500, color: '#64748B', margin: '2px 0 0' }}>{val} records</p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+                <span style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>{val}</span>
+                <span className={`badge ${badge === 'Alert' ? 'badge-danger' : 'badge-success'}`}>▲ {badge}</span>
+              </div>
+              <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>{sub}</span>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Filters & Table Card */}
+      {/* Filters & Table Card (Shopeers SaaS Redesigned Style) */}
       <div className="card" style={{ padding: '24px 0' }}>
-        <div className="reports-filters-grid">
-          {[
-            { label: 'Recipient Number', ph: 'e.g. 911234567890', val: searchNumber, set: setSearchNumber },
-            ...(isAdmin ? [{ label: 'Owner (Admin)', ph: 'Username...', val: searchUsername, set: setSearchUsername }] : []),
-            { label: 'Message Content', ph: 'Keywords...', val: searchMessage, set: setSearchMessage },
-            { label: 'Start Date', ph: '', val: startDate, set: setStartDate, type: 'date' },
-            { label: 'End Date', ph: '', val: endDate, set: setEndDate, type: 'date' },
-          ].map(({ label, ph, val, set, type = 'text' }) => (
-            <div key={label}>
-              <label style={S.label}>{label}</label>
-              <input type={type} placeholder={ph} value={val} onChange={e => { set(e.target.value); setPage(1); }} className="rounded-input" />
+        
+        {/* Sleek Filter Controls Bar */}
+        <div style={{ padding: '0 28px 24px', marginBottom: '20px', borderBottom: '1px solid #F1F5F9' }}>
+          <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '18px 20px', border: '1px solid #E2E8F0' }}>
+            <div className="reports-filters-grid">
+              {[
+                { label: 'RECIPIENT NUMBER', ph: 'e.g. 911234567890', val: searchNumber, set: setSearchNumber },
+                ...(isAdmin ? [{ label: 'OWNER (ADMIN)', ph: 'Username...', val: searchUsername, set: setSearchUsername }] : []),
+                { label: 'MESSAGE CONTENT', ph: 'Keywords...', val: searchMessage, set: setSearchMessage },
+                { label: 'START DATE', ph: '', val: startDate, set: setStartDate, type: 'date' },
+                { label: 'END DATE', ph: '', val: endDate, set: setEndDate, type: 'date' },
+              ].map(({ label, ph, val, set, type = 'text' }) => (
+                <div key={label}>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                    {label}
+                  </label>
+                  <input 
+                    type={type} 
+                    placeholder={ph} 
+                    value={val} 
+                    onChange={e => { set(e.target.value); setPage(1); }} 
+                    className="rounded-input" 
+                    style={{ height: '38px', borderRadius: '10px', fontSize: '13px', background: '#FFFFFF', border: '1px solid #CBD5E1' }}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
 
         <div style={{ overflowX: 'auto' }} className="custom-scrollbar">
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
             <thead>
               <tr style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
-                <th style={{ padding: '16px 32px', fontSize: '13px', fontWeight: 600, color: '#64748B', width: '60px' }}>#</th>
-                <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: 600, color: '#64748B' }}>Time</th>
-                {isAdmin && <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: 600, color: '#64748B' }}>Owner</th>}
-                <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: 600, color: '#64748B' }}>Sender</th>
-                <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: 600, color: '#64748B' }}>Recipient</th>
-                <th style={{ padding: '16px 12px', fontSize: '13px', fontWeight: 600, color: '#64748B', width: '100px', textAlign: 'center' }}>Preview</th>
-                <th style={{ padding: '16px 32px', fontSize: '13px', fontWeight: 600, color: '#64748B', textAlign: 'right' }}>Status</th>
+                <th style={{ padding: '14px 28px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase', width: '60px' }}>#</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Time</th>
+                {isAdmin && <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Owner</th>}
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Sender</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Recipient</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase', width: '100px', textAlign: 'center' }}>Preview</th>
+                <th style={{ padding: '14px 28px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase', textAlign: 'right' }}>Status</th>
               </tr>
             </thead>
             <tbody>
               {reports.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 7 : 6} style={{ padding: '40px', textAlign: 'center', color: '#94A3B8', fontSize: '14px', fontWeight: 500 }}>
-                    No messages found.
+                  <td colSpan={isAdmin ? 7 : 6} style={{ padding: '48px', textAlign: 'center', color: '#94A3B8', fontSize: '14px', fontWeight: 500 }}>
+                    No messages found matching your criteria.
                   </td>
                 </tr>
               ) : reports.map((r, i) => (
-                <tr key={r.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ padding: '16px 32px', fontSize: '14px', fontWeight: 600, color: '#0F172A' }}>
+                <tr key={r.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.15s ease' }}>
+                  <td style={{ padding: '16px 28px', fontSize: '13px', fontWeight: 700, color: '#64748B' }}>
                     {((page - 1) * limit + i + 1).toString().padStart(2, '0')}
                   </td>
-                  <td style={{ padding: '16px 12px', fontSize: '14px', color: '#64748B', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                  <td style={{ padding: '16px 16px', fontSize: '13px', color: '#64748B', fontWeight: 600, whiteSpace: 'nowrap' }}>
                     {new Date(r.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </td>
                   {isAdmin && (
-                    <td style={{ padding: '16px 12px', fontSize: '14px', fontWeight: 500, color: '#0F172A' }}>
+                    <td style={{ padding: '16px 16px', fontSize: '14px', fontWeight: 800, color: '#0F172A' }}>
                       {r.user?.username || '—'}
                     </td>
                   )}
-                  <td style={{ padding: '16px 12px', fontSize: '14px', fontWeight: 500, color: '#0F172A' }}>
+                  <td style={{ padding: '16px 16px', fontSize: '14px', fontWeight: 700, color: '#0F172A', fontFamily: 'var(--font-mono)' }}>
                     {r.instance?.phoneNumber ? `+${r.instance.phoneNumber}` : 'Unknown'}
                   </td>
-                  <td style={{ padding: '16px 12px', fontSize: '14px', fontWeight: 500, color: '#0F172A' }}>
+                  <td style={{ padding: '16px 16px', fontSize: '14px', fontWeight: 700, color: '#0F172A', fontFamily: 'var(--font-mono)' }}>
                     +{r.toNumber}
                   </td>
-                  <td style={{ padding: '16px 12px', width: '100px', textAlign: 'center' }}>
+                  <td style={{ padding: '16px 16px', width: '100px', textAlign: 'center' }}>
                     <button 
                       onClick={() => setSelectedReport(r)} 
-                      className="btn-preview-icon"
-                      title="Preview Message"
-                      style={{ margin: '0 auto', display: 'inline-flex' }}
+                      style={{ 
+                        background: '#EFF6FF', border: 'none', color: '#2563EB', cursor: 'pointer', 
+                        width: '34px', height: '34px', borderRadius: '10px', display: 'inline-flex', 
+                        alignItems: 'center', justifyContent: 'center', margin: '0 auto', transition: 'all 0.2s ease'
+                      }}
+                      title="Preview Message Content"
                     >
-                      <EyeIcon size={16} />
+                      <EyeIcon size={16} color="#2563EB" />
                     </button>
                   </td>
-                  <td style={{ padding: '16px 32px', textAlign: 'right' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
-                      <span className={`status-dot ${r.status === 'sent' ? 'active' : 'suspended'}`}></span>
-                      <span style={{ fontSize: '13px', fontWeight: 500, color: r.status === 'sent' ? 'var(--success-color)' : 'var(--danger-color)', textTransform: 'capitalize' }}>
+                  <td style={{ padding: '16px 28px', textAlign: 'right' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: r.status === 'sent' ? '#D1FAE5' : '#FEE2E2', padding: '4px 12px', borderRadius: '9999px' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: r.status === 'sent' ? '#059669' : '#DC2626' }}></span>
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: r.status === 'sent' ? '#059669' : '#DC2626', textTransform: 'capitalize' }}>
                         {r.status}
                       </span>
                     </div>

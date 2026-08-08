@@ -782,8 +782,35 @@ router.get('/reports/stats', authenticate, async (req: any, res: any) => {
                 count
             });
         }
+
+        // Fetch Real Message Type Breakdown & Delivery SLA
+        const totalLogs = await prisma.messageLog.count({ where });
+        const sentLogs = await prisma.messageLog.count({ where: { ...where, status: 'sent' } });
+        const failedLogs = await prisma.messageLog.count({ where: { ...where, status: { in: ['failed', 'Non-Whatsapp'] } } });
+
+        const mediaLogs = await prisma.messageLog.count({
+            where: {
+                ...where,
+                message: { contains: '"type":"media"' }
+            }
+        });
+
+        const interactiveLogs = await prisma.messageLog.count({
+            where: {
+                ...where,
+                message: { contains: '"type":"interactive"' }
+            }
+        });
+
+        const textLogs = Math.max(0, totalLogs - mediaLogs - interactiveLogs);
+        const successRate = totalLogs > 0 ? Math.round((sentLogs / totalLogs) * 100) : 100;
         
-        res.json({ stats });
+        res.json({ 
+            stats,
+            totalLogs,
+            messageTypes: { text: textLogs, media: mediaLogs, interactive: interactiveLogs },
+            deliverySla: { sent: sentLogs, failed: failedLogs, successRate }
+        });
     } catch (err) {
         console.error('Stats fetch error:', err);
         res.status(500).json({ error: 'Failed to fetch stats' });
