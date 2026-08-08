@@ -15,6 +15,7 @@ import {
   CheckCircleIcon,
   ChartIcon,
   WarningIcon,
+  WarningCircleIcon
 } from '../components/Icons';
 import {
   Glass3DDeviceIcon,
@@ -75,12 +76,20 @@ export const Instances = () => {
       'Are you sure you want to log out this WhatsApp session? Any outgoing messages from this instance will fail until you re-authenticate.',
       async () => {
         try {
-          await fetch(`${import.meta.env.VITE_API_URL}/api/instances/${id}/logout`, {
+          const res = await fetch(`${import.meta.env.VITE_API_URL}/api/instances/${id}/logout`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
-          fetchInstances();
-        } catch { alert('Failed to logout'); }
+          if (res.status === 401) {
+            localStorage.removeItem('token');
+            navigate('/login');
+            return;
+          }
+          await fetchInstances();
+        } catch (e) {
+          console.error('Logout error:', e);
+          alert('Failed to logout session');
+        }
       }
     );
   };
@@ -88,13 +97,19 @@ export const Instances = () => {
   const handleSync = async (id: string) => {
     setSyncingId(id);
     try {
-      await fetch(`${import.meta.env.VITE_API_URL}/api/instances/${id}/sync`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/instances/${id}/sync`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
-      fetchInstances();
-    } catch {
-      alert('Failed to sync');
+      if (res.status === 401) {
+        localStorage.removeItem('token');
+        navigate('/login');
+        return;
+      }
+      await fetchInstances();
+    } catch (e) {
+      console.error('Sync error:', e);
+      alert('Failed to sync instance');
     } finally {
       setSyncingId(null);
     }
@@ -106,12 +121,20 @@ export const Instances = () => {
       'Are you sure you want to delete this instance? This action is permanent and will remove all log data associated with this instance.',
       async () => {
         try {
-          await fetch(`${import.meta.env.VITE_API_URL}/api/instances/${id}`, {
+          const res = await fetch(`${import.meta.env.VITE_API_URL}/api/instances/${id}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
           });
-          fetchInstances();
-        } catch { alert('Failed to delete'); }
+          if (res.status === 401) {
+            localStorage.removeItem('token');
+            navigate('/login');
+            return;
+          }
+          await fetchInstances();
+        } catch (e) {
+          console.error('Delete error:', e);
+          alert('Failed to delete instance');
+        }
       }
     );
   };
