@@ -1,26 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CopyIcon, CheckIcon, BookIcon, SendIcon, DeviceIcon } from '../components/Icons';
+import { CopyIcon, CheckIcon, BookIcon, SendIcon, DeviceIcon, SearchIcon } from '../components/Icons';
 
-const S: Record<string, React.CSSProperties> = {
-  container: { maxWidth: '1280px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' },
-  card: { background: 'white', borderRadius: '16px', border: '1px solid #E2E8F0', padding: '24px', boxShadow: 'var(--shadow-soft)', minWidth: 0 },
-  grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' },
-  badge: { padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' },
-  paramTable: { width: '100%', fontSize: '13px', borderCollapse: 'collapse', textAlign: 'left', marginTop: '8px' },
-  th: { padding: '8px 12px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontWeight: 600, color: '#64748B' },
-  td: { padding: '10px 12px', borderBottom: '1px solid #F1F5F9', color: '#0F172A', verticalAlign: 'top' },
-  codeContainer: { background: '#0F172A', borderRadius: '12px', padding: '20px', color: '#F8FAFC', fontFamily: 'var(--font-mono)', fontSize: '13px', lineHeight: '1.6', overflowX: 'auto' },
-  label: { display: 'block', fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' },
+const METHOD_STYLES: Record<string, { bg: string; color: string; border: string }> = {
+  GET: { bg: '#F0F9FF', color: '#0284C7', border: '#BAE6FD' },
+  POST: { bg: '#F0FDF4', color: '#16A34A', border: '#BBF7D0' },
+  DELETE: { bg: '#FEF2F2', color: '#DC2626', border: '#FEE2E2' },
 };
 
-const METHOD_STYLES: Record<string, { bg: string; color: string }> = {
-  GET: { bg: '#E0F2FE', color: '#0369A1' },
-  POST: { bg: '#D1FAE5', color: '#047857' },
-  DELETE: { bg: '#FEE2E2', color: '#B91C1C' },
-};
-
-const CodeBlock = ({ title, code }: { title: string; code: string }) => {
+const CodeBlock = ({ title, code, language = 'json' }: { title: string; code: string; language?: string }) => {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(code).then(() => {
@@ -30,19 +18,41 @@ const CodeBlock = ({ title, code }: { title: string; code: string }) => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{title}</span>
-        <button 
-          onClick={handleCopy} 
-          style={{ background: 'none', border: 'none', color: copied ? '#10B981' : '#7C3AED', fontWeight: 700, fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+    <div style={{ borderRadius: '14px', overflow: 'hidden', border: '1px solid #334155', background: '#0F172A', boxShadow: '0 10px 30px rgba(0,0,0,0.15)' }}>
+      {/* Editor Header Bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', background: '#1E293B', borderBottom: '1px solid #334155' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#FF5F56' }} />
+          <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#FFBD2E' }} />
+          <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#27C93F' }} />
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', fontFamily: 'var(--font-mono)', marginLeft: '6px', textTransform: 'uppercase' }}>
+            {title} ({language})
+          </span>
+        </div>
+        <button
+          onClick={handleCopy}
+          style={{
+            background: copied ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+            border: copied ? '1px solid #10B981' : '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '6px',
+            padding: '4px 10px',
+            color: copied ? '#34D399' : '#CBD5E1',
+            fontWeight: 700,
+            fontSize: '11px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            transition: 'all 0.2s ease',
+          }}
         >
-          {copied ? <CheckIcon size={12} color="#10B981" /> : <CopyIcon size={12} color="#7C3AED" />}
-          {copied ? 'Copied!' : 'Copy'}
+          {copied ? <CheckIcon size={12} color="#34D399" /> : <CopyIcon size={12} color="#CBD5E1" />}
+          {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
-      <div style={S.codeContainer}>
-        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontFamily: 'var(--font-mono)' }}>{code}</pre>
+      {/* Code Text Area */}
+      <div style={{ padding: '18px 20px', color: '#F8FAFC', fontFamily: 'var(--font-mono)', fontSize: '12.5px', lineHeight: '1.6', overflowX: 'auto' }} className="custom-scrollbar">
+        <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{code}</pre>
       </div>
     </div>
   );
@@ -53,75 +63,79 @@ interface IEndpoint {
   path: string;
   title: string;
   desc: string;
+  category: 'messaging' | 'instance' | 'public';
   params?: { name: string; type: string; req: boolean; desc: string }[];
-  reqExample: { title: string; code: string };
+  reqExample: { title: string; code: string; language?: string };
   resExample: { title: string; code: string };
 }
 
 const EndpointDoc = ({ method, path, title, desc, params, reqExample, resExample }: IEndpoint) => {
   const mStyle = METHOD_STYLES[method] || METHOD_STYLES.GET;
   return (
-    <div style={{ ...S.card, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div className="card" style={{ padding: '24px', borderRadius: '18px', display: 'flex', flexDirection: 'column', gap: '20px', border: '1px solid #E2E8F0', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', transition: 'all 0.2s ease' }}>
       {/* Title / Badges */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ ...S.badge, ...mStyle }}>{method}</span>
-          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0F172A' }}>{title}</h3>
+          <span style={{ background: mStyle.bg, color: mStyle.color, border: `1px solid ${mStyle.border}`, padding: '5px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 800, letterSpacing: '0.04em' }}>
+            {method}
+          </span>
+          <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em' }}>{title}</h3>
         </div>
-        <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', background: '#F8FAFC', padding: '6px 12px', borderRadius: '8px', border: '1px solid #E2E8F0', color: '#334155', wordBreak: 'break-all' }}>
+        <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', background: '#F8FAFC', padding: '6px 14px', borderRadius: '10px', border: '1px solid #E2E8F0', color: '#475569', fontWeight: 600, wordBreak: 'break-all' }}>
           {import.meta.env.VITE_API_URL}{path}
         </div>
       </div>
 
       <p style={{ margin: 0, fontSize: '14px', color: '#64748B', lineHeight: '1.6', fontWeight: 500 }}>{desc}</p>
 
-      {/* Two Column Layout: Specs vs Code */}
-      <div className="api-doc-grid">
+      {/* Grid: Parameters vs Code Examples */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
         {/* Left Column: Specs / Parameters */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: 0 }}>
+          <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Parameters & Inputs</span>
           {params && params.length > 0 ? (
-            <div>
-              <span style={S.label}>Parameters</span>
-              <div style={{ overflowX: 'auto', border: '1px solid #E2E8F0', borderRadius: '8px' }}>
-                <table style={S.paramTable}>
-                  <thead>
-                    <tr>
-                      <th style={S.th}>Name</th>
-                      <th style={S.th}>Type</th>
-                      <th style={S.th}>Required</th>
-                      <th style={S.th}>Description</th>
+            <div style={{ border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden', background: '#FFFFFF' }}>
+              <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569', fontSize: '12px' }}>Parameter</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569', fontSize: '12px' }}>Type</th>
+                    <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569', fontSize: '12px' }}>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {params.map(p => (
+                    <tr key={p.name} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                      <td style={{ padding: '12px 14px', verticalAlign: 'top' }}>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#0F172A', fontSize: '12.5px' }}>{p.name}</div>
+                        {p.req ? (
+                          <span style={{ display: 'inline-block', marginTop: '2px', background: '#FEF2F2', color: '#DC2626', fontSize: '10px', fontWeight: 800, padding: '1px 6px', borderRadius: '4px' }}>REQUIRED</span>
+                        ) : (
+                          <span style={{ display: 'inline-block', marginTop: '2px', background: '#F1F5F9', color: '#64748B', fontSize: '10px', fontWeight: 600, padding: '1px 6px', borderRadius: '4px' }}>OPTIONAL</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#7C3AED', fontWeight: 700, fontFamily: 'var(--font-mono)', fontSize: '12px', verticalAlign: 'top' }}>
+                        {p.type}
+                      </td>
+                      <td style={{ padding: '12px 14px', color: '#475569', fontWeight: 500, fontSize: '12.5px', lineHeight: '1.5', verticalAlign: 'top' }}>
+                        {p.desc}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {params.map(p => (
-                      <tr key={p.name}>
-                        <td style={{ ...S.td, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{p.name}</td>
-                        <td style={{ ...S.td, color: '#7C3AED', fontWeight: 600 }}>{p.type}</td>
-                        <td style={S.td}>
-                          {p.req ? (
-                            <span style={{ color: '#EF4444', fontWeight: 700 }}>Yes</span>
-                          ) : (
-                            <span style={{ color: '#94A3B8', fontWeight: 500 }}>No</span>
-                          )}
-                        </td>
-                        <td style={{ ...S.td, color: '#64748B', fontWeight: 500 }}>{p.desc}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
-            <div style={{ padding: '24px', textAlign: 'center', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', color: '#94A3B8', fontSize: '13px', fontWeight: 500 }}>
-              No parameters required.
+            <div style={{ padding: '24px', textAlign: 'center', background: '#F8FAFC', borderRadius: '12px', border: '1px dashed #CBD5E1', color: '#94A3B8', fontSize: '13px', fontWeight: 600 }}>
+              No request parameters required.
             </div>
           )}
         </div>
 
-        {/* Right Column: Code examples */}
+        {/* Right Column: Code snippets */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
-          <CodeBlock title={reqExample.title} code={reqExample.code} />
-          <CodeBlock title={resExample.title} code={resExample.code} />
+          <CodeBlock title={reqExample.title} code={reqExample.code} language={reqExample.language || 'http'} />
+          <CodeBlock title={resExample.title} code={resExample.code} language="json" />
         </div>
       </div>
     </div>
@@ -133,6 +147,8 @@ export const ApiDocs = () => {
   const [copied, setCopied] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'messaging' | 'instance' | 'public'>('all');
+  const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -172,8 +188,10 @@ export const ApiDocs = () => {
     setRegenerating(false);
   };
 
-  const messagingEndpoints: IEndpoint[] = [
+  const allEndpoints: IEndpoint[] = [
+    // --- MESSAGING ENDPOINTS ---
     {
+      category: 'messaging',
       method: 'GET',
       path: '/api/send',
       title: 'Quick Send API (Simple URL)',
@@ -187,8 +205,9 @@ export const ApiDocs = () => {
         { name: 'media_url', type: 'string', req: false, desc: 'Public URL of the media file. Required when type is image/video/document.' },
       ],
       reqExample: {
-        title: 'GET REQUEST URL (Text)',
-        code: `GET ${import.meta.env.VITE_API_URL}/api/send?number=919876543210&type=text&message=Hello+World&instance_id=YOUR_INSTANCE_ID&access_token=YOUR_ACCESS_TOKEN`
+        title: 'GET REQUEST URL',
+        language: 'http',
+        code: `GET ${import.meta.env.VITE_API_URL}/api/send?number=919876543210&type=text&message=Hello+World&instance_id=YOUR_INSTANCE_ID&access_token=${apiKey}`
       },
       resExample: {
         title: 'RESPONSE JSON',
@@ -200,29 +219,31 @@ export const ApiDocs = () => {
       }
     },
     {
+      category: 'messaging',
       method: 'POST',
       path: '/api/send',
-      title: 'Send Media & File',
-      desc: 'Send a media or file with message to a phone number through the app.',
+      title: 'Send Media & File Attachment',
+      desc: 'Send images, videos, documents, or audio files with custom captions to any recipient number.',
       params: [
-        { name: 'number', type: 'int', req: true, desc: 'Recipient phone number with country code. E.g. 84933313xxx' },
-        { name: 'type', type: 'string', req: true, desc: 'Must be set to "media"' },
-        { name: 'message', type: 'string', req: false, desc: 'Caption for the media file.' },
-        { name: 'media_url', type: 'string', req: true, desc: 'Public URL of the media file (image, video, document).' },
-        { name: 'filename', type: 'string', req: false, desc: '(Just use for send document) Custom filename.' },
+        { name: 'number', type: 'string', req: true, desc: 'Recipient phone number with country code (e.g., 919876543210).' },
+        { name: 'type', type: 'string', req: true, desc: 'Must be set to "media".' },
+        { name: 'message', type: 'string', req: false, desc: 'Caption text accompanying the media attachment.' },
+        { name: 'media_url', type: 'string', req: true, desc: 'Public HTTPS direct URL of media file (image, video, document).' },
+        { name: 'filename', type: 'string', req: false, desc: 'Custom display filename for documents (e.g. invoice.pdf).' },
         { name: 'instance_id', type: 'string', req: true, desc: 'Your connected WhatsApp instance ID.' },
         { name: 'access_token', type: 'string', req: true, desc: 'Your personal API access token.' }
       ],
       reqExample: {
         title: 'POST REQUEST JSON BODY',
+        language: 'json',
         code: JSON.stringify({
-          number: "84933313123",
+          number: "919876543210",
           type: "media",
-          message: "test message",
-          media_url: "https://i.pravatar.cc",
-          filename: "file_test.jpg",
-          instance_id: "609ACF283XXXX",
-          access_token: "678fab7d0622c"
+          message: "Check out this document!",
+          media_url: "https://example.com/sample.pdf",
+          filename: "document.pdf",
+          instance_id: "YOUR_INSTANCE_ID",
+          access_token: apiKey
         }, null, 2)
       },
       resExample: {
@@ -231,24 +252,17 @@ export const ApiDocs = () => {
           status: "success",
           message: {
             key: {
-              remoteJid: "84933313123@s.whatsapp.net",
+              remoteJid: "919876543210@s.whatsapp.net",
               fromMe: true,
               id: "3EB000942D2822315D8255"
             },
-            message: {
-              imageMessage: {
-                url: "https://mmg.whatsapp.net/...",
-                mimetype: "image/jpeg",
-                caption: "test message"
-              }
-            },
-            messageTimestamp: "1784269041",
             status: "SUCCESS"
           }
         }, null, 2)
       }
     },
     {
+      category: 'messaging',
       method: 'POST',
       path: '/api/message/send',
       title: 'Send Message (JSON Payload)',
@@ -263,9 +277,10 @@ export const ApiDocs = () => {
       ],
       reqExample: {
         title: 'POST REQUEST JSON BODY',
+        language: 'json',
         code: JSON.stringify({
-          api_key: "YOUR_SECRET_API_KEY",
-          instance_id: "INSTANCE_ID",
+          api_key: apiKey,
+          instance_id: "YOUR_INSTANCE_ID",
           number: "919876543210",
           message: "Hello from API!",
           media_url: "https://example.com/invoice.pdf",
@@ -282,32 +297,7 @@ export const ApiDocs = () => {
       }
     },
     {
-      method: 'GET',
-      path: '/api/message/send',
-      title: 'Send Message (GET Webhook)',
-      desc: 'Send plain text or media messages using simple query URL parameters. Ideal for Zapier/webhooks integrations.',
-      params: [
-        { name: 'api_key', type: 'string', req: true, desc: 'Your Secrets API Key.' },
-        { name: 'instance_id', type: 'string', req: true, desc: 'Linked instance ID.' },
-        { name: 'number', type: 'string', req: true, desc: 'Recipient phone number (e.g., 919876543210).' },
-        { name: 'message', type: 'string', req: false, desc: 'Plain text message content.' },
-        { name: 'media_url', type: 'string', req: false, desc: 'Public URL to file attachment.' },
-        { name: 'filename', type: 'string', req: false, desc: 'Attachment filename.' }
-      ],
-      reqExample: {
-        title: 'GET REQUEST URL',
-        code: `GET ${import.meta.env.VITE_API_URL}/api/message/send?api_key=YOUR_KEY&instance_id=INST_ID&number=919876543210&message=Hello+Standard+Text`
-      },
-      resExample: {
-        title: 'RESPONSE JSON',
-        code: JSON.stringify({
-          success: true,
-          message: "Message queued",
-          message_id: "75e01b44-934c-4235-b283-abcdef123456"
-        }, null, 2)
-      }
-    },
-    {
+      category: 'messaging',
       method: 'POST',
       path: '/api/message/send-interactive',
       title: 'Send Interactive Message (Buttons)',
@@ -316,19 +306,19 @@ export const ApiDocs = () => {
         { name: 'api_key', type: 'string', req: true, desc: 'Your Secrets API Key.' },
         { name: 'instance_id', type: 'string', req: true, desc: 'Linked instance ID.' },
         { name: 'number', type: 'string', req: true, desc: 'Recipient phone number (e.g., 919876543210).' },
-        { name: 'interactive', type: 'object', req: true, desc: 'Interactive payload configs.' },
+        { name: 'interactive', type: 'object', req: true, desc: 'Interactive payload configurations.' },
         { name: 'interactive.headerType', type: 'string', req: false, desc: '"none" | "text" | "image"' },
         { name: 'interactive.headerText', type: 'string', req: false, desc: 'Header text label.' },
-        { name: 'interactive.headerImageUrl', type: 'string', req: false, desc: 'Header banner image link.' },
         { name: 'interactive.body', type: 'string', req: true, desc: 'Main text message content.' },
         { name: 'interactive.footer', type: 'string', req: false, desc: 'Subtext footer description.' },
-        { name: 'interactive.buttons', type: 'array', req: true, desc: 'Up to 3 button configurations: type ("quick_reply" | "cta_url" | "cta_call"), label, and type properties.' }
+        { name: 'interactive.buttons', type: 'array', req: true, desc: 'Up to 3 buttons: quick_reply, cta_url, or cta_call.' }
       ],
       reqExample: {
         title: 'POST REQUEST JSON BODY',
+        language: 'json',
         code: JSON.stringify({
-          api_key: "YOUR_SECRET_API_KEY",
-          instance_id: "INSTANCE_ID",
+          api_key: apiKey,
+          instance_id: "YOUR_INSTANCE_ID",
           number: "919876543210",
           interactive: {
             headerType: "text",
@@ -353,17 +343,19 @@ export const ApiDocs = () => {
       }
     },
     {
+      category: 'messaging',
       method: 'GET',
       path: '/api/message/status',
       title: 'Check Message Status',
-      desc: 'Verify if a queued message was successfully sent, failed, or was a Non-Whatsapp number.',
+      desc: 'Verify if a queued message was successfully sent, failed, or was sent to a Non-WhatsApp number.',
       params: [
         { name: 'api_key', type: 'string', req: true, desc: 'Your Secrets API Key.' },
         { name: 'message_id', type: 'string', req: true, desc: 'The message_id returned when you sent the message.' }
       ],
       reqExample: {
         title: 'GET REQUEST URL',
-        code: `GET ${import.meta.env.VITE_API_URL}/api/message/status?api_key=YOUR_KEY&message_id=75e01b44-934c-4235-b283-abcdef123456`
+        language: 'http',
+        code: `GET ${import.meta.env.VITE_API_URL}/api/message/status?api_key=${apiKey}&message_id=75e01b44-934c-4235-b283-abcdef123456`
       },
       resExample: {
         title: 'RESPONSE JSON',
@@ -371,141 +363,15 @@ export const ApiDocs = () => {
           success: true,
           message_id: "75e01b44-934c-4235-b283-abcdef123456",
           number: "919876543210",
-          status: "Non-Whatsapp",
-          created_at: "2024-06-12T12:00:00.000Z"
+          status: "sent",
+          created_at: new Date().toISOString()
         }, null, 2)
       }
-    }
-  ];
+    },
 
-  const sdkEndpoints: IEndpoint[] = [
+    // --- PUBLIC INSTANCE ENDPOINTS ---
     {
-      method: 'POST',
-      path: '/api/client/instance/create',
-      title: 'Programmatic Create Instance',
-      desc: 'Creates a brand new initializing instance session under your account.',
-      params: [
-        { name: 'api_key', type: 'string', req: true, desc: 'Your Secrets API Key.' }
-      ],
-      reqExample: {
-        title: 'POST REQUEST URL',
-        code: `POST ${import.meta.env.VITE_API_URL}/api/client/instance/create?api_key=YOUR_SECRET_API_KEY`
-      },
-      resExample: {
-        title: 'RESPONSE JSON',
-        code: JSON.stringify({
-          instance_id: "ABCDEF"
-        }, null, 2)
-      }
-    },
-    {
-      method: 'GET',
-      path: '/api/client/instance/qr',
-      title: 'Fetch Connection QR Code',
-      desc: 'Poll this endpoint every 3 seconds to fetch the active Base64 QR code payload to link WhatsApp to the instance.',
-      params: [
-        { name: 'api_key', type: 'string', req: true, desc: 'Your Secrets API Key.' },
-        { name: 'instance_id', type: 'string', req: true, desc: 'Initializing instance ID.' }
-      ],
-      reqExample: {
-        title: 'GET REQUEST URL',
-        code: `GET ${import.meta.env.VITE_API_URL}/api/client/instance/qr?api_key=YOUR_KEY&instance_id=ABCDEF`
-      },
-      resExample: {
-        title: 'RESPONSE JSON',
-        code: JSON.stringify({
-          qr: "data:image/png;base64,iVBORw0KGgoAAA..."
-        }, null, 2)
-      }
-    },
-    {
-      method: 'POST',
-      path: '/api/client/instance/reconnect',
-      title: 'Reconnect / Start Instance',
-      desc: 'Start a disconnected instance so that it begins generating a new QR code for re-login. Call this before polling the QR endpoint if the instance is logged out.',
-      params: [
-        { name: 'api_key', type: 'string', req: true, desc: 'Your Secrets API Key.' },
-        { name: 'instance_id', type: 'string', req: true, desc: 'Target instance ID.' }
-      ],
-      reqExample: {
-        title: 'POST REQUEST URL',
-        code: `POST ${import.meta.env.VITE_API_URL}/api/client/instance/reconnect\n\n{ "api_key": "YOUR_KEY", "instance_id": "ABCDEF" }`
-      },
-      resExample: {
-        title: 'RESPONSE JSON',
-        code: JSON.stringify({
-          success: true,
-          message: "Instance reconnect sequence started. Please poll /client/instance/qr for the new QR code."
-        }, null, 2)
-      }
-    },
-    {
-      method: 'GET',
-      path: '/api/client/instance/status',
-      title: 'Check Instance Status',
-      desc: 'Verify if the instance is connected or disconnected, and see the linked phone number.',
-      params: [
-        { name: 'api_key', type: 'string', req: true, desc: 'Your Secrets API Key.' },
-        { name: 'instance_id', type: 'string', req: true, desc: 'Target instance ID.' }
-      ],
-      reqExample: {
-        title: 'GET REQUEST URL',
-        code: `GET ${import.meta.env.VITE_API_URL}/api/client/instance/status?api_key=YOUR_KEY&instance_id=ABCDEF`
-      },
-      resExample: {
-        title: 'RESPONSE JSON',
-        code: JSON.stringify({
-          status: "connected",
-          phoneNumber: "919876543210"
-        }, null, 2)
-      }
-    },
-    {
-      method: 'POST',
-      path: '/api/client/instance/logout',
-      title: 'Logout Instance Session',
-      desc: 'Log out and disconnect the WhatsApp active session from the instance.',
-      params: [
-        { name: 'api_key', type: 'string', req: true, desc: 'Your Secrets API Key.' },
-        { name: 'instance_id', type: 'string', req: true, desc: 'Target instance ID.' }
-      ],
-      reqExample: {
-        title: 'POST REQUEST URL',
-        code: `POST ${import.meta.env.VITE_API_URL}/api/client/instance/logout?api_key=YOUR_KEY&instance_id=ABCDEF`
-      },
-      resExample: {
-        title: 'RESPONSE JSON',
-        code: JSON.stringify({
-          success: true,
-          message: "Instance logged out successfully"
-        }, null, 2)
-      }
-    },
-    {
-      method: 'DELETE',
-      path: '/api/client/instance/delete',
-      title: 'Delete Instance Session',
-      desc: 'Permanently remove the instance session from the server database and clear cached session directories.',
-      params: [
-        { name: 'api_key', type: 'string', req: true, desc: 'Your Secrets API Key.' },
-        { name: 'instance_id', type: 'string', req: true, desc: 'Target instance ID.' }
-      ],
-      reqExample: {
-        title: 'DELETE REQUEST URL',
-        code: `DELETE ${import.meta.env.VITE_API_URL}/api/client/instance/delete?api_key=YOUR_KEY&instance_id=ABCDEF`
-      },
-      resExample: {
-        title: 'RESPONSE JSON',
-        code: JSON.stringify({
-          success: true,
-          message: "Instance deleted"
-        }, null, 2)
-      }
-    }
-  ];
-
-  const publicInstanceEndpoints: IEndpoint[] = [
-    {
+      category: 'public',
       method: 'POST',
       path: '/api/create_instance',
       title: 'Programmatic Create Instance',
@@ -515,7 +381,8 @@ export const ApiDocs = () => {
       ],
       reqExample: {
         title: 'POST REQUEST URL',
-        code: `POST ${import.meta.env.VITE_API_URL}/api/create_instance?access_token=YOUR_ACCESS_TOKEN`
+        language: 'http',
+        code: `POST ${import.meta.env.VITE_API_URL}/api/create_instance?access_token=${apiKey}`
       },
       resExample: {
         title: 'RESPONSE JSON',
@@ -527,6 +394,7 @@ export const ApiDocs = () => {
       }
     },
     {
+      category: 'public',
       method: 'POST',
       path: '/api/get_qrcode',
       title: 'Fetch Connection QR Code',
@@ -537,7 +405,8 @@ export const ApiDocs = () => {
       ],
       reqExample: {
         title: 'POST REQUEST URL',
-        code: `POST ${import.meta.env.VITE_API_URL}/api/get_qrcode?instance_id=ABC123XXX&access_token=YOUR_ACCESS_TOKEN`
+        language: 'http',
+        code: `POST ${import.meta.env.VITE_API_URL}/api/get_qrcode?instance_id=ABC123XXX&access_token=${apiKey}`
       },
       resExample: {
         title: 'RESPONSE JSON',
@@ -549,155 +418,255 @@ export const ApiDocs = () => {
       }
     },
     {
+      category: 'public',
       method: 'POST',
       path: '/api/reboot',
-      title: 'Reboot Instance',
-      desc: 'Logout Whatsapp web and do a fresh scan.',
+      title: 'Reboot Instance Session',
+      desc: 'Restart WhatsApp Web socket connection and generate a fresh QR code for scanning.',
       params: [
         { name: 'instance_id', type: 'string', req: true, desc: 'Target instance ID.' },
         { name: 'access_token', type: 'string', req: true, desc: 'Your personal API access token.' },
       ],
       reqExample: {
         title: 'POST REQUEST URL',
-        code: `POST ${import.meta.env.VITE_API_URL}/api/reboot?instance_id=ABC123XXX&access_token=YOUR_ACCESS_TOKEN`
+        language: 'http',
+        code: `POST ${import.meta.env.VITE_API_URL}/api/reboot?instance_id=ABC123XXX&access_token=${apiKey}`
       },
       resExample: {
         title: 'RESPONSE JSON',
         code: JSON.stringify({ status: "success", message: 'Success' }, null, 2)
       }
     },
+
+    // --- SDK INSTANCE ENDPOINTS ---
     {
-      method: 'GET',
-      path: '/api/reconnect',
-      title: 'Delete Instance Session',
-      desc: 'Clear and wipe the WhatsApp session for this instance. The device will be logged out and the session files deleted. Use /api/reboot afterwards to start fresh.',
+      category: 'instance',
+      method: 'POST',
+      path: '/api/client/instance/create',
+      title: 'Create Instance (SDK)',
+      desc: 'Creates a brand new initializing instance session under your account.',
       params: [
-        { name: 'instance_id', type: 'string', req: true, desc: 'Target instance ID.' },
-        { name: 'access_token', type: 'string', req: true, desc: 'Your personal API access token.' },
+        { name: 'api_key', type: 'string', req: true, desc: 'Your Secrets API Key.' }
       ],
       reqExample: {
-        title: 'GET REQUEST URL',
-        code: `GET ${import.meta.env.VITE_API_URL}/api/reconnect?instance_id=ABC123&access_token=YOUR_ACCESS_TOKEN`
+        title: 'POST REQUEST URL',
+        language: 'http',
+        code: `POST ${import.meta.env.VITE_API_URL}/api/client/instance/create?api_key=${apiKey}`
       },
       resExample: {
         title: 'RESPONSE JSON',
-        code: JSON.stringify({ success: true, message: 'Instance session cleared. Use /api/reboot to start a fresh QR.' }, null, 2)
+        code: JSON.stringify({
+          instance_id: "ABCDEF"
+        }, null, 2)
+      }
+    },
+    {
+      category: 'instance',
+      method: 'GET',
+      path: '/api/client/instance/status',
+      title: 'Check Instance Status',
+      desc: 'Verify if the instance is connected or disconnected, and see the linked phone number.',
+      params: [
+        { name: 'api_key', type: 'string', req: true, desc: 'Your Secrets API Key.' },
+        { name: 'instance_id', type: 'string', req: true, desc: 'Target instance ID.' }
+      ],
+      reqExample: {
+        title: 'GET REQUEST URL',
+        language: 'http',
+        code: `GET ${import.meta.env.VITE_API_URL}/api/client/instance/status?api_key=${apiKey}&instance_id=ABCDEF`
+      },
+      resExample: {
+        title: 'RESPONSE JSON',
+        code: JSON.stringify({
+          status: "connected",
+          phoneNumber: "919876543210"
+        }, null, 2)
+      }
+    },
+    {
+      category: 'instance',
+      method: 'POST',
+      path: '/api/client/instance/logout',
+      title: 'Logout Instance Session',
+      desc: 'Log out and disconnect the WhatsApp active session from the instance.',
+      params: [
+        { name: 'api_key', type: 'string', req: true, desc: 'Your Secrets API Key.' },
+        { name: 'instance_id', type: 'string', req: true, desc: 'Target instance ID.' }
+      ],
+      reqExample: {
+        title: 'POST REQUEST URL',
+        language: 'http',
+        code: `POST ${import.meta.env.VITE_API_URL}/api/client/instance/logout?api_key=${apiKey}&instance_id=ABCDEF`
+      },
+      resExample: {
+        title: 'RESPONSE JSON',
+        code: JSON.stringify({
+          success: true,
+          message: "Instance logged out successfully"
+        }, null, 2)
       }
     },
   ];
 
+  // Filter endpoints by tab and search
+  const filteredEndpoints = allEndpoints.filter(ep => {
+    const matchesTab = activeTab === 'all' || ep.category === activeTab;
+    const matchesSearch = search === '' || 
+      ep.title.toLowerCase().includes(search.toLowerCase()) || 
+      ep.path.toLowerCase().includes(search.toLowerCase()) || 
+      ep.desc.toLowerCase().includes(search.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
+
   return (
-    <div className="animate-in" style={S.container}>
-      {/* Top Banner: Page Intro & API Key Display */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="animate-in" style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+      
+      {/* Header & Title */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', margin: '0 0 4px' }}>Developer API Reference</h2>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#0F172A', margin: '0 0 6px', letterSpacing: '-0.02em' }}>Developer API Reference</h2>
           <p style={{ color: '#64748B', fontSize: '14px', margin: 0, fontWeight: 500 }}>
-            Use the following HTTP client endpoints to programmatically manage WhatsApp instances and dispatch text, media, or interactive button templates.
+            Programmatically control WhatsApp instances, send text/media messages, and dispatch interactive button templates via REST APIs.
           </p>
         </div>
+      </div>
 
-        {/* API Details Panel */}
-        <div style={{ ...S.card, display: 'flex', flexDirection: 'column', gap: '20px', background: 'linear-gradient(135deg, #1e1b4b, #312e81)', border: 'none', color: '#FFFFFF' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <BookIcon size={24} color="#FBBF24" />
-            </div>
-            <div>
-              <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700 }}>Secrets Key & Integration Credentials</h4>
-              <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#94A3B8', fontWeight: 500 }}>
-                Base Request URL: <code style={{ color: '#FBBF24', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{import.meta.env.VITE_API_URL}</code>
-              </p>
-            </div>
+      {/* API Key Credentials Card */}
+      <div className="card" style={{ padding: '28px', borderRadius: '20px', background: 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)', border: 'none', boxShadow: '0 20px 40px rgba(49, 46, 129, 0.2)', color: '#FFFFFF', position: 'relative', overflow: 'hidden' }}>
+        {/* Glow Accent */}
+        <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '200px', height: '200px', background: 'radial-gradient(circle, rgba(124,58,237,0.4) 0%, rgba(0,0,0,0) 70%)', pointerEvents: 'none' }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'rgba(255, 255, 255, 0.12)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <BookIcon size={24} color="#FBBF24" />
           </div>
-
-          {/* Access Token Row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(0,0,0,0.3)', borderRadius: '12px', padding: '14px 18px' }}>
-            <code style={{ flex: 1, fontSize: '14px', fontFamily: 'var(--font-mono)', color: '#FBBF24', fontWeight: 700, letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {apiKey}
-            </code>
-            <button onClick={copyKey} style={{
-              background: copied ? '#10B981' : 'rgba(255, 255, 255, 0.1)', border: 'none', borderRadius: '8px',
-              padding: '8px 14px', color: 'white', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s', flexShrink: 0
-            }}>
-              {copied ? <CheckIcon size={14} color="white" /> : <CopyIcon size={14} color="white" />}
-              {copied ? 'Copied!' : 'Copy Key'}
-            </button>
-            <button onClick={regenerateToken} disabled={regenerating} style={{
-              background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px',
-              padding: '8px 14px', color: '#94A3B8', fontSize: '12px', fontWeight: 700, cursor: 'pointer', flexShrink: 0
-            }}>
-              {regenerating ? '...' : '↻ Regenerate'}
-            </button>
-          </div>
-
-          {/* Live URL Builder */}
           <div>
-            <p style={{ margin: '0 0 8px', fontSize: '11px', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Quick Send URL — paste in browser to test</p>
-            <div style={{ background: 'rgba(0,0,0,0.4)', borderRadius: '12px', padding: '14px 18px', marginBottom: '12px' }}>
-              <code style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: '#A5F3FC', wordBreak: 'break-all', lineHeight: 1.8 }}>
-                <span style={{ color: '#94A3B8' }}>{import.meta.env.VITE_API_URL}</span>
-                <span style={{ color: '#FBBF24' }}>/api/send</span>
-                <span style={{ color: '#E2E8F0' }}>?number=</span><span style={{ color: '#86EFAC' }}>919876543210</span>
-                <span style={{ color: '#E2E8F0' }}>&type=</span><span style={{ color: '#86EFAC' }}>text</span>
-                <span style={{ color: '#E2E8F0' }}>&message=</span><span style={{ color: '#86EFAC' }}>Hello</span>
-                <span style={{ color: '#E2E8F0' }}>&instance_id=</span><span style={{ color: '#86EFAC' }}>YOUR_INSTANCE_ID</span>
-                <span style={{ color: '#E2E8F0' }}>&access_token=</span><span style={{ color: '#FBBF24' }}>{apiKey}</span>
+            <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 800, letterSpacing: '-0.01em' }}>API Credentials & Endpoint Host</h4>
+            <p style={{ margin: '3px 0 0', fontSize: '13px', color: '#CBD5E1', fontWeight: 500 }}>
+              Base URL: <code style={{ color: '#FBBF24', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{import.meta.env.VITE_API_URL}</code>
+            </p>
+          </div>
+        </div>
+
+        {/* API Token Box */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', background: 'rgba(0, 0, 0, 0.35)', backdropFilter: 'blur(8px)', borderRadius: '14px', padding: '18px 20px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0, flex: 1 }}>
+              <span style={{ fontSize: '10px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Your Personal Access Token</span>
+              <code style={{ fontSize: '15px', fontFamily: 'var(--font-mono)', color: '#FBBF24', fontWeight: 700, letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {apiKey}
               </code>
             </div>
-            <button onClick={copyApiUrl} style={{
-              width: '100%', background: copiedUrl ? '#059669' : '#4F46E5', border: 'none', borderRadius: '10px',
-              padding: '10px', color: 'white', fontSize: '13px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
-            }}>
-              {copiedUrl ? '✓ URL Copied to Clipboard!' : '⎘ Copy Quick Send URL'}
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={copyKey}
+                style={{
+                  background: copied ? '#10B981' : 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                  border: 'none', borderRadius: '10px', padding: '10px 18px', color: 'white', fontSize: '13px', fontWeight: 700,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease', boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
+                }}
+              >
+                {copied ? <CheckIcon size={16} color="white" /> : <CopyIcon size={16} color="white" />}
+                {copied ? 'Token Copied!' : 'Copy Access Token'}
+              </button>
+              <button
+                onClick={regenerateToken}
+                disabled={regenerating}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.08)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '10px',
+                  padding: '10px 16px', color: '#E2E8F0', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s ease'
+                }}
+              >
+                {regenerating ? '...' : '↻ Regenerate Token'}
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Test URL */}
+          <div style={{ paddingTop: '12px', borderTop: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <span style={{ fontSize: '10px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>1-Click Quick Send URL (Test in Browser)</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(0, 0, 0, 0.4)', padding: '12px 16px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <code style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: '12px', color: '#A5F3FC', wordBreak: 'break-all', lineHeight: 1.6 }}>
+                {import.meta.env.VITE_API_URL}/api/send?number=919876543210&type=text&message=Hello&instance_id=YOUR_INSTANCE_ID&access_token={apiKey}
+              </code>
+              <button
+                onClick={copyApiUrl}
+                style={{
+                  background: copiedUrl ? '#10B981' : 'rgba(255, 255, 255, 0.15)', border: 'none', borderRadius: '8px',
+                  padding: '6px 12px', color: 'white', fontSize: '11px', fontWeight: 700, cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s ease'
+                }}
+              >
+                {copiedUrl ? 'Copied URL!' : 'Copy Test URL'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Section 0: Public Instance Management */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '8px', marginTop: '16px' }}>
-          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <DeviceIcon size={20} color="#059669" /> Public Instance Management API
-          </h3>
-          <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#64748B', fontWeight: 500 }}>Manage instances using only your <code style={{ background: '#F1F5F9', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>access_token</code> — no JWT needed. Compatible with any language or platform.</p>
+      {/* Navigation Tabs & Search Filter */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+        {/* Category Tabs */}
+        <div style={{ display: 'flex', background: '#FFFFFF', padding: '5px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: 'var(--shadow-soft)', gap: '4px' }}>
+          {[
+            { id: 'all', label: 'All Endpoints', icon: BookIcon },
+            { id: 'messaging', label: 'Messaging APIs', icon: SendIcon },
+            { id: 'public', label: 'Public Instance APIs', icon: DeviceIcon },
+            { id: 'instance', label: 'SDK Endpoints', icon: DeviceIcon },
+          ].map(tab => {
+            const isActive = activeTab === tab.id;
+            const TabIcon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: isActive ? '#7C3AED' : 'transparent',
+                  color: isActive ? '#FFFFFF' : '#64748B',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <TabIcon size={14} color={isActive ? '#FFFFFF' : '#64748B'} />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {publicInstanceEndpoints.map(ep => (
-            <EndpointDoc key={ep.method + ep.path} {...ep} />
-          ))}
+
+        {/* Search Input Filter */}
+        <div style={{ position: 'relative', width: '280px' }}>
+          <SearchIcon size={16} color="#94A3B8" style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+          <input
+            type="text"
+            placeholder="Search API endpoints..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="rounded-input"
+            style={{ paddingRight: '38px', height: '42px', borderRadius: '12px' }}
+          />
         </div>
       </div>
 
-      {/* Section 1: Messaging APIs */}
+      {/* Endpoints Documentation List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '8px', marginTop: '16px' }}>
-          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <SendIcon size={20} color="#7C3AED" /> Messaging Integration APIs
-          </h3>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {messagingEndpoints.map(ep => (
-            <EndpointDoc key={ep.method + ep.path} {...ep} />
-          ))}
-        </div>
+        {filteredEndpoints.map(ep => (
+          <EndpointDoc key={ep.method + ep.path} {...ep} />
+        ))}
+        {filteredEndpoints.length === 0 && (
+          <div className="card" style={{ padding: '48px', textAlign: 'center', color: '#94A3B8', fontWeight: 600, borderRadius: '18px' }}>
+            No matching API endpoints found for "{search}"
+          </div>
+        )}
       </div>
 
-      {/* Section 2: Instance APIs */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div style={{ borderBottom: '2px solid #E2E8F0', paddingBottom: '8px', marginTop: '24px' }}>
-          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <DeviceIcon size={20} color="#7C3AED" /> Instance Management SDK
-          </h3>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {sdkEndpoints.map(ep => (
-            <EndpointDoc key={ep.method + ep.path} {...ep} />
-          ))}
-        </div>
-      </div>
     </div>
   );
 };
