@@ -193,64 +193,112 @@ export const AdminPanel = () => {
 
       {/* Add User Modal */}
       {isAddUserModalOpen && createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
-          <div className="card" style={{ width: '100%', maxWidth: '440px', position: 'relative', boxShadow: '0 24px 64px rgba(0,0,0,0.1)' }}>
-            <button onClick={() => setIsAddUserModalOpen(false)} style={{ position: 'absolute', top: '16px', right: '16px', background: '#F1F5F9', border: 'none', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>✕</button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '24px' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '640px', position: 'relative', borderRadius: '24px', padding: '32px', boxShadow: '0 25px 50px -12px rgba(124, 58, 237, 0.18), 0 0 0 1px rgba(226, 232, 240, 0.8)', background: '#FFFFFF' }}>
+            <button 
+              onClick={() => setIsAddUserModalOpen(false)} 
+              style={{ position: 'absolute', top: '24px', right: '24px', background: '#F1F5F9', border: 'none', borderRadius: '12px', width: '36px', height: '36px', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', transition: 'all 0.2s ease' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#E2E8F0'; e.currentTarget.style.color = '#0F172A'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = '#64748B'; }}
+            >
+              ✕
+            </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#F3E8FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <UserPlusIcon size={22} color="#7C3AED" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '28px' }}>
+              <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: 'linear-gradient(135deg, #F3E8FF 0%, #E9D5FF 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(124, 58, 237, 0.12)' }}>
+                <UserPlusIcon size={26} color="#7C3AED" />
               </div>
               <div>
-                <h3 style={{ fontWeight: 800, fontSize: '18px', color: '#0F172A', margin: 0 }}>Add New User</h3>
-                <p style={{ fontSize: '13px', color: '#94A3B8', margin: '2px 0 0', fontWeight: 600 }}>Create an account</p>
+                <h3 style={{ fontWeight: 800, fontSize: '20px', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Add New User</h3>
+                <p style={{ fontSize: '13px', color: '#64748B', margin: '3px 0 0', fontWeight: 500 }}>Configure user credentials, instance allocations, and access permissions.</p>
               </div>
             </div>
 
-            {error && <div style={{ background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', fontWeight: 600, color: '#DC2626', marginBottom: '16px' }}>{error}</div>}
-            {success && <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '8px', padding: '10px 14px', fontSize: '13px', fontWeight: 600, color: '#16A34A', marginBottom: '16px' }}>{success}</div>}
+            {error && <div style={{ background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '12px', padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: '#DC2626', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>⚠ {error}</div>}
+            {success && <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: '#16A34A', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>✓ {success}</div>}
 
-            <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {[
-                { label: 'Username', ph: 'e.g. john_doe', val: newUsername, set: setNewUsername, type: 'text' },
-                { label: 'Password', ph: '••••••••', val: newPassword, set: setNewPassword, type: 'password' },
-              ].map(({ label, ph, val, set, type }) => (
-                <div key={label}>
-                  <label style={S.label}>{label}</label>
-                  <input type={type} placeholder={ph} value={val} onChange={e => set(e.target.value)} className="rounded-input" />
+            <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* 2-Column Grid for Form Fields */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                <div>
+                  <label style={S.label}>Username</label>
+                  <input type="text" placeholder="e.g. john_doe" value={newUsername} onChange={e => setNewUsername(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
                 </div>
-              ))}
-              <div style={{ display: 'flex', gap: '14px' }}>
-                <div style={{ flex: 1 }}>
+                <div>
+                  <label style={S.label}>Password</label>
+                  <input type="password" placeholder="••••••••" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                </div>
+                <div>
                   <label style={S.label}>Max Instances</label>
-                  <input type="number" min="1" value={newMaxInstances} onChange={e => setNewMaxInstances(e.target.value)} className="rounded-input" />
+                  <input type="number" min="1" value={newMaxInstances} onChange={e => setNewMaxInstances(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label style={S.label}>Monthly Limit</label>
-                  <input type="number" min="1" value={newMessageLimit} onChange={e => setNewMessageLimit(e.target.value)} className="rounded-input" />
+                <div>
+                  <label style={S.label}>Monthly Message Limit</label>
+                  <input type="number" min="1" value={newMessageLimit} onChange={e => setNewMessageLimit(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
                 </div>
               </div>
+
               <div>
                 <label style={S.label}>Expiry Date <span style={{ color: '#94A3B8', fontWeight: 500 }}>(optional)</span></label>
-                <input type="date" value={newExpiresAt} onChange={e => setNewExpiresAt(e.target.value)} className="rounded-input" />
+                <input type="date" value={newExpiresAt} onChange={e => setNewExpiresAt(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
               </div>
+
+              {/* Menu Permissions as Styled Interactive Chips */}
               <div>
                 <label style={S.label}>Menu Permissions</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '4px' }}>
-                  {['instances', 'broadcast', 'reports', 'docs'].map(perm => (
-                    <label key={perm} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input type="checkbox" checked={newPermissions.includes(perm)} onChange={(e) => {
-                        if (e.target.checked) setNewPermissions([...newPermissions, perm]);
-                        else setNewPermissions(newPermissions.filter(p => p !== perm));
-                      }} style={{ accentColor: '#7C3AED' }} />
-                      <span style={{ textTransform: 'capitalize' }}>{perm === 'docs' ? 'API Docs' : perm}</span>
-                    </label>
-                  ))}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginTop: '6px' }}>
+                  {[
+                    { id: 'instances', name: 'Instances' },
+                    { id: 'broadcast', name: 'Broadcast' },
+                    { id: 'reports', name: 'Reports' },
+                    { id: 'docs', name: 'API Docs' },
+                  ].map(perm => {
+                    const isChecked = newPermissions.includes(perm.id);
+                    return (
+                      <div
+                        key={perm.id}
+                        onClick={() => {
+                          if (isChecked) setNewPermissions(newPermissions.filter(p => p !== perm.id));
+                          else setNewPermissions([...newPermissions, perm.id]);
+                        }}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: '12px',
+                          border: isChecked ? '1.5px solid #7C3AED' : '1.5px solid #E2E8F0',
+                          background: isChecked ? '#F3E8FF' : '#F8FAFC',
+                          color: isChecked ? '#7C3AED' : '#64748B',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease',
+                          userSelect: 'none',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}} // Handled by parent div
+                          style={{ accentColor: '#7C3AED', width: '15px', height: '15px', cursor: 'pointer' }}
+                        />
+                        <span>{perm.name}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
-                <button type="button" onClick={() => setIsAddUserModalOpen(false)} className="btn-outline" style={{ flex: 1 }}>Cancel</button>
-                <button type="submit" className="btn-primary" style={{ flex: 2 }}>Create User</button>
+
+              {/* Modal Actions */}
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px', paddingTop: '16px', borderTop: '1px solid #F1F5F9' }}>
+                <button type="button" onClick={() => setIsAddUserModalOpen(false)} className="btn-outline" style={{ flex: 1, height: '46px', borderRadius: '12px', fontWeight: 700 }}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" style={{ flex: 2, height: '46px', borderRadius: '12px', fontWeight: 700, background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', boxShadow: '0 6px 16px rgba(124, 58, 237, 0.25)' }}>
+                  Create User Account
+                </button>
               </div>
             </form>
           </div>
@@ -258,66 +306,139 @@ export const AdminPanel = () => {
         document.body
       )}
 
-      {/* Edit Modal */}
+      {/* Edit User Modal */}
       {editingUser && createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
-          <div className="card" style={{ width: '100%', maxWidth: '440px', position: 'relative', boxShadow: '0 24px 64px rgba(0,0,0,0.1)' }}>
-            <button onClick={() => setEditingUser(null)} style={{ position: 'absolute', top: '16px', right: '16px', background: '#F1F5F9', border: 'none', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>✕</button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '24px' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '640px', position: 'relative', borderRadius: '24px', padding: '32px', boxShadow: '0 25px 50px -12px rgba(124, 58, 237, 0.18), 0 0 0 1px rgba(226, 232, 240, 0.8)', background: '#FFFFFF' }}>
+            <button 
+              onClick={() => setEditingUser(null)} 
+              style={{ position: 'absolute', top: '24px', right: '24px', background: '#F1F5F9', border: 'none', borderRadius: '12px', width: '36px', height: '36px', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', transition: 'all 0.2s ease' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#E2E8F0'; e.currentTarget.style.color = '#0F172A'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = '#64748B'; }}
+            >
+              ✕
+            </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#F3E8FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <EditIcon size={22} color="#7C3AED" />
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '28px' }}>
+              <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: 'linear-gradient(135deg, #F3E8FF 0%, #E9D5FF 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(124, 58, 237, 0.12)' }}>
+                <EditIcon size={24} color="#7C3AED" />
               </div>
-              <div>
-                <h3 style={{ fontWeight: 800, fontSize: '18px', color: '#0F172A', margin: 0 }}>Edit User</h3>
-                <p style={{ fontSize: '13px', color: '#94A3B8', margin: '2px 0 0', fontWeight: 600 }}>{editingUser.username}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <h3 style={{ fontWeight: 800, fontSize: '20px', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Edit User</h3>
+                  <span style={{ background: '#F3E8FF', color: '#7C3AED', padding: '3px 10px', borderRadius: '9999px', fontSize: '12px', fontWeight: 800 }}>
+                    {editingUser.username}
+                  </span>
+                </div>
+                <p style={{ fontSize: '13px', color: '#64748B', margin: 0, fontWeight: 500 }}>Update security settings, resource quotas, and permissions.</p>
               </div>
             </div>
 
-            <form onSubmit={handleUpdateUser} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={S.label}>New Password <span style={{ color: '#94A3B8', fontWeight: 500 }}>(leave blank to keep)</span></label>
-                <input type="password" value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="••••••••" className="rounded-input" />
+            <form onSubmit={handleUpdateUser} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* 2-Column Grid Layout */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                <div>
+                  <label style={S.label}>New Password <span style={{ color: '#94A3B8', fontWeight: 500 }}>(leave blank to keep)</span></label>
+                  <input type="password" value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="••••••••" className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                </div>
+                <div>
+                  <label style={S.label}>Expiry Date</label>
+                  <input type="date" value={editingUser.expiresAt ? new Date(editingUser.expiresAt).toISOString().split('T')[0] : ''} onChange={e => setEditingUser({ ...editingUser, expiresAt: e.target.value })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                </div>
+                <div>
+                  <label style={S.label}>Max Instances</label>
+                  <input type="number" min="1" value={editingUser.maxInstances} onChange={e => setEditingUser({ ...editingUser, maxInstances: e.target.value })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                </div>
+                <div>
+                  <label style={S.label}>Monthly Message Limit</label>
+                  <input type="number" min="1" value={editingUser.messageLimit} onChange={e => setEditingUser({ ...editingUser, messageLimit: e.target.value })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                </div>
               </div>
-              <div>
-                <label style={S.label}>Max Instances</label>
-                <input type="number" min="1" value={editingUser.maxInstances} onChange={e => setEditingUser({ ...editingUser, maxInstances: e.target.value })} className="rounded-input" />
-              </div>
-              <div>
-                <label style={S.label}>Monthly Message Limit</label>
-                <input type="number" min="1" value={editingUser.messageLimit} onChange={e => setEditingUser({ ...editingUser, messageLimit: e.target.value })} className="rounded-input" />
-              </div>
-              <div>
-                <label style={S.label}>Expiry Date</label>
-                <input type="date" value={editingUser.expiresAt ? new Date(editingUser.expiresAt).toISOString().split('T')[0] : ''} onChange={e => setEditingUser({ ...editingUser, expiresAt: e.target.value })} className="rounded-input" />
-              </div>
+
+              {/* Menu Permissions as Styled Interactive Chips */}
               <div>
                 <label style={S.label}>Menu Permissions</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '4px' }}>
-                  {['instances', 'broadcast', 'reports', 'docs'].map(perm => {
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginTop: '6px' }}>
+                  {[
+                    { id: 'instances', name: 'Instances' },
+                    { id: 'broadcast', name: 'Broadcast' },
+                    { id: 'reports', name: 'Reports' },
+                    { id: 'docs', name: 'API Docs' },
+                  ].map(perm => {
                     const perms = (editingUser.permissions || '').split(',');
+                    const isChecked = perms.includes(perm.id);
                     return (
-                      <label key={perm} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
-                        <input type="checkbox" checked={perms.includes(perm)} onChange={(e) => {
-                          const newPerms = e.target.checked ? [...perms, perm] : perms.filter((p: string) => p !== perm && p !== '');
+                      <div
+                        key={perm.id}
+                        onClick={() => {
+                          const newPerms = isChecked ? perms.filter((p: string) => p !== perm.id && p !== '') : [...perms, perm.id];
                           setEditingUser({ ...editingUser, permissions: newPerms.join(',') });
-                        }} style={{ accentColor: '#7C3AED' }} />
-                        <span style={{ textTransform: 'capitalize' }}>{perm === 'docs' ? 'API Docs' : perm}</span>
-                      </label>
+                        }}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: '12px',
+                          border: isChecked ? '1.5px solid #7C3AED' : '1.5px solid #E2E8F0',
+                          background: isChecked ? '#F3E8FF' : '#F8FAFC',
+                          color: isChecked ? '#7C3AED' : '#64748B',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease',
+                          userSelect: 'none',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}} // Handled by parent div
+                          style={{ accentColor: '#7C3AED', width: '15px', height: '15px', cursor: 'pointer' }}
+                        />
+                        <span>{perm.name}</span>
+                      </div>
                     );
                   })}
                 </div>
               </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0', cursor: 'pointer' }}>
-                <input type="checkbox" checked={editingUser.isAdmin} onChange={e => setEditingUser({ ...editingUser, isAdmin: e.target.checked })} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#7C3AED' }} />
+
+              {/* Admin Privileges Card */}
+              <label 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '14px', 
+                  padding: '16px 20px', 
+                  background: editingUser.isAdmin ? 'linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 100%)' : '#F8FAFC', 
+                  borderRadius: '16px', 
+                  border: editingUser.isAdmin ? '1.5px solid #DDD6FE' : '1.5px solid #E2E8F0', 
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <input 
+                  type="checkbox" 
+                  checked={editingUser.isAdmin} 
+                  onChange={e => setEditingUser({ ...editingUser, isAdmin: e.target.checked })} 
+                  style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#7C3AED', flexShrink: 0 }} 
+                />
                 <div>
-                  <p style={{ fontWeight: 700, fontSize: '14px', color: '#0F172A', margin: 0 }}>Grant Admin Privileges</p>
-                  <p style={{ fontSize: '12px', color: '#94A3B8', margin: '2px 0 0', fontWeight: 500 }}>Admin can manage all users</p>
+                  <p style={{ fontWeight: 800, fontSize: '14px', color: '#0F172A', margin: 0 }}>Grant Admin Privileges</p>
+                  <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0', fontWeight: 500 }}>Allows user to manage all user accounts, system quotas, and global settings</p>
                 </div>
               </label>
-              <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
-                <button type="button" onClick={() => setEditingUser(null)} className="btn-outline" style={{ flex: 1 }}>Cancel</button>
-                <button type="submit" className="btn-primary" style={{ flex: 2 }}>Save Changes</button>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px', paddingTop: '16px', borderTop: '1px solid #F1F5F9' }}>
+                <button type="button" onClick={() => setEditingUser(null)} className="btn-outline" style={{ flex: 1, height: '46px', borderRadius: '12px', fontWeight: 700 }}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary" style={{ flex: 2, height: '46px', borderRadius: '12px', fontWeight: 700, background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', boxShadow: '0 6px 16px rgba(124, 58, 237, 0.25)' }}>
+                  Save Changes
+                </button>
               </div>
             </form>
           </div>
