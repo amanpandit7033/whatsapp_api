@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CopyIcon, CheckIcon, BookIcon, SendIcon, DeviceIcon, SearchIcon } from '../components/Icons';
+import { copyToClipboard } from '../utils/clipboard';
 
 const METHOD_STYLES: Record<string, { bg: string; color: string; border: string }> = {
   GET: { bg: '#F0F9FF', color: '#0284C7', border: '#BAE6FD' },
@@ -10,11 +11,12 @@ const METHOD_STYLES: Record<string, { bg: string; color: string; border: string 
 
 const CodeBlock = ({ title, code, language = 'json' }: { title: string; code: string; language?: string }) => {
   const [copied, setCopied] = useState(false);
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code).then(() => {
+  const handleCopy = async () => {
+    const success = await copyToClipboard(code);
+    if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    }
   };
 
   return (
@@ -159,19 +161,21 @@ export const ApiDocs = () => {
     });
   }, [navigate]);
 
-  const copyKey = () => {
-    navigator.clipboard.writeText(apiKey).then(() => {
+  const copyKey = async () => {
+    const success = await copyToClipboard(apiKey);
+    if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    }
   };
 
-  const copyApiUrl = () => {
+  const copyApiUrl = async () => {
     const url = `${import.meta.env.VITE_API_URL}/api/send?number=919876543210&type=text&message=Hello&instance_id=YOUR_INSTANCE_ID&access_token=${apiKey}`;
-    navigator.clipboard.writeText(url).then(() => {
+    const success = await copyToClipboard(url);
+    if (success) {
       setCopiedUrl(true);
       setTimeout(() => setCopiedUrl(false), 2000);
-    });
+    }
   };
 
   const regenerateToken = async () => {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { copyToClipboard } from '../utils/clipboard';
 import { 
   DeviceIcon, 
   PlusIcon, 
@@ -65,20 +66,22 @@ export const Dashboard = () => {
     }
   };
 
-  const copyApiKey = () => {
-    navigator.clipboard.writeText(apiKey).then(() => {
+  const copyApiKey = async () => {
+    const success = await copyToClipboard(apiKey);
+    if (success) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    }
   };
 
-  const copyApiUrl = (instanceId: string) => {
+  const copyApiUrl = async (instanceId: string) => {
     const baseUrl = import.meta.env.VITE_API_URL;
     const url = `${baseUrl}/api/send?number=91XXXXXXXXXX&type=text&message=Hello&instance_id=${instanceId}&access_token=${apiKey}`;
-    navigator.clipboard.writeText(url).then(() => {
+    const success = await copyToClipboard(url);
+    if (success) {
       setCopiedUrl(true);
       setTimeout(() => setCopiedUrl(false), 2000);
-    });
+    }
   };
 
   const regenerateToken = async () => {
