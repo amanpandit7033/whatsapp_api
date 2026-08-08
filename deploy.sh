@@ -19,7 +19,7 @@ if [ $(free | grep -i swap | awk '{print $2}') -eq 0 ]; then
         sudo chmod 600 /swapfile
         sudo mkswap /swapfile
     fi
-    sudo swapon /swapfile || true
+    sudo swapon /swapfile 2>/dev/null || true
     if ! grep -q '/swapfile' /etc/fstab; then
         echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
     fi
@@ -94,16 +94,21 @@ echo "Starting Backend with PM2..."
 cd "$SCRIPT_DIR/backend"
 pm2 start dist/server.js --name "whatsapp-api" || pm2 restart "whatsapp-api"
 pm2 save
-pm2 startup | tail -n 1 | bash || true
+
+PM2_STARTUP_CMD=$(pm2 startup 2>&1 | grep -E 'sudo env|env PATH' | head -n 1 || true)
+if [ -n "$PM2_STARTUP_CMD" ]; then
+    eval "$PM2_STARTUP_CMD" || true
+fi
 cd "$SCRIPT_DIR"
 
 # 6. CONFIGURE NGINX
 echo "Configuring Nginx..."
 
-sudo mkdir -p /var/www/whatsapp_api
-# Clean stale build assets and sync new ones
-sudo rsync -a --delete "$SCRIPT_DIR/frontend/dist/" /var/www/whatsapp_api/
-sudo chown -R www-data:www-data /var/www/whatsapp_api
+WEB_ROOT="/var/www/whatsapp_api_dist"
+sudo mkdir -p "$WEB_ROOT"
+# Clean stale build assets and sync new ones safely into dedicated dist folder
+sudo rsync -a --delete "$SCRIPT_DIR/frontend/dist/" "$WEB_ROOT/"
+sudo chown -R www-data:www-data "$WEB_ROOT"
 
 DOMAIN=$(curl -s --connect-timeout 5 http://checkip.amazonaws.com || echo "localhost")
 NGINX_CONF="/etc/nginx/sites-available/whatsapp-api"
@@ -117,7 +122,7 @@ server {
 
     # Frontend Static Files
     location / {
-        root /var/www/whatsapp_api;
+        root $WEB_ROOT;
         index index.html index.htm;
         try_files \$uri \$uri/ /index.html;
     }
