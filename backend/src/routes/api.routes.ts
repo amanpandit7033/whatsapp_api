@@ -1550,11 +1550,61 @@ router.post('/admin/domains/verify', adminAuthenticate, async (req: any, res: an
             });
         }
 
-        // On Linux production servers, trigger automated Certbot & Nginx SSL hook
+        // On Linux production servers, trigger automated Nginx vhost creation & Certbot SSL hook
         if (process.platform === 'linux') {
             try {
-                exec(`sudo certbot --nginx -d ${cleanDomain} --non-interactive --agree-tos --register-unsafely-without-email || true`, (err, stdout, stderr) => {
-                    console.log(`[SSL Certbot] Result for ${cleanDomain}:`, stdout || stderr);
+                const possiblePaths = [
+                    '/var/www/whatsapp_api/frontend/dist',
+                    '/var/www/html/dist',
+                    '/var/www/html'
+                ];
+                let webRoot = '/var/www/whatsapp_api/frontend/dist';
+                for (const p of possiblePaths) {
+                    if (fs.existsSync(p)) {
+                        webRoot = p;
+                        break;
+                    }
+                }
+
+                const nginxConf = `server {
+    listen 80;
+    server_name ${cleanDomain};
+    root ${webRoot};
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /api {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}`;
+
+                const tempFile = `/tmp/${cleanDomain}.conf`;
+                fs.writeFileSync(tempFile, nginxConf);
+                const provisionCmd = `sudo cp ${tempFile} /etc/nginx/sites-available/${cleanDomain} && sudo ln -sf /etc/nginx/sites-available/${cleanDomain} /etc/nginx/sites-enabled/${cleanDomain} && sudo systemctl reload nginx && sudo certbot --nginx -d ${cleanDomain} --non-interactive --agree-tos --register-unsafely-without-email --redirect || true`;
+                
+                exec(provisionCmd, (err, stdout, stderr) => {
+                    console.log(`[Auto-Nginx & SSL] Provisioned ${cleanDomain}:`, stdout || stderr);
                     exec('sudo systemctl reload nginx || true');
                 });
             } catch (e) {
@@ -1587,6 +1637,13 @@ router.post('/admin/domains/verify', adminAuthenticate, async (req: any, res: an
 router.delete('/admin/domains/:userId', adminAuthenticate, async (req: any, res: any) => {
     try {
         const { userId } = req.params;
+        const targetUser = await prisma.user.findUnique({ where: { id: userId } });
+        if (targetUser?.customDomain && process.platform === 'linux') {
+            try {
+                exec(`sudo rm -f /etc/nginx/sites-enabled/${targetUser.customDomain} /etc/nginx/sites-available/${targetUser.customDomain} && sudo systemctl reload nginx || true`);
+            } catch (e) {}
+        }
+
         await prisma.user.update({
             where: { id: userId },
             data: {

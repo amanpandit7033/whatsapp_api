@@ -304,6 +304,12 @@ export const AdminWhiteLabel = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Cloudflare Tip */}
+        <div style={{ marginTop: '14px', background: '#FEF3C7', border: '1px solid #FDE68A', borderRadius: '10px', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12.5px', color: '#92400E' }}>
+          <span style={{ fontWeight: 800, background: '#D97706', color: '#FFFFFF', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', textTransform: 'uppercase' }}>Cloudflare Users</span>
+          <span>Set Proxy Status to <strong>DNS Only (Grey Cloud)</strong> for automatic origin SSL verification, OR set Cloudflare SSL/TLS mode to <strong>Full</strong> or <strong>Flexible</strong>.</span>
+        </div>
       </div>
 
       {/* Main Full-Width Management Card */}
