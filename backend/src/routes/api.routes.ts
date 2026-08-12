@@ -441,23 +441,24 @@ router.post('/instances/:id/send', authenticate, upload.single('file'), async (r
 
 // --- API TO SEND MESSAGE ---
 const handleSendMessage = async (req: any, res: any) => {
-    const instance_id = req.body.instance_id || req.query.instance_id;
-    const api_key = req.body.api_key || req.query.api_key;
-    const number = req.body.number || req.query.number;
-    const message = req.body.message || req.query.message;
-    const media_url = req.body.media_url || req.query.media_url;
-    const filename = req.body.filename || req.query.filename;
+    const instance_id = req.body?.instance_id || req.query?.instance_id || req.body?.instanceId || req.query?.instanceId || req.body?.instance || req.query?.instance;
+    const api_key = req.body?.api_key || req.query?.api_key || req.body?.apiKey || req.query?.apiKey || req.body?.access_token || req.query?.access_token || req.headers?.['x-api-key'] || (req.headers?.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : undefined);
+    let number = req.body?.number || req.query?.number || req.body?.phone || req.query?.phone || req.body?.to || req.query?.to;
+    const message = req.body?.message !== undefined ? req.body.message : (req.query?.message !== undefined ? req.query.message : (req.body?.body || req.query?.body));
+    const media_url = req.body?.media_url || req.query?.media_url || req.body?.mediaUrl || req.query?.mediaUrl || req.body?.url || req.query?.url;
+    const filename = req.body?.filename || req.query?.filename || req.body?.fileName || req.query?.fileName;
 
     if (!instance_id || !api_key || !number) {
-        return res.status(400).json({ error: 'Missing required fields: instance_id, api_key, number' });
+        return res.status(400).json({ error: 'Missing required fields: instance_id, api_key (or access_token), number' });
     }
-    if (typeof number !== 'string' || number.includes(',')) {
+    number = String(number).trim();
+    if (number.includes(',')) {
         return res.status(400).json({ error: 'You can only send to 1 number at a time using this API.' });
     }
 
     try {
-        const user = await prisma.user.findUnique({ where: { apiKey: api_key } });
-        if (!user) return res.status(401).json({ error: 'Invalid api_key' });
+        const user = await prisma.user.findFirst({ where: { OR: [{ apiKey: api_key }, { id: api_key }] } });
+        if (!user) return res.status(401).json({ error: 'Invalid api_key or access_token' });
         
         if (!user.isAdmin && user.expiresAt && new Date(user.expiresAt) < new Date()) {
             return res.status(403).json({ error: 'Account has expired. Please contact admin.' });
@@ -538,18 +539,76 @@ router.get('/message/send', handleSendMessage);
 
 // --- API TO SEND INTERACTIVE MESSAGE ---
 const handleSendInteractiveMessage = async (req: any, res: any) => {
-    const { instance_id, api_key, number, interactive } = req.body;
+    const instance_id = req.body?.instance_id || req.query?.instance_id || req.body?.instanceId || req.query?.instanceId || req.body?.instance || req.query?.instance;
+    const api_key = req.body?.api_key || req.query?.api_key || req.body?.apiKey || req.query?.apiKey || req.body?.access_token || req.query?.access_token || req.headers?.['x-api-key'] || (req.headers?.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : undefined);
+    let number = req.body?.number || req.query?.number || req.body?.phone || req.query?.phone || req.body?.to || req.query?.to;
+    let interactive = req.body?.interactive || req.body?.payload || req.query?.interactive || req.query?.payload;
+
+    if (typeof interactive === 'string') {
+        try {
+            interactive = JSON.parse(interactive);
+        } catch (e) {}
+    }
+
+    // Direct URL Query Parameter Builder for Buttons
+    if (!interactive || typeof interactive !== 'object') {
+        const bodyText = req.query?.message || req.query?.body || req.body?.message || req.body?.body;
+        if (bodyText) {
+            const headerText = req.query?.header || req.body?.header || '';
+            const footerText = req.query?.footer || req.body?.footer || '';
+            const buttons: any[] = [];
+
+            // URL button (e.g. url_btn=Website|https://domain.com or url=https://domain.com&url_label=Website)
+            const urlBtn = req.query?.url_btn || req.body?.url_btn;
+            const url = req.query?.url || req.body?.url;
+            const urlLabel = req.query?.url_label || req.body?.url_label || 'Visit Website';
+            if (urlBtn && typeof urlBtn === 'string' && urlBtn.includes('|')) {
+                const [l, u] = urlBtn.split('|');
+                buttons.push({ type: 'cta_url', label: l.trim(), url: u.trim() });
+            } else if (url) {
+                buttons.push({ type: 'cta_url', label: urlLabel, url });
+            }
+
+            // Call button (e.g. call_btn=Call+Us|+919876543210 or call_phone=+919876543210)
+            const callBtn = req.query?.call_btn || req.body?.call_btn;
+            const callPhone = req.query?.call_phone || req.body?.call_phone;
+            const callLabel = req.query?.call_label || req.body?.call_label || 'Call Support';
+            if (callBtn && typeof callBtn === 'string' && callBtn.includes('|')) {
+                const [l, p] = callBtn.split('|');
+                buttons.push({ type: 'cta_call', label: l.trim(), phone: p.trim() });
+            } else if (callPhone) {
+                buttons.push({ type: 'cta_call', label: callLabel, phone: callPhone });
+            }
+
+            // Quick reply button
+            const replyBtn = req.query?.reply_btn || req.body?.reply_btn || req.query?.btn || req.body?.btn;
+            if (replyBtn) {
+                buttons.push({ type: 'quick_reply', label: String(replyBtn), id: 'quick_reply_1' });
+            }
+
+            if (buttons.length > 0) {
+                interactive = {
+                    headerType: headerText ? 'text' : 'none',
+                    headerText,
+                    body: bodyText,
+                    footer: footerText,
+                    buttons
+                };
+            }
+        }
+    }
 
     if (!instance_id || !api_key || !number || !interactive) {
-        return res.status(400).json({ error: 'Missing required fields: instance_id, api_key, number, interactive' });
+        return res.status(400).json({ error: 'Missing required fields: instance_id, api_key (or access_token), number, interactive (or message + url_btn/call_btn/reply_btn)' });
     }
-    if (typeof number !== 'string' || number.includes(',')) {
+    number = String(number).trim();
+    if (number.includes(',')) {
         return res.status(400).json({ error: 'You can only send to 1 number at a time using this API.' });
     }
 
     try {
-        const user = await prisma.user.findUnique({ where: { apiKey: api_key } });
-        if (!user) return res.status(401).json({ error: 'Invalid api_key' });
+        const user = await prisma.user.findFirst({ where: { OR: [{ apiKey: api_key }, { id: api_key }] } });
+        if (!user) return res.status(401).json({ error: 'Invalid api_key or access_token' });
         
         if (!user.isAdmin && user.expiresAt && new Date(user.expiresAt) < new Date()) {
             return res.status(403).json({ error: 'Account has expired. Please contact admin.' });
@@ -650,6 +709,11 @@ const handleSendInteractiveMessage = async (req: any, res: any) => {
 };
 
 router.post('/message/send-interactive', handleSendInteractiveMessage);
+router.get('/message/send-interactive', handleSendInteractiveMessage);
+router.post('/send-button', handleSendInteractiveMessage);
+router.get('/send-button', handleSendInteractiveMessage);
+router.post('/send_button', handleSendInteractiveMessage);
+router.get('/send_button', handleSendInteractiveMessage);
 
 // --- API TO CHECK MESSAGE STATUS ---
 const handleMessageStatus = async (req: any, res: any) => {
