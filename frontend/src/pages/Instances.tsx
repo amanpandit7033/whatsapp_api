@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { 
   PlusIcon, 
@@ -391,7 +392,7 @@ export const Instances = () => {
         )}
       </div>
 
-      {confirmModal.isOpen && (
+      {confirmModal.isOpen && createPortal(
         <div className="modal-overlay" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
           <div className="modal-card" style={{ maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
             <div className="modal-header" style={{ padding: '16px 20px', background: '#FFFFFF', borderBottom: 'none' }}>
@@ -465,7 +466,8 @@ export const Instances = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

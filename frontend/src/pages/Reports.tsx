@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   DownloadIcon,
@@ -320,7 +321,7 @@ export const Reports = () => {
       {/* Modal Overlay */}
       {selectedReport && (() => {
         const parsed = parseMessageContent(selectedReport.message);
-        return (
+        return createPortal(
           <div className="modal-overlay" onClick={() => setSelectedReport(null)}>
             <div className="modal-card" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
@@ -451,7 +452,8 @@ export const Reports = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         );
       })()}
     </div>
