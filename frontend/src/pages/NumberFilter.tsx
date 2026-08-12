@@ -11,7 +11,8 @@ import {
   TrashIcon,
   EyeIcon,
   RefreshIcon,
-  XIcon
+  XIcon,
+  CheckIcon
 } from '../components/Icons';
 
 interface FilterBatch {
@@ -444,8 +445,9 @@ export const NumberFilter = () => {
                       </span>
                     </td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                      <span className={`badge ${b.status === 'processing' ? 'badge-warning' : 'badge-info'}`} style={{ fontSize: '11px', fontWeight: 700 }}>
-                        {b.status === 'processing' ? '⚡ Processing' : '✓ Completed'}
+                      <span className={`badge ${b.status === 'processing' ? 'badge-warning' : 'badge-info'}`} style={{ fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        {b.status === 'processing' ? <RefreshIcon size={12} color="#D97706" style={{ animation: 'spin 1.5s linear infinite' }} /> : <CheckIcon size={12} color="#2563EB" />}
+                        <span>{b.status === 'processing' ? 'Processing' : 'Completed'}</span>
                       </span>
                     </td>
                     <td style={{ padding: '14px 24px', textAlign: 'right' }}>
@@ -657,8 +659,9 @@ export const NumberFilter = () => {
                   Select WhatsApp Instance
                 </label>
                 {instances.length === 0 ? (
-                  <div style={{ padding: '12px', background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '10px', color: '#DC2626', fontSize: '12px', fontWeight: 600 }}>
-                    ⚠️ No connected instances found. Connect an instance in the <strong>Instances</strong> page first.
+                  <div style={{ padding: '12px', background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '10px', color: '#DC2626', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <WarningIcon size={16} color="#DC2626" />
+                    <span>No connected instances found. Connect an instance in the <strong>Instances</strong> page first.</span>
                   </div>
                 ) : (
                   <select

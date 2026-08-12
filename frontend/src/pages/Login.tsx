@@ -1,13 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LockIcon, WhatsAppIcon, UserIcon, ShieldIcon, CheckCircleIcon, DeviceIcon, SendIcon } from '../components/Icons';
+import { LockIcon, WhatsAppIcon, UserIcon, ShieldIcon, CheckCircleIcon, DeviceIcon, SendIcon, WarningIcon } from '../components/Icons';
 
 export const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [branding, setBranding] = useState<{ brandName: string; brandLogoUrl: string | null; isCustom: boolean }>({
+    brandName: 'WhatsApp Gateway',
+    brandLogoUrl: null,
+    isCustom: false
+  });
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/api/branding`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.brandName) {
+          setBranding(data);
+          document.title = `${data.brandName} - Login`;
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,11 +89,15 @@ export const Login = () => {
           {/* Brand Header */}
           <div style={{ marginBottom: '32px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #2563EB, #1D4ED8)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px rgba(37, 99, 235, 0.25)' }}>
-                <WhatsAppIcon size={24} color="#FFFFFF" />
-              </div>
+              {branding.brandLogoUrl ? (
+                <img src={branding.brandLogoUrl} alt={branding.brandName} style={{ width: '44px', height: '44px', borderRadius: '12px', objectFit: 'contain' }} />
+              ) : (
+                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #2563EB, #1D4ED8)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px rgba(37, 99, 235, 0.25)' }}>
+                  <WhatsAppIcon size={24} color="#FFFFFF" />
+                </div>
+              )}
               <div>
-                <h1 style={{ margin: 0, fontSize: '19px', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1.2 }}>WhatsApp Gateway</h1>
+                <h1 style={{ margin: 0, fontSize: '19px', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1.2 }}>{branding.brandName}</h1>
                 <p style={{ margin: 0, fontSize: '11px', fontWeight: 800, color: '#2563EB', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Enterprise Control Panel</p>
               </div>
             </div>
@@ -91,7 +112,7 @@ export const Login = () => {
 
           {error && (
             <div style={{ background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '12px', padding: '12px 16px', color: '#DC2626', fontSize: '13px', fontWeight: 600, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>⚠️</span> {error}
+              <WarningIcon size={16} color="#DC2626" /> <span>{error}</span>
             </div>
           )}
 

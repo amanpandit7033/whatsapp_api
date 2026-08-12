@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserIcon, ShieldIcon, LockIcon, KeyIcon, CheckCircleIcon, CalendarIcon, DeviceIcon, SendIcon } from '../components/Icons';
+import { UserIcon, ShieldIcon, LockIcon, KeyIcon, CheckCircleIcon, CalendarIcon, DeviceIcon, SendIcon, WarningIcon } from '../components/Icons';
 
 export const Profile = () => {
   const [user, setUser] = useState<any>(null);
@@ -156,8 +156,9 @@ export const Profile = () => {
               <CalendarIcon size={16} color="#7C3AED" />
             </div>
             {user?.expiresAt ? (
-              <span style={{ fontSize: '14px', fontWeight: 800, color: isExpired ? '#DC2626' : '#0F172A' }}>
-                {isExpired ? '⚠️ Expired (' : ''}{new Date(user.expiresAt).toLocaleDateString()}{isExpired ? ')' : ''}
+              <span style={{ fontSize: '14px', fontWeight: 800, color: isExpired ? '#DC2626' : '#0F172A', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                {isExpired && <WarningIcon size={14} color="#DC2626" />}
+                <span>{new Date(user.expiresAt).toLocaleDateString()}{isExpired ? ' (Expired)' : ''}</span>
               </span>
             ) : (
               <span style={{ fontSize: '14px', fontWeight: 800, color: '#059669' }}>

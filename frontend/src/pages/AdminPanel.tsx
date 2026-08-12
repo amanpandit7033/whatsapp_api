@@ -208,16 +208,16 @@ export const AdminPanel = () => {
                     </td>
                     <td style={{ padding: '16px 16px' }}>
                       {user.isAdmin ? (
-                        <span style={{ background: '#F3E8FF', color: '#7C3AED', padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800 }}>
-                          👑 Admin
+                        <span style={{ background: '#F3E8FF', color: '#7C3AED', padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <ShieldIcon size={12} color="#7C3AED" /> Admin
                         </span>
                       ) : isReseller ? (
-                        <span style={{ background: '#FEF3C7', color: '#B45309', padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800 }}>
-                          💼 Reseller ({user._count?.clients || 0} clients)
+                        <span style={{ background: '#FEF3C7', color: '#B45309', padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <UserPlusIcon size={12} color="#B45309" /> Reseller ({user._count?.clients || 0} clients)
                         </span>
                       ) : (
-                        <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700 }}>
-                          👤 Client
+                        <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <UserIcon size={12} color="#2563EB" /> Client
                         </span>
                       )}
                     </td>
@@ -320,10 +320,14 @@ export const AdminPanel = () => {
                       color: !newIsReseller ? '#2563EB' : '#64748B',
                       fontWeight: 800,
                       fontSize: '13px',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
                     }}
                   >
-                    👤 Standard Client
+                    <UserIcon size={14} color={!newIsReseller ? '#2563EB' : '#64748B'} /> Standard Client
                   </button>
                   <button
                     type="button"
@@ -337,15 +341,19 @@ export const AdminPanel = () => {
                       color: newIsReseller ? '#B45309' : '#64748B',
                       fontWeight: 800,
                       fontSize: '13px',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
                     }}
                   >
-                    💼 Reseller Master Account
+                    <UserPlusIcon size={14} color={newIsReseller ? '#B45309' : '#64748B'} /> Reseller Master Account
                   </button>
                 </div>
                 {newIsReseller && (
                   <span style={{ fontSize: '11.5px', color: '#B45309', fontWeight: 600, marginTop: '8px', display: 'block' }}>
-                    💡 Reseller accounts can access the Reseller Hub to create and manage sub-clients within their instance/message quotas.
+                    Reseller accounts can access the Reseller Hub to create and manage sub-clients within their instance/message quotas.
                   </span>
                 )}
               </div>

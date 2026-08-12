@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CopyIcon, CheckIcon, BookIcon, SendIcon, DeviceIcon, SearchIcon, UsersGroupIcon } from '../components/Icons';
+import { CopyIcon, CheckIcon, BookIcon, SendIcon, DeviceIcon, SearchIcon, UsersGroupIcon, RefreshIcon } from '../components/Icons';
 import { copyToClipboard } from '../utils/clipboard';
+import { getBaseApiUrl } from '../utils/apiUrl';
 
 const METHOD_STYLES: Record<string, { bg: string; color: string; border: string }> = {
   GET: { bg: '#F0F9FF', color: '#0284C7', border: '#BAE6FD' },
@@ -84,7 +85,7 @@ const EndpointDoc = ({ method, path, title, desc, params, reqExample, resExample
           <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em' }}>{title}</h3>
         </div>
         <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', background: '#F8FAFC', padding: '6px 14px', borderRadius: '10px', border: '1px solid #E2E8F0', color: '#475569', fontWeight: 600, wordBreak: 'break-all' }}>
-          {import.meta.env.VITE_API_URL}{path}
+          {getBaseApiUrl()}{path}
         </div>
       </div>
 
@@ -152,6 +153,7 @@ export const ApiDocs = () => {
   const [activeTab, setActiveTab] = useState<'all' | 'messaging' | 'instance' | 'public'>('all');
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
+  const baseApiUrl = getBaseApiUrl();
 
   useEffect(() => {
     const headers = { 'Authorization': `Bearer ${localStorage.getItem('token')}` };
@@ -170,7 +172,7 @@ export const ApiDocs = () => {
   };
 
   const copyApiUrl = async () => {
-    const url = `${import.meta.env.VITE_API_URL}/api/send?number=919876543210&type=text&message=Hello&instance_id=YOUR_INSTANCE_ID&access_token=${apiKey}`;
+    const url = `${baseApiUrl}/api/send?number=919876543210&type=text&message=Hello&instance_id=YOUR_INSTANCE_ID&access_token=${apiKey}`;
     const success = await copyToClipboard(url);
     if (success) {
       setCopiedUrl(true);
@@ -211,7 +213,7 @@ export const ApiDocs = () => {
       reqExample: {
         title: 'GET REQUEST URL',
         language: 'http',
-        code: `GET ${import.meta.env.VITE_API_URL}/api/send?number=919876543210&type=text&message=Hello+World&instance_id=YOUR_INSTANCE_ID&access_token=${apiKey}`
+        code: `GET ${baseApiUrl}/api/send?number=919876543210&type=text&message=Hello+World&instance_id=YOUR_INSTANCE_ID&access_token=${apiKey}`
       },
       resExample: {
         title: 'RESPONSE JSON',
@@ -609,7 +611,7 @@ export const ApiDocs = () => {
       reqExample: {
         title: 'GET REQUEST URL',
         language: 'http',
-        code: `GET ${import.meta.env.VITE_API_URL}/api/client/instance/status?api_key=${apiKey}&instance_id=ABCDEF`
+        code: `GET ${baseApiUrl}/api/client/instance/status?api_key=${apiKey}&instance_id=ABCDEF`
       },
       resExample: {
         title: 'RESPONSE JSON',
@@ -632,7 +634,7 @@ export const ApiDocs = () => {
       reqExample: {
         title: 'POST REQUEST URL',
         language: 'http',
-        code: `POST ${import.meta.env.VITE_API_URL}/api/client/instance/logout?api_key=${apiKey}&instance_id=ABCDEF`
+        code: `POST ${baseApiUrl}/api/client/instance/logout?api_key=${apiKey}&instance_id=ABCDEF`
       },
       resExample: {
         title: 'RESPONSE JSON',
@@ -693,7 +695,7 @@ export const ApiDocs = () => {
                 API Credentials & Endpoint Host
               </h4>
               <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
-                Base Host URL: <code style={{ color: '#2563EB', fontFamily: 'var(--font-mono)', fontWeight: 700, background: '#EFF6FF', padding: '2px 8px', borderRadius: '6px' }}>{import.meta.env.VITE_API_URL}</code>
+                Base Host URL: <code style={{ color: '#2563EB', fontFamily: 'var(--font-mono)', fontWeight: 700, background: '#EFF6FF', padding: '2px 8px', borderRadius: '6px' }}>{baseApiUrl}</code>
               </p>
             </div>
           </div>
@@ -712,9 +714,25 @@ export const ApiDocs = () => {
               onClick={regenerateToken}
               disabled={regenerating}
               className="btn-outline"
-              style={{ padding: '10px 16px', fontSize: '13px', borderRadius: '10px' }}
+              style={{
+                padding: '10px 16px',
+                fontSize: '13px',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: regenerating ? 'not-allowed' : 'pointer'
+              }}
             >
-              {regenerating ? 'Regenerating...' : '↻ Regenerate Token'}
+              <RefreshIcon
+                size={14}
+                color="currentColor"
+                style={{
+                  animation: regenerating ? 'spin 0.8s linear infinite' : 'none',
+                  transition: 'transform 0.2s ease'
+                }}
+              />
+              <span>{regenerating ? 'Regenerating...' : 'Regenerate Token'}</span>
             </button>
           </div>
         </div>
@@ -762,7 +780,7 @@ export const ApiDocs = () => {
             }}
           >
             <code style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: '12.5px', color: '#38BDF8', wordBreak: 'break-all', lineHeight: 1.6 }}>
-              {import.meta.env.VITE_API_URL}/api/send?number=919876543210&type=text&message=Hello&instance_id=YOUR_INSTANCE_ID&access_token={apiKey}
+              {baseApiUrl}/api/send?number=919876543210&type=text&message=Hello&instance_id=YOUR_INSTANCE_ID&access_token={apiKey}
             </code>
             <button
               onClick={copyApiUrl}

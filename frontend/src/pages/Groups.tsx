@@ -469,7 +469,10 @@ export const Groups = () => {
               ) : instances.length === 0 ? (
                 <tr>
                   <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#DC2626', fontSize: '13px', fontWeight: 600 }}>
-                    ⚠️ No connected WhatsApp instances found. Please connect an instance first.
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <WarningIcon size={16} color="#DC2626" />
+                      <span>No connected WhatsApp instances found. Please connect an instance first.</span>
+                    </div>
                   </td>
                 </tr>
               ) : filteredGroups.length === 0 ? (
@@ -525,21 +528,21 @@ export const Groups = () => {
                     {/* Member Count */}
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                       <span className="badge badge-info" style={{ fontSize: '12px', fontWeight: 800 }}>
-                        👥 {g.participantsCount.toLocaleString()}
+                        {g.participantsCount.toLocaleString()} members
                       </span>
                     </td>
 
                     {/* Admin Status */}
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                       <span className={`badge ${g.isAdmin ? 'badge-warning' : 'badge-neutral'}`} style={{ fontSize: '11px', fontWeight: 700 }}>
-                        {g.isAdmin ? '⭐ Admin' : 'Member'}
+                        {g.isAdmin ? 'Admin' : 'Member'}
                       </span>
                     </td>
 
                     {/* Announcement Rule */}
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                       <span className={`badge ${g.isAnnounce ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '11px' }}>
-                        {g.isAnnounce ? '🔒 Admin Only' : '🔓 All Members'}
+                        {g.isAnnounce ? 'Admin Only' : 'All Members'}
                       </span>
                     </td>
 

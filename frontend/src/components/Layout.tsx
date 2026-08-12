@@ -12,7 +12,8 @@ import {
   LogoutIcon,
   FilterIcon,
   UsersGroupIcon,
-  UserPlusIcon
+  UserPlusIcon,
+  GlobeIcon
 } from './Icons';
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -23,6 +24,23 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const username = localStorage.getItem('username') || (isAdmin ? 'Admin' : (isReseller ? 'Reseller' : 'User'));
   const avatarLetter = username.charAt(0).toUpperCase();
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
+  const [branding, setBranding] = useState<{ brandName: string; brandLogoUrl: string | null; isCustom: boolean }>({
+    brandName: 'WhatsApp API',
+    brandLogoUrl: null,
+    isCustom: false
+  });
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/api/branding`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.brandName) {
+          setBranding(data);
+          document.title = `${data.brandName} - Portal`;
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Auto-close sidebar on page change for mobile/tablet viewports
   useEffect(() => {
@@ -62,6 +80,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (isAdmin) {
+    navItems.push({ to: '/whitelabel', icon: GlobeIcon, label: 'White-Label', id: 'whitelabel' });
     navItems.push({ to: '/admin', icon: ShieldIcon, label: 'Admin Panel', id: 'admin' });
   }
 
@@ -76,11 +95,15 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       {/* Shopeers Style Clean Sidebar */}
       <aside className={`app-sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
         {/* Brand Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px', padding: '0 4px', color: '#0F172A', fontWeight: 800, fontSize: '20px', letterSpacing: '-0.03em' }}>
-          <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 900, fontSize: '16px', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)' }}>
-            W
-          </div>
-          <span>WhatsApp API</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px', padding: '0 4px', color: '#0F172A', fontWeight: 800, fontSize: '18px', letterSpacing: '-0.03em' }}>
+          {branding.brandLogoUrl ? (
+            <img src={branding.brandLogoUrl} alt={branding.brandName} style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'contain' }} />
+          ) : (
+            <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 900, fontSize: '16px', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)', flexShrink: 0 }}>
+              {branding.brandName.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{branding.brandName}</span>
         </div>
 
         <span style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', marginBottom: '12px', paddingLeft: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>

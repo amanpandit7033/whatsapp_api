@@ -13,7 +13,11 @@ import {
   XIcon,
   DeviceIcon,
   SendIcon,
-  RefreshIcon
+  RefreshIcon,
+  GlobeIcon,
+  CopyIcon,
+  CheckIcon,
+  LockIcon
 } from '../components/Icons';
 
 interface ResellerStats {
@@ -212,8 +216,8 @@ export const ResellerPanel = () => {
             <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
               Reseller Client Management Hub
             </h2>
-            <span className="badge badge-warning" style={{ fontSize: '11px', fontWeight: 800 }}>
-              💼 Reseller Account
+            <span className="badge badge-warning" style={{ fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <UserPlusIcon size={12} color="#D97706" /> Reseller Account
             </span>
           </div>
           <p style={{ color: '#64748B', fontSize: '14px', margin: '4px 0 0', fontWeight: 500 }}>
@@ -242,281 +246,278 @@ export const ResellerPanel = () => {
 
       {/* Reseller Master Quota KPI Cards */}
       <div className="stats-grid">
-        
-        {/* Total Clients */}
-        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Total Clients</span>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <UserIcon size={16} color="#2563EB" />
-            </div>
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-              <span style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
-                {stats?.totalClients ?? 0}
-              </span>
-              <span className="badge badge-success">
-                {stats?.activeClients ?? 0} Active
-              </span>
-            </div>
-            <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>
-              Sub-accounts managed
-            </span>
-          </div>
-        </div>
-
-        {/* Master Instance Pool */}
-        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Instance Pool Allocation</span>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#F3E8FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <DeviceIcon size={16} color="#7C3AED" />
-            </div>
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
-                {stats?.allocatedInstances ?? 0} <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>/ {stats?.masterMaxInstances ?? 0}</span>
-              </span>
-              <span style={{ fontSize: '12px', fontWeight: 800, color: '#7C3AED' }}>
-                {stats?.remainingInstances ?? 0} Left
-              </span>
-            </div>
-            <div style={{ height: '6px', background: '#F1F5F9', borderRadius: '9999px', marginTop: '8px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', background: '#7C3AED', width: `${instanceUsagePercent}%`, transition: 'width 0.3s' }} />
-            </div>
-          </div>
-        </div>
-
-        {/* Master Message Limit Pool */}
-        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Monthly Message Quota Pool</span>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <SendIcon size={16} color="#059669" />
-            </div>
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
-                {(stats?.allocatedMessages ?? 0).toLocaleString()} <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748B' }}>/ {(stats?.masterMessageLimit ?? 0).toLocaleString()}</span>
-              </span>
-              <span style={{ fontSize: '12px', fontWeight: 800, color: '#059669' }}>
-                {(stats?.remainingMessages ?? 0).toLocaleString()} Left
-              </span>
-            </div>
-            <div style={{ height: '6px', background: '#F1F5F9', borderRadius: '9999px', marginTop: '8px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', background: '#059669', width: `${messageUsagePercent}%`, transition: 'width 0.3s' }} />
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Main Clients Table Card */}
-      <div className="card" style={{ padding: '24px 0' }}>
-        
-        {/* Table Search & Controls */}
-        <div style={{ padding: '0 24px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            <h3 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>
-              Your Sub-Clients ({stats?.totalClients ?? 0})
-            </h3>
-            <span style={{ fontSize: '12px', color: '#64748B' }}>
-              Manage accounts, reset passwords, and edit instance limits for your direct clients.
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div style={{ position: 'relative', width: '260px' }}>
-              <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }}>
-                <SearchIcon size={15} />
+            
+            {/* Total Clients */}
+            <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Total Clients</span>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <UserIcon size={16} color="#2563EB" />
+                </div>
               </div>
-              <input
-                type="text"
-                placeholder="Search client username..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px 8px 36px',
-                  borderRadius: '10px',
-                  border: '1px solid #CBD5E1',
-                  fontSize: '13px',
-                  background: '#FFFFFF',
-                  outline: 'none'
-                }}
-              />
+              <div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+                  <span style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
+                    {stats?.totalClients ?? 0}
+                  </span>
+                  <span className="badge badge-success">
+                    {stats?.activeClients ?? 0} Active
+                  </span>
+                </div>
+                <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>Direct accounts managed</span>
+              </div>
             </div>
 
-            <button
-              onClick={() => {
-                fetchStats();
-                fetchClients();
-              }}
-              style={{
-                background: '#F8FAFC',
-                border: '1px solid #E2E8F0',
-                borderRadius: '10px',
-                padding: '8px 12px',
-                fontSize: '12px',
-                fontWeight: 700,
-                color: '#475569',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <RefreshIcon size={14} color="#475569" />
-            </button>
+            {/* Instance Quota Allocation */}
+            <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Instance Pool Allocation</span>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <DeviceIcon size={16} color="#16A34A" />
+                </div>
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                  <span style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
+                    {stats?.allocatedInstances ?? 0}
+                  </span>
+                  <span style={{ fontSize: '14px', color: '#64748B', fontWeight: 700 }}>
+                    / {stats?.masterMaxInstances ?? 0}
+                  </span>
+                </div>
+                
+                {/* Progress bar */}
+                <div style={{ width: '100%', height: '6px', background: '#F1F5F9', borderRadius: '999px', margin: '8px 0', overflow: 'hidden' }}>
+                  <div style={{ width: `${instanceUsagePercent}%`, height: '100%', background: instanceUsagePercent > 90 ? '#EF4444' : '#16A34A', borderRadius: '999px', transition: 'width 0.3s ease' }} />
+                </div>
+                <span style={{ fontSize: '11.5px', color: '#94A3B8', fontWeight: 600 }}>
+                  {stats?.remainingInstances ?? 0} instance(s) remaining in pool
+                </span>
+              </div>
+            </div>
+
+            {/* Monthly Messages Pool */}
+            <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Monthly Message Pool</span>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: '#FAF5FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <SendIcon size={16} color="#9333EA" />
+                </div>
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                  <span style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
+                    {(stats?.allocatedMessages ?? 0).toLocaleString()}
+                  </span>
+                  <span style={{ fontSize: '14px', color: '#64748B', fontWeight: 700 }}>
+                    / {(stats?.masterMessageLimit ?? 0).toLocaleString()}
+                  </span>
+                </div>
+                
+                {/* Progress bar */}
+                <div style={{ width: '100%', height: '6px', background: '#F1F5F9', borderRadius: '999px', margin: '8px 0', overflow: 'hidden' }}>
+                  <div style={{ width: `${messageUsagePercent}%`, height: '100%', background: messageUsagePercent > 90 ? '#EF4444' : '#9333EA', borderRadius: '999px', transition: 'width 0.3s ease' }} />
+                </div>
+                <span style={{ fontSize: '11.5px', color: '#94A3B8', fontWeight: 600 }}>
+                  {(stats?.remainingMessages ?? 0).toLocaleString()} quota remaining
+                </span>
+              </div>
+            </div>
+
           </div>
-        </div>
 
-        {/* Clients Table */}
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                <th style={{ padding: '12px 24px', fontSize: '11px', fontWeight: 800, color: '#64748B' }}>CLIENT USERNAME</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'center' }}>INSTANCES QUOTA</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'center' }}>MESSAGE LIMIT</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'center' }}>SUBSCRIPTION EXPIRY</th>
-                <th style={{ padding: '12px 24px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'right' }}>ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
-                    <div style={{ width: '22px', height: '22px', border: '2px solid #DBEAFE', borderTopColor: '#2563EB', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 8px' }} />
-                    <span>Loading client accounts...</span>
-                  </td>
-                </tr>
-              ) : clients.length === 0 ? (
-                <tr>
-                  <td colSpan={5} style={{ padding: '48px', textAlign: 'center' }}>
-                    <div style={{ maxWidth: '360px', margin: '0 auto' }}>
-                      <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                        <UserPlusIcon size={24} color="#2563EB" />
-                      </div>
-                      <h4 style={{ margin: '0 0 6px', color: '#0F172A', fontSize: '15px', fontWeight: 800 }}>No Clients Found</h4>
-                      <p style={{ margin: '0 0 16px', color: '#64748B', fontSize: '13px' }}>
-                        You haven't created any client accounts yet. Create your first client to allocate quotas.
-                      </p>
-                      <button
-                        onClick={() => setIsAddModalOpen(true)}
-                        className="btn-primary"
-                        style={{ padding: '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: 700 }}
-                      >
-                        + Create First Client
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                clients.map((c) => {
-                  const isExpired = c.expiresAt && new Date(c.expiresAt) < new Date();
-                  return (
-                    <tr key={c.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                      
-                      {/* Username */}
-                      <td style={{ padding: '14px 24px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#2563EB', fontSize: '14px' }}>
-                            {c.username.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: 800, color: '#0F172A', fontSize: '14px' }}>
-                              {c.username}
-                            </div>
-                            <div style={{ fontSize: '11.5px', color: '#64748B' }}>
-                              Created: {new Date(c.createdAt).toLocaleDateString()}
-                            </div>
-                          </div>
-                        </div>
+          {/* Main Clients Table Card */}
+          <div className="card" style={{ padding: '24px 0' }}>
+            
+            {/* Table Search & Controls */}
+            <div style={{ padding: '0 24px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>
+                  Your Sub-Clients ({stats?.totalClients ?? 0})
+                </h3>
+                <span style={{ fontSize: '12px', color: '#64748B' }}>
+                  Manage accounts, reset passwords, and edit instance limits for your direct clients.
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div style={{ position: 'relative', width: '260px' }}>
+                  <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }}>
+                    <SearchIcon size={15} />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Search client username..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px 8px 36px',
+                      borderRadius: '10px',
+                      border: '1px solid #CBD5E1',
+                      fontSize: '13px',
+                      background: '#FFFFFF',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <button
+                  onClick={() => {
+                    fetchStats();
+                    fetchClients();
+                  }}
+                  style={{
+                    background: '#F8FAFC',
+                    border: '1px solid #E2E8F0',
+                    borderRadius: '10px',
+                    padding: '8px 12px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: '#475569',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <RefreshIcon size={14} color="#475569" />
+                </button>
+              </div>
+            </div>
+
+            {/* Clients Table */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                    <th style={{ padding: '12px 24px', fontSize: '11px', fontWeight: 800, color: '#64748B' }}>CLIENT USER</th>
+                    <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'center' }}>INSTANCES ALLOCATED</th>
+                    <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'center' }}>MONTHLY MSG LIMIT</th>
+                    <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'center' }}>STATUS / EXPIRY</th>
+                    <th style={{ padding: '12px 24px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'right' }}>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
+                        Loading client accounts...
                       </td>
-
-                      {/* Instances */}
-                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                        <span className="badge badge-info" style={{ fontSize: '12px', fontWeight: 800 }}>
-                          {c._count.instances} / {c.maxInstances} Allowed
-                        </span>
-                      </td>
-
-                      {/* Messages */}
-                      <td style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 700, color: '#0F172A', fontSize: '13px' }}>
-                        {c.messageLimit.toLocaleString()} / mo
-                      </td>
-
-                      {/* Expiry */}
-                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                        {c.expiresAt ? (
-                          <span className={`badge ${isExpired ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '11px' }}>
-                            {isExpired ? 'Expired: ' : 'Expires: '} {new Date(c.expiresAt).toLocaleDateString()}
-                          </span>
-                        ) : (
-                          <span className="badge badge-success" style={{ fontSize: '11px' }}>
-                            ✓ Lifetime Active
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td style={{ padding: '14px 24px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px' }}>
-                          <button
-                            onClick={() => {
-                              setError('');
-                              setSuccess('');
-                              setEditingClient(c);
-                              setEditPassword('');
-                            }}
-                            title="Edit Client"
-                            style={{
-                              background: '#EFF6FF',
-                              border: '1px solid #DBEAFE',
-                              borderRadius: '8px',
-                              padding: '6px 14px',
-                              color: '#2563EB',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '5px'
-                            }}
-                          >
-                            <EditIcon size={14} color="#2563EB" /> Edit Client
-                          </button>
-                        </div>
-                      </td>
-
                     </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                  ) : clients.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
+                        No clients found. Click "+ Create New Client" above to get started.
+                      </td>
+                    </tr>
+                  ) : (
+                    clients.map((c) => {
+                      const isExpired = c.expiresAt && new Date(c.expiresAt) < new Date();
+                      return (
+                        <tr key={c.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                          <td style={{ padding: '14px 24px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#2563EB', fontSize: '14px' }}>
+                                {c.username.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '14px', display: 'block' }}>
+                                  {c.username}
+                                </span>
+                                <span style={{ fontSize: '11px', color: '#94A3B8' }}>
+                                  Created {new Date(c.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px 0', borderTop: '1px solid #E2E8F0' }}>
-            <button disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="btn-outline" style={{ padding: '6px 14px', fontSize: '12px' }}>
-              ← Prev
-            </button>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>
-              Page {page} of {totalPages}
-            </span>
-            <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)} className="btn-outline" style={{ padding: '6px 14px', fontSize: '12px' }}>
-              Next →
-            </button>
+                          <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A' }}>
+                              {c.maxInstances}
+                            </span>
+                            <span style={{ fontSize: '11px', color: '#64748B', display: 'block' }}>
+                              ({c._count?.instances || 0} active)
+                            </span>
+                          </td>
+
+                          <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A' }}>
+                              {c.messageLimit.toLocaleString()}
+                            </span>
+                            <span style={{ fontSize: '11px', color: '#64748B', display: 'block' }}>
+                              msgs/mo
+                            </span>
+                          </td>
+
+                          <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                            {isExpired ? (
+                              <span className="badge badge-danger" style={{ fontSize: '11px' }}>
+                                Expired
+                              </span>
+                            ) : c.expiresAt ? (
+                              <span className="badge badge-success" style={{ fontSize: '11px' }}>
+                                Valid till {new Date(c.expiresAt).toLocaleDateString()}
+                              </span>
+                            ) : (
+                              <span className="badge badge-neutral" style={{ fontSize: '11px' }}>
+                                Lifetime
+                              </span>
+                            )}
+                          </td>
+
+                          <td style={{ padding: '14px 24px', textAlign: 'right' }}>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                              <button
+                                onClick={() => {
+                                  setError('');
+                                  setSuccess('');
+                                  setEditingClient({ ...c });
+                                  setEditPassword('');
+                                }}
+                                style={{
+                                  background: '#F8FAFC',
+                                  border: '1px solid #E2E8F0',
+                                  borderRadius: '8px',
+                                  padding: '6px 12px',
+                                  fontSize: '12px',
+                                  fontWeight: 700,
+                                  color: '#2563EB',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                              >
+                                <EditIcon size={13} color="#2563EB" /> Edit Quota
+                              </button>
+                            </div>
+                          </td>
+
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px 0', borderTop: '1px solid #E2E8F0' }}>
+                <button disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="btn-outline" style={{ padding: '6px 14px', fontSize: '12px' }}>
+                  ← Prev
+                </button>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>
+                  Page {page} of {totalPages}
+                </span>
+                <button disabled={page === totalPages} onClick={() => setPage((p) => p + 1)} className="btn-outline" style={{ padding: '6px 14px', fontSize: '12px' }}>
+                  Next →
+                </button>
+              </div>
+            )}
+
           </div>
-        )}
-
-      </div>
 
       {/* ADD CLIENT MODAL */}
       {isAddModalOpen && createPortal(

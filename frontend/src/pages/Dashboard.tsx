@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { copyToClipboard } from '../utils/clipboard';
+import { getBaseApiUrl } from '../utils/apiUrl';
 import { 
   DeviceIcon, 
   SendIcon, 
@@ -82,7 +83,7 @@ export const Dashboard = () => {
   };
 
   const copyApiUrl = async (instanceId: string) => {
-    const baseUrl = import.meta.env.VITE_API_URL;
+    const baseUrl = getBaseApiUrl();
     const url = `${baseUrl}/api/send?number=91XXXXXXXXXX&type=text&message=Hello&instance_id=${instanceId}&access_token=${apiKey}`;
     const success = await copyToClipboard(url);
     if (success) {

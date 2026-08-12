@@ -11,6 +11,7 @@ import { Groups } from './pages/Groups';
 import { ApiDocs } from './pages/ApiDocs';
 import { Reports } from './pages/Reports';
 import { AdminPanel } from './pages/AdminPanel';
+import { AdminWhiteLabel } from './pages/AdminWhiteLabel';
 import { ResellerPanel } from './pages/ResellerPanel';
 import { Expired } from './pages/Expired';
 import { Profile } from './pages/Profile';
@@ -51,6 +52,7 @@ function App() {
         <Route path="/docs" element={<ProtectedRoute requiredPermission="docs"><ApiDocs /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute requiredPermission="reports"><Reports /></ProtectedRoute>} />
         <Route path="/reseller" element={<ProtectedRoute><ResellerPanel /></ProtectedRoute>} />
+        <Route path="/whitelabel" element={<ProtectedRoute><AdminWhiteLabel /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>

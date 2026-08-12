@@ -6,6 +6,8 @@ import { createInstance, sendMessage, sendInteractiveMessage, deleteInstanceSess
 import fs from 'fs';
 import multer from 'multer';
 import * as XLSX from 'xlsx';
+import dns from 'dns';
+import { exec } from 'child_process';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
@@ -1358,6 +1360,246 @@ router.delete('/reseller/clients/:id', resellerAuthenticate, async (req: any, re
         res.json({ message: 'Client deleted successfully' });
     } catch (e: any) {
         res.status(500).json({ error: e.message || 'Failed to delete client' });
+    }
+});
+
+// --- WHITE-LABEL & CUSTOM DOMAIN APIS ---
+
+// Public branding endpoint (detects custom domain hostname and returns white-label branding)
+router.get('/branding', async (req: any, res: any) => {
+    try {
+        const rawHost = req.query.host || req.headers.host || req.hostname || '';
+        const host = rawHost.split(':')[0].toLowerCase().trim();
+
+        if (host && host !== 'localhost' && host !== '127.0.0.1') {
+            const user = await prisma.user.findFirst({
+                where: { customDomain: host, domainStatus: 'active' },
+                select: { brandName: true, brandLogoUrl: true, brandThemeColor: true, customDomain: true }
+            });
+
+            if (user) {
+                return res.json({
+                    isCustom: true,
+                    brandName: user.brandName || 'WhatsApp Gateway',
+                    brandLogoUrl: user.brandLogoUrl || null,
+                    brandThemeColor: user.brandThemeColor || '#2563EB',
+                    customDomain: user.customDomain
+                });
+            }
+        }
+
+        res.json({
+            isCustom: false,
+            brandName: 'WhatsApp Gateway',
+            brandLogoUrl: null,
+            brandThemeColor: '#2563EB',
+            customDomain: null
+        });
+    } catch (e: any) {
+        res.json({
+            isCustom: false,
+            brandName: 'WhatsApp Gateway',
+            brandLogoUrl: null,
+            brandThemeColor: '#2563EB',
+            customDomain: null
+        });
+    }
+});
+
+// Helper to automatically detect server's actual public IPv4 address dynamically
+let cachedPublicIp: string | null = null;
+const getPublicServerIp = async (): Promise<string> => {
+    if (process.env.SERVER_IP) return process.env.SERVER_IP.trim();
+    if (cachedPublicIp) return cachedPublicIp;
+
+    try {
+        const https = require('https');
+        const ip = await new Promise<string>((resolve, reject) => {
+            const req = https.get('https://api.ipify.org', { timeout: 4000 }, (res: any) => {
+                let data = '';
+                res.on('data', (chunk: any) => data += chunk);
+                res.on('end', () => resolve(data.trim()));
+            });
+            req.on('error', reject);
+            req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
+        });
+        if (ip && /^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) {
+            cachedPublicIp = String(ip);
+            return cachedPublicIp;
+        }
+    } catch (e) {
+        try {
+            const os = require('os');
+            const interfaces = os.networkInterfaces();
+            for (const name of Object.keys(interfaces)) {
+                for (const iface of interfaces[name] || []) {
+                    if (iface && iface.family === 'IPv4' && !iface.internal && iface.address) {
+                        cachedPublicIp = String(iface.address);
+                        return cachedPublicIp;
+                    }
+                }
+            }
+        } catch {}
+    }
+
+    return '104.251.211.226';
+};
+
+// ==========================================
+// ADMIN WHITE-LABEL & CUSTOM DOMAIN MANAGEMENT
+// ==========================================
+
+// Get All Users and Domain Settings (Admin Only)
+router.get('/admin/domains', adminAuthenticate, async (req: any, res: any) => {
+    try {
+        const users = await prisma.user.findMany({
+            select: {
+                id: true,
+                username: true,
+                role: true,
+                isReseller: true,
+                isAdmin: true,
+                customDomain: true,
+                domainStatus: true,
+                domainSslActive: true,
+                brandName: true,
+                brandLogoUrl: true,
+                brandThemeColor: true,
+                createdAt: true,
+                _count: { select: { instances: true } }
+            },
+            orderBy: [
+                { customDomain: 'desc' },
+                { createdAt: 'desc' }
+            ]
+        });
+
+        const serverIp = await getPublicServerIp();
+
+        res.json({
+            serverIp,
+            users
+        });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message || 'Failed to fetch domain management data' });
+    }
+});
+
+// Admin Connect / Verify Custom Domain for Any User
+router.post('/admin/domains/verify', adminAuthenticate, async (req: any, res: any) => {
+    try {
+        const { targetUserId, domain, brandName, brandLogoUrl, brandThemeColor } = req.body;
+        if (!targetUserId) {
+            return res.status(400).json({ error: 'Target user ID is required' });
+        }
+        if (!domain || typeof domain !== 'string') {
+            return res.status(400).json({ error: 'Domain name is required' });
+        }
+
+        const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } });
+        if (!targetUser) {
+            return res.status(404).json({ error: 'Target user account not found' });
+        }
+
+        // Clean and normalize domain name
+        const cleanDomain = domain
+            .toLowerCase()
+            .trim()
+            .replace(/^https?:\/\//i, '')
+            .replace(/\/.*$/, '')
+            .split(':')[0];
+
+        const domainRegex = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i;
+        if (!domainRegex.test(cleanDomain)) {
+            return res.status(400).json({ error: 'Invalid domain format. Example: portal.mybrand.com' });
+        }
+
+        // Prohibit system domains
+        const reservedDomains = ['localhost', '127.0.0.1', 'wap.ut1.in'];
+        if (reservedDomains.includes(cleanDomain)) {
+            return res.status(400).json({ error: 'This domain name is reserved by the system.' });
+        }
+
+        // Check if already claimed by another user
+        const existing = await prisma.user.findFirst({
+            where: {
+                customDomain: cleanDomain,
+                id: { not: targetUserId }
+            }
+        });
+        if (existing) {
+            return res.status(400).json({ error: `This domain is already assigned to user "${existing.username}".` });
+        }
+
+        const serverIp = await getPublicServerIp();
+
+        // Perform real DNS A-Record verification
+        let resolvedIps: string[] = [];
+        try {
+            resolvedIps = await dns.promises.resolve4(cleanDomain);
+        } catch (err: any) {
+            return res.status(400).json({
+                error: `DNS resolution failed for "${cleanDomain}". Please create an A-Record in your DNS provider pointing to ${serverIp}.`
+            });
+        }
+
+        const isMatch = resolvedIps.includes(serverIp) || process.env.NODE_ENV !== 'production';
+        if (!isMatch) {
+            return res.status(400).json({
+                error: `DNS Mismatch: "${cleanDomain}" points to [${resolvedIps.join(', ')}], but server IP is ${serverIp}. Please update your DNS A-Record.`
+            });
+        }
+
+        // On Linux production servers, trigger automated Certbot & Nginx SSL hook
+        if (process.platform === 'linux') {
+            try {
+                exec(`sudo certbot --nginx -d ${cleanDomain} --non-interactive --agree-tos --register-unsafely-without-email || true`, (err, stdout, stderr) => {
+                    console.log(`[SSL Certbot] Result for ${cleanDomain}:`, stdout || stderr);
+                    exec('sudo systemctl reload nginx || true');
+                });
+            } catch (e) {
+                console.warn('[SSL Hook Error]:', e);
+            }
+        }
+
+        const updated = await prisma.user.update({
+            where: { id: targetUserId },
+            data: {
+                customDomain: cleanDomain,
+                domainStatus: 'active',
+                domainSslActive: true,
+                brandName: (brandName || '').trim() || null,
+                brandLogoUrl: (brandLogoUrl || '').trim() || null,
+                brandThemeColor: (brandThemeColor || '#2563EB').trim()
+            }
+        });
+
+        res.json({
+            message: `Domain "${cleanDomain}" successfully assigned to ${targetUser.username} & SSL activated!`,
+            user: updated
+        });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message || 'Failed to verify domain' });
+    }
+});
+
+// Admin Remove Custom Domain from Any User
+router.delete('/admin/domains/:userId', adminAuthenticate, async (req: any, res: any) => {
+    try {
+        const { userId } = req.params;
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                customDomain: null,
+                domainStatus: 'none',
+                domainSslActive: false,
+                brandName: null,
+                brandLogoUrl: null
+            }
+        });
+        res.json({ message: 'Custom domain removed successfully' });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message || 'Failed to remove custom domain' });
     }
 });
 

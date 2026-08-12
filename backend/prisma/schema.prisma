@@ -25,6 +25,12 @@ model User {
   instances     Instance[]
   messageLogs   MessageLog[]
   filterBatches FilterBatch[]
+  customDomain  String?      @unique
+  domainStatus  String       @default("none") // "none", "pending", "verified", "active", "error"
+  domainSslActive Boolean    @default(false)
+  brandName     String?
+  brandLogoUrl  String?
+  brandThemeColor String?
   messagesSentThisMonth Int @default(0)
   lastMessageMonth      String @default("")
   createdAt     DateTime     @default(now())
