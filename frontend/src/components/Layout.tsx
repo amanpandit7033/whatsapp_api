@@ -9,14 +9,18 @@ import {
   ChartIcon,
   BookIcon,
   ShieldIcon,
-  LogoutIcon
+  LogoutIcon,
+  FilterIcon,
+  UsersGroupIcon,
+  UserPlusIcon
 } from './Icons';
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
-  const username = localStorage.getItem('username') || (isAdmin ? 'Admin' : 'User');
+  const isReseller = localStorage.getItem('isReseller') === 'true' || localStorage.getItem('role') === 'reseller';
+  const username = localStorage.getItem('username') || (isAdmin ? 'Admin' : (isReseller ? 'Reseller' : 'User'));
   const avatarLetter = username.charAt(0).toUpperCase();
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => window.innerWidth >= 1024);
 
@@ -30,22 +34,32 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('isAdmin');
+    localStorage.removeItem('isReseller');
+    localStorage.removeItem('role');
     localStorage.removeItem('username');
     navigate('/login');
   };
 
-  const permissionsStr = localStorage.getItem('permissions') || 'instances,broadcast,reports,docs';
+  const permissionsStr = localStorage.getItem('permissions') || 'instances,broadcast,filter,groups,reports,docs';
   const permissions = permissionsStr.split(',');
 
   const allNavItems = [
     { to: '/', icon: DashboardIcon, label: 'Dashboard', id: 'dashboard' },
     { to: '/instances', icon: DeviceIcon, label: 'Instances', id: 'instances', badge: 'Active' },
     { to: '/broadcast', icon: SendIcon, label: 'Broadcast', id: 'broadcast' },
+    { to: '/filter', icon: FilterIcon, label: 'Number Filter', id: 'filter' },
+    { to: '/groups', icon: UsersGroupIcon, label: 'Groups Hub', id: 'groups' },
     { to: '/reports', icon: ChartIcon, label: 'Reports', id: 'reports' },
     { to: '/docs', icon: BookIcon, label: 'API Docs', id: 'docs' },
   ];
 
-  const navItems = allNavItems.filter(item => item.id === 'dashboard' || permissions.includes(item.id));
+  const navItems = allNavItems.filter(item => 
+    isAdmin || item.id === 'dashboard' || permissions.includes(item.id)
+  );
+
+  if (isReseller && !isAdmin) {
+    navItems.push({ to: '/reseller', icon: UserPlusIcon, label: 'Reseller Hub', id: 'reseller' });
+  }
 
   if (isAdmin) {
     navItems.push({ to: '/admin', icon: ShieldIcon, label: 'Admin Panel', id: 'admin' });
@@ -149,8 +163,11 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                  location.pathname.startsWith('/profile') ? 'Profile & Security' :
                  location.pathname.startsWith('/instances') ? 'Instances' :
                  location.pathname.startsWith('/broadcast') ? 'Broadcast' :
+                 location.pathname.startsWith('/filter') ? 'Number Filter & Validator' :
+                 location.pathname.startsWith('/groups') ? 'Groups Hub' :
                  location.pathname.startsWith('/reports') ? 'Reports' :
                  location.pathname.startsWith('/docs') ? 'API Documentation' :
+                 location.pathname.startsWith('/reseller') ? 'Reseller Hub' :
                  location.pathname.startsWith('/admin') ? 'Admin Panel' : 'Overview'}
               </h3>
               <span style={{ fontSize: '12px', color: '#DBEAFE', fontWeight: 600 }}>WhatsApp API Gateway</span>

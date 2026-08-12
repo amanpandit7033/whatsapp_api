@@ -100,8 +100,15 @@ export const createInstance = async (instanceId: string, retryCount = 0) => {
         version,
         auth: state,
         printQRInTerminal: false,
-        browser: ['Ubuntu', 'Chrome', '20.0.04'],
-        logger: pino({ level: 'silent' })
+        browser: Browsers.ubuntu('Chrome'),
+        syncFullHistory: false, // Prevents downloading years of chat history, reducing RAM & CPU load
+        markOnlineOnConnect: true,
+        connectTimeoutMs: 60000,
+        defaultQueryTimeoutMs: 60000,
+        keepAliveIntervalMs: 25000,
+        generateHighQualityLinkPreview: false,
+        logger: pino({ level: 'silent' }),
+        getMessage: async () => undefined
     });
 
     instances.set(instanceId, sock);
@@ -218,14 +225,16 @@ const enqueueMessage = (instanceId: string, payload: any): Promise<void> => {
 const doSend = async (sock: any, payload: any, instanceId: string) => {
     const formattedJid = payload.jid.includes('@') ? payload.jid : `${payload.jid}@s.whatsapp.net`;
 
-    try {
-        const [result] = await sock.onWhatsApp(formattedJid);
-        if (!result || !result.exists) {
-            throw new Error('Non-Whatsapp');
+    if (!formattedJid.endsWith('@g.us')) {
+        try {
+            const [result] = await sock.onWhatsApp(formattedJid);
+            if (!result || !result.exists) {
+                throw new Error('Non-Whatsapp');
+            }
+        } catch (err: any) {
+            if (err.message === 'Non-Whatsapp') throw err;
+            console.warn(`[Warning] onWhatsApp check failed for ${formattedJid}, proceeding anyway.`);
         }
-    } catch (err: any) {
-        if (err.message === 'Non-Whatsapp') throw err;
-        console.warn(`[Warning] onWhatsApp check failed for ${formattedJid}, proceeding anyway.`);
     }
 
     if (payload.isInteractive) {
@@ -460,4 +469,154 @@ export const deleteInstanceSession = async (instanceId: string) => {
         instances.delete(instanceId);
     }
 };
+
+export interface NumberCheckResult {
+    number: string;
+    exists: boolean;
+    jid?: string;
+}
+
+export const checkWhatsAppNumbers = async (
+    instanceId: string,
+    numbers: string[],
+    delayMs = 150
+): Promise<NumberCheckResult[]> => {
+    const sock = await getSocket(instanceId);
+    const isOpen = await waitUntilConnected(instanceId);
+    if (!isOpen || !sock) {
+        throw new Error('WhatsApp instance is not connected');
+    }
+
+    const results: NumberCheckResult[] = [];
+    const uniqueNumbers = Array.from(new Set(numbers.map(n => n.replace(/\D/g, '').trim()).filter(Boolean)));
+
+    for (const cleanNum of uniqueNumbers) {
+        try {
+            const check = await sock.onWhatsApp(cleanNum);
+            const exists = Array.isArray(check) && check.length > 0 && !!check[0]?.exists;
+            results.push({
+                number: cleanNum,
+                exists,
+                jid: exists ? check[0].jid : undefined
+            });
+        } catch (err: any) {
+            results.push({
+                number: cleanNum,
+                exists: false
+            });
+        }
+
+        if (delayMs > 0 && uniqueNumbers.length > 1) {
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+    }
+
+    return results;
+};
+
+// ─────────────────────────────────────────────
+// GROUP API SERVICES
+// ─────────────────────────────────────────────
+
+export interface GroupInfo {
+    id: string; // e.g. 120363048999999999@g.us
+    subject: string;
+    owner?: string;
+    creation?: number;
+    desc?: string;
+    participantsCount: number;
+    isAdmin: boolean;
+    isAnnounce?: boolean;
+    isCommunity?: boolean;
+}
+
+export interface GroupMemberInfo {
+    id: string;
+    number: string;
+    admin: 'admin' | 'superadmin' | null;
+    isMe: boolean;
+}
+
+export const fetchInstanceGroups = async (instanceId: string): Promise<GroupInfo[]> => {
+    const sock = await getSocket(instanceId);
+    const isOpen = await waitUntilConnected(instanceId);
+    if (!isOpen || !sock) {
+        throw new Error('WhatsApp instance is not connected');
+    }
+
+    const participating = await sock.groupFetchAllParticipating();
+    const myNumber = sock.user?.id ? sock.user.id.split(':')[0].replace(/\D/g, '') : '';
+    const myLid = sock.user?.lid ? sock.user.lid.split('@')[0].split(':')[0] : '';
+
+    const groups: GroupInfo[] = [];
+
+    for (const [jid, group] of Object.entries(participating)) {
+        const participants = (group as any).participants || [];
+        const me = participants.find((p: any) => {
+            const rawPhone = p.phoneNumber || (p.id?.endsWith('@s.whatsapp.net') ? p.id : undefined);
+            const clean = rawPhone ? rawPhone.split('@')[0].split(':')[0].replace(/\D/g, '') : (p.id || '').split('@')[0].split(':')[0].replace(/\D/g, '');
+            const pLid = (p.id || '').split('@')[0].split(':')[0];
+            return (myNumber && clean === myNumber) || (myLid && pLid === myLid);
+        });
+        const isAdmin = me?.admin === 'admin' || me?.admin === 'superadmin';
+
+        groups.push({
+            id: jid,
+            subject: (group as any).subject || 'Unnamed Group',
+            owner: (group as any).owner,
+            creation: (group as any).creation,
+            desc: (group as any).desc?.toString() || '',
+            participantsCount: participants.length,
+            isAdmin: !!isAdmin,
+            isAnnounce: !!(group as any).announce,
+            isCommunity: !!(group as any).isCommunity
+        });
+    }
+
+    return groups.sort((a, b) => a.subject.localeCompare(b.subject));
+};
+
+export const fetchGroupMetadata = async (instanceId: string, groupJid: string) => {
+    const sock = await getSocket(instanceId);
+    const isOpen = await waitUntilConnected(instanceId);
+    if (!isOpen || !sock) {
+        throw new Error('WhatsApp instance is not connected');
+    }
+
+    const formattedJid = groupJid.includes('@') ? groupJid : `${groupJid}@g.us`;
+    const meta = await sock.groupMetadata(formattedJid);
+    const myNumber = sock.user?.id ? sock.user.id.split(':')[0].replace(/\D/g, '') : '';
+    const myLid = sock.user?.lid ? sock.user.lid.split('@')[0].split(':')[0] : '';
+
+    const participants: GroupMemberInfo[] = (meta.participants || []).map((p: any) => {
+        // Prioritize actual phone number JID over internal WhatsApp encrypted LID
+        const rawPhoneJid = p.phoneNumber || (p.id?.endsWith('@s.whatsapp.net') ? p.id : undefined);
+        const cleanNum = rawPhoneJid 
+            ? rawPhoneJid.split('@')[0].split(':')[0].replace(/\D/g, '')
+            : (p.id || '').split('@')[0].split(':')[0].replace(/\D/g, '');
+
+        const pLid = (p.id || '').split('@')[0].split(':')[0];
+        const isMe = (myNumber && cleanNum === myNumber) || (myLid && pLid === myLid);
+
+        return {
+            id: p.id,
+            number: cleanNum,
+            admin: p.admin || null,
+            isMe: !!isMe
+        };
+    });
+
+    return {
+        id: meta.id,
+        subject: meta.subject,
+        owner: meta.owner,
+        creation: meta.creation,
+        desc: meta.desc?.toString() || '',
+        isAnnounce: !!meta.announce,
+        isCommunity: !!(meta as any).isCommunity,
+        participantsCount: participants.length,
+        participants
+    };
+};
+
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CopyIcon, CheckIcon, BookIcon, SendIcon, DeviceIcon, SearchIcon } from '../components/Icons';
+import { CopyIcon, CheckIcon, BookIcon, SendIcon, DeviceIcon, SearchIcon, UsersGroupIcon } from '../components/Icons';
 import { copyToClipboard } from '../utils/clipboard';
 
 const METHOD_STYLES: Record<string, { bg: string; color: string; border: string }> = {
@@ -65,7 +65,7 @@ interface IEndpoint {
   path: string;
   title: string;
   desc: string;
-  category: 'messaging' | 'instance' | 'public';
+  category: 'messaging' | 'instance' | 'public' | 'groups';
   params?: { name: string; type: string; req: boolean; desc: string }[];
   reqExample: { title: string; code: string; language?: string };
   resExample: { title: string; code: string };
@@ -349,6 +349,33 @@ export const ApiDocs = () => {
     {
       category: 'messaging',
       method: 'GET',
+      path: '/api/check-number',
+      title: 'WhatsApp Number Validator API',
+      desc: 'Verify whether one or more phone numbers exist and are active on WhatsApp before sending campaigns.',
+      params: [
+        { name: 'number', type: 'string', req: true, desc: 'Phone number with country code (e.g. 919876543210) or comma-separated numbers.' },
+        { name: 'instance_id', type: 'string', req: true, desc: 'Your connected WhatsApp instance ID.' },
+        { name: 'access_token', type: 'string', req: true, desc: 'Your personal API access token.' },
+        { name: 'delay', type: 'number', req: false, desc: 'Safety delay between multiple queries in ms (default: 100ms).' }
+      ],
+      reqExample: {
+        title: 'GET REQUEST URL',
+        language: 'http',
+        code: `GET ${import.meta.env.VITE_API_URL}/api/check-number?number=919876543210&instance_id=YOUR_INSTANCE_ID&access_token=${apiKey}`
+      },
+      resExample: {
+        title: 'RESPONSE JSON',
+        code: JSON.stringify({
+          status: "success",
+          number: "919876543210",
+          exists: true,
+          jid: "919876543210@s.whatsapp.net"
+        }, null, 2)
+      }
+    },
+    {
+      category: 'messaging',
+      method: 'GET',
       path: '/api/message/status',
       title: 'Check Message Status',
       desc: 'Verify if a queued message was successfully sent, failed, or was sent to a Non-WhatsApp number.',
@@ -439,6 +466,111 @@ export const ApiDocs = () => {
       resExample: {
         title: 'RESPONSE JSON',
         code: JSON.stringify({ status: "success", message: 'Success' }, null, 2)
+      }
+    },
+
+    // --- WHATSAPP GROUP ENDPOINTS ---
+    {
+      category: 'groups',
+      method: 'GET',
+      path: '/api/group_list',
+      title: 'Fetch All WhatsApp Groups',
+      desc: 'Retrieves all WhatsApp groups the connected instance is currently a member or admin of, including group JIDs, titles, member counts, and permissions.',
+      params: [
+        { name: 'instance_id', type: 'string', req: true, desc: 'Your connected WhatsApp instance ID.' },
+        { name: 'access_token', type: 'string', req: true, desc: 'Your personal API access token.' },
+      ],
+      reqExample: {
+        title: 'GET REQUEST URL',
+        language: 'http',
+        code: `GET ${import.meta.env.VITE_API_URL}/api/group_list?instance_id=ABC123XXX&access_token=${apiKey}`
+      },
+      resExample: {
+        title: 'RESPONSE JSON',
+        code: JSON.stringify({
+          status: "success",
+          count: 2,
+          groups: [
+            {
+              id: "120363405275458276@g.us",
+              subject: "VIP Customers Club",
+              participantsCount: 142,
+              isAdmin: true,
+              isAnnounce: false,
+              creation: 1766672615
+            },
+            {
+              id: "120363405288888888@g.us",
+              subject: "Product Announcements",
+              participantsCount: 512,
+              isAdmin: false,
+              isAnnounce: true,
+              creation: 1766600000
+            }
+          ]
+        }, null, 2)
+      }
+    },
+    {
+      category: 'groups',
+      method: 'GET',
+      path: '/api/group_participants',
+      title: 'Get Group Members & Metadata',
+      desc: 'Fetches the full list of member phone numbers, admin statuses, and metadata for a specific WhatsApp group.',
+      params: [
+        { name: 'instance_id', type: 'string', req: true, desc: 'Target connected WhatsApp instance ID.' },
+        { name: 'group_id', type: 'string', req: true, desc: 'Group JID (e.g. 120363405275458276@g.us).' },
+        { name: 'access_token', type: 'string', req: true, desc: 'Your personal API access token.' },
+      ],
+      reqExample: {
+        title: 'GET REQUEST URL',
+        language: 'http',
+        code: `GET ${import.meta.env.VITE_API_URL}/api/group_participants?instance_id=ABC123XXX&group_id=120363405275458276@g.us&access_token=${apiKey}`
+      },
+      resExample: {
+        title: 'RESPONSE JSON',
+        code: JSON.stringify({
+          status: "success",
+          group: {
+            id: "120363405275458276@g.us",
+            subject: "VIP Customers Club",
+            participantsCount: 3,
+            participants: [
+              { id: "140415768506447@lid", number: "919905264689", admin: "admin", isMe: false },
+              { id: "247463751487539@lid", number: "919507066372", admin: "admin", isMe: true },
+              { id: "227354832072918@lid", number: "919279706788", admin: "superadmin", isMe: false }
+            ]
+          }
+        }, null, 2)
+      }
+    },
+    {
+      category: 'groups',
+      method: 'POST',
+      path: '/api/send_group',
+      title: 'Send Message to WhatsApp Group',
+      desc: 'Send a plain text message or media attachment (image, video, document) directly to any WhatsApp group JID.',
+      params: [
+        { name: 'instance_id', type: 'string', req: true, desc: 'Target connected WhatsApp instance ID.' },
+        { name: 'group_id', type: 'string', req: true, desc: 'Target Group JID (e.g. 120363405275458276@g.us).' },
+        { name: 'type', type: 'string', req: false, desc: 'Message type: "text" (default) or "media".' },
+        { name: 'message', type: 'string', req: false, desc: 'The text message or media caption.' },
+        { name: 'media_url', type: 'string', req: false, desc: 'Direct URL to image/video/doc (when type=media).' },
+        { name: 'access_token', type: 'string', req: true, desc: 'Your personal API access token.' },
+      ],
+      reqExample: {
+        title: 'POST REQUEST URL (TEXT)',
+        language: 'http',
+        code: `POST ${import.meta.env.VITE_API_URL}/api/send_group?group_id=120363405275458276@g.us&type=text&message=Hello+Team!&instance_id=ABC123XXX&access_token=${apiKey}`
+      },
+      resExample: {
+        title: 'RESPONSE JSON',
+        code: JSON.stringify({
+          status: "success",
+          message: "Message sent to group",
+          group_id: "120363405275458276@g.us",
+          messageTimestamp: "1786468900"
+        }, null, 2)
       }
     },
 
@@ -621,7 +753,7 @@ export const ApiDocs = () => {
             style={{ 
               display: 'flex', 
               alignItems: 'center', 
-              justify: 'space-between', 
+              justifyContent: 'space-between', 
               gap: '14px', 
               background: '#1E293B', 
               padding: '12px 18px', 
@@ -661,6 +793,7 @@ export const ApiDocs = () => {
           {[
             { id: 'all', label: 'All Endpoints', icon: BookIcon },
             { id: 'messaging', label: 'Messaging APIs', icon: SendIcon },
+            { id: 'groups', label: 'Group APIs', icon: UsersGroupIcon },
             { id: 'public', label: 'Public Instance APIs', icon: DeviceIcon },
             { id: 'instance', label: 'SDK Endpoints', icon: DeviceIcon },
           ].map(tab => {

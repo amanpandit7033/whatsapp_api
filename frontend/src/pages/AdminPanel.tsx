@@ -1,7 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { UserIcon, ShieldIcon, WarningIcon, UserPlusIcon, SearchIcon, EditIcon, CheckCircleIcon, CalendarIcon, XIcon } from '../components/Icons';
+import {
+  UserIcon,
+  ShieldIcon,
+  WarningIcon,
+  UserPlusIcon,
+  SearchIcon,
+  EditIcon,
+  CheckCircleIcon,
+  CalendarIcon,
+  XIcon
+} from '../components/Icons';
 
 const S: Record<string, React.CSSProperties> = {
   label: { display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748B', marginBottom: '8px' },
@@ -17,7 +27,9 @@ export const AdminPanel = () => {
   const [newMaxInstances, setNewMaxInstances] = useState('1');
   const [newMessageLimit, setNewMessageLimit] = useState('1000');
   const [newExpiresAt, setNewExpiresAt] = useState('');
-  const [newPermissions, setNewPermissions] = useState<string[]>(['instances', 'broadcast', 'reports', 'docs']);
+  const [newIsReseller, setNewIsReseller] = useState(false);
+  const [newPermissions, setNewPermissions] = useState<string[]>(['instances', 'broadcast', 'filter', 'groups', 'reports', 'docs']);
+  
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -42,11 +54,31 @@ export const AdminPanel = () => {
     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/users`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: newUsername, password: newPassword, maxInstances: parseInt(newMaxInstances), messageLimit: parseInt(newMessageLimit), expiresAt: newExpiresAt || undefined, permissions: newPermissions.join(',') })
+      body: JSON.stringify({
+        username: newUsername.trim(),
+        password: newPassword.trim(),
+        maxInstances: parseInt(newMaxInstances),
+        messageLimit: parseInt(newMessageLimit),
+        expiresAt: newExpiresAt || undefined,
+        isReseller: newIsReseller,
+        role: newIsReseller ? 'reseller' : 'user',
+        permissions: newPermissions.join(',')
+      })
     });
     const data = await res.json();
     if (!res.ok) { setError(data.error || 'Failed'); }
-    else { setSuccess(`User "${data.user.username}" created!`); setNewUsername(''); setNewPassword(''); setNewMaxInstances('1'); setNewMessageLimit('1000'); setNewExpiresAt(''); setNewPermissions(['instances', 'broadcast', 'reports', 'docs']); setIsAddUserModalOpen(false); fetchUsers(); }
+    else {
+      setSuccess(`User "${data.user.username}" created successfully!`);
+      setNewUsername('');
+      setNewPassword('');
+      setNewMaxInstances('1');
+      setNewMessageLimit('1000');
+      setNewExpiresAt('');
+      setNewIsReseller(false);
+      setNewPermissions(['instances', 'broadcast', 'filter', 'groups', 'reports', 'docs']);
+      setIsAddUserModalOpen(false);
+      fetchUsers();
+    }
   };
 
   const handleUpdateUser = async (e: React.FormEvent) => {
@@ -54,7 +86,17 @@ export const AdminPanel = () => {
     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/users/${editingUser.id}`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: editingUser.username, password: editPassword || undefined, maxInstances: parseInt(editingUser.maxInstances), messageLimit: parseInt(editingUser.messageLimit), expiresAt: editingUser.expiresAt || null, isAdmin: editingUser.isAdmin, permissions: editingUser.permissions })
+      body: JSON.stringify({
+        username: editingUser.username,
+        password: editPassword || undefined,
+        maxInstances: parseInt(editingUser.maxInstances),
+        messageLimit: parseInt(editingUser.messageLimit),
+        expiresAt: editingUser.expiresAt || null,
+        isAdmin: editingUser.isAdmin,
+        isReseller: editingUser.isReseller,
+        role: editingUser.isReseller ? 'reseller' : (editingUser.isAdmin ? 'admin' : 'user'),
+        permissions: editingUser.permissions
+      })
     });
     if (res.ok) { setEditingUser(null); setEditPassword(''); fetchUsers(); }
     else { const d = await res.json(); alert(d.error || 'Failed'); }
@@ -62,6 +104,7 @@ export const AdminPanel = () => {
 
   const totalUsers = users.length;
   const adminCount = users.filter(u => u.isAdmin).length;
+  const resellerCount = users.filter(u => u.isReseller || u.role === 'reseller').length;
   const expiredCount = users.filter(u => u.expiresAt && new Date(u.expiresAt) < new Date()).length;
   const activeCount = users.filter(u => !u.isAdmin && (!u.expiresAt || new Date(u.expiresAt) >= new Date())).length;
 
@@ -71,7 +114,7 @@ export const AdminPanel = () => {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', margin: '0 0 4px' }}>Admin Control Panel</h2>
-          <p style={{ color: '#64748B', fontSize: '14px', margin: 0, fontWeight: 500 }}>Manage users, permissions, and system limits.</p>
+          <p style={{ color: '#64748B', fontSize: '14px', margin: 0, fontWeight: 500 }}>Manage users, reseller accounts, permissions, and system limits.</p>
         </div>
         <button onClick={() => { setIsAddUserModalOpen(true); setError(''); setSuccess(''); }} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
           <UserPlusIcon size={16} /> Add User
@@ -82,9 +125,9 @@ export const AdminPanel = () => {
       <div className="stats-grid">
         {[
           { label: 'Total Users', val: totalUsers, sub: 'Registered accounts', badge: 'Total', bg: '#EFF6FF', color: '#2563EB', icon: UserIcon },
-          { label: 'Admins', val: adminCount, sub: 'System Managers', badge: 'Admin', bg: '#EFF6FF', color: '#2563EB', icon: ShieldIcon },
+          { label: 'Admins', val: adminCount, sub: 'System Managers', badge: 'Admin', bg: '#F3E8FF', color: '#7C3AED', icon: ShieldIcon },
+          { label: 'Resellers', val: resellerCount, sub: 'Master Accounts', badge: 'Reseller', bg: '#FEF3C7', color: '#D97706', icon: UserPlusIcon },
           { label: 'Active Users', val: activeCount, sub: 'Valid Subscriptions', badge: 'Active', bg: '#D1FAE5', color: '#059669', icon: CheckCircleIcon },
-          { label: 'Expired Users', val: expiredCount, sub: 'Needs Renewal', badge: 'Expired', bg: '#FEE2E2', color: '#DC2626', icon: WarningIcon },
         ].map(({ label, val, sub, badge, bg, color, icon: IconComp }) => (
           <div key={label} className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
@@ -104,33 +147,35 @@ export const AdminPanel = () => {
         ))}
       </div>
 
-      {/* Users Table Card (Shopeers Redesigned SaaS Style) */}
-      <div className="card" style={{ padding: '24px 0', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '20px', padding: '0 28px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em' }}>Manage System Users</h3>
-            <span style={{ fontSize: '12px', fontWeight: 800, color: '#2563EB', background: '#EFF6FF', padding: '3px 10px', borderRadius: '9999px' }}>
-              {totalUsers} Accounts
-            </span>
+      {/* Main Table Card */}
+      <div className="card" style={{ padding: '24px 0', marginTop: '24px' }}>
+        
+        {/* Table Header & Search */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px 20px', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', margin: '0 0 4px', letterSpacing: '-0.01em' }}>All Accounts & Resellers</h3>
+            <p style={{ color: '#64748B', fontSize: '13px', margin: 0, fontWeight: 500 }}>Active registered clients and instance quotas.</p>
           </div>
-          <div style={{ position: 'relative', width: '240px' }}>
+          <div style={{ position: 'relative', width: '280px' }}>
+            <SearchIcon size={16} color="#94A3B8" style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)' }} />
             <input
-              type="text" 
-              placeholder="Search user..." 
+              type="text"
+              placeholder="Search by username..."
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
-              className="rounded-input" 
-              style={{ height: '38px', paddingLeft: '38px', paddingRight: '16px', fontSize: '13px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0' }}
+              className="rounded-input"
+              style={{ paddingRight: '38px', height: '40px', borderRadius: '10px' }}
             />
-            <SearchIcon size={16} color="#94A3B8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
           </div>
         </div>
 
-        <div style={{ overflowX: 'auto' }} className="custom-scrollbar">
+        {/* Users Table */}
+        <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
                 <th style={{ padding: '14px 28px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>USER ACCOUNT</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>ROLE</th>
                 <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>INSTANCES</th>
                 <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>MONTHLY LIMIT</th>
                 <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>EXPIRY</th>
@@ -142,19 +187,39 @@ export const AdminPanel = () => {
               {users.map((user) => {
                 const isExpired = user.expiresAt && new Date(user.expiresAt) < new Date();
                 const usagePct = Math.min(100, (user._count.instances / user.maxInstances) * 100);
-                const Icon = user.isAdmin ? ShieldIcon : UserIcon;
+                const isReseller = user.isReseller || user.role === 'reseller';
+                const Icon = user.isAdmin ? ShieldIcon : isReseller ? UserPlusIcon : UserIcon;
                 return (
                   <tr key={user.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.15s ease' }}>
                     <td style={{ padding: '16px 28px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: user.isAdmin ? '#F3E8FF' : '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Icon size={18} color={user.isAdmin ? '#7C3AED' : '#2563EB'} />
+                        <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: user.isAdmin ? '#F3E8FF' : isReseller ? '#FEF3C7' : '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Icon size={18} color={user.isAdmin ? '#7C3AED' : isReseller ? '#D97706' : '#2563EB'} />
                         </div>
                         <div>
                           <p style={{ fontWeight: 800, fontSize: '14px', color: '#0F172A', margin: 0, lineHeight: 1.2 }}>{user.username}</p>
-                          {user.isAdmin && <span style={{ background: '#F3E8FF', color: '#7C3AED', padding: '2px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 800, marginTop: '2px', display: 'inline-block' }}>ADMIN</span>}
+                          {user.reseller && (
+                            <span style={{ fontSize: '11px', color: '#64748B', display: 'block', marginTop: '2px' }}>
+                              By Reseller: <strong>@{user.reseller.username}</strong>
+                            </span>
+                          )}
                         </div>
                       </div>
+                    </td>
+                    <td style={{ padding: '16px 16px' }}>
+                      {user.isAdmin ? (
+                        <span style={{ background: '#F3E8FF', color: '#7C3AED', padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800 }}>
+                          👑 Admin
+                        </span>
+                      ) : isReseller ? (
+                        <span style={{ background: '#FEF3C7', color: '#B45309', padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800 }}>
+                          💼 Reseller ({user._count?.clients || 0} clients)
+                        </span>
+                      ) : (
+                        <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700 }}>
+                          👤 Client
+                        </span>
+                      )}
                     </td>
                     <td style={{ padding: '16px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -198,7 +263,7 @@ export const AdminPanel = () => {
                 );
               })}
               {users.length === 0 && (
-                <tr><td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: '#94A3B8', fontWeight: 500 }}>No users found</td></tr>
+                <tr><td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: '#94A3B8', fontWeight: 500 }}>No users found</td></tr>
               )}
             </tbody>
           </table>
@@ -216,12 +281,10 @@ export const AdminPanel = () => {
       {/* Add User Modal */}
       {isAddUserModalOpen && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '24px' }}>
-          <div className="card" style={{ width: '100%', maxWidth: '640px', position: 'relative', borderRadius: '24px', padding: '32px', boxShadow: '0 25px 50px -12px rgba(124, 58, 237, 0.18), 0 0 0 1px rgba(226, 232, 240, 0.8)', background: '#FFFFFF' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '640px', position: 'relative', borderRadius: '24px', padding: '32px', boxShadow: '0 25px 50px -12px rgba(124, 58, 237, 0.18), 0 0 0 1px rgba(226, 232, 240, 0.8)', background: '#FFFFFF', maxHeight: '90vh', overflowY: 'auto' }}>
             <button 
               onClick={() => setIsAddUserModalOpen(false)} 
               style={{ position: 'absolute', top: '24px', right: '24px', background: '#F1F5F9', border: 'none', borderRadius: '12px', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', transition: 'all 0.2s ease' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#E2E8F0'; e.currentTarget.style.color = '#0F172A'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = '#64748B'; }}
             >
               <XIcon size={18} color="currentColor" />
             </button>
@@ -231,8 +294,8 @@ export const AdminPanel = () => {
                 <UserPlusIcon size={26} color="#7C3AED" />
               </div>
               <div>
-                <h3 style={{ fontWeight: 800, fontSize: '20px', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Add New User</h3>
-                <p style={{ fontSize: '13px', color: '#64748B', margin: '3px 0 0', fontWeight: 500 }}>Configure user credentials, instance allocations, and access permissions.</p>
+                <h3 style={{ fontWeight: 800, fontSize: '20px', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Add New Account</h3>
+                <p style={{ fontSize: '13px', color: '#64748B', margin: '3px 0 0', fontWeight: 500 }}>Configure user credentials, instance allocations, and role.</p>
               </div>
             </div>
 
@@ -240,38 +303,86 @@ export const AdminPanel = () => {
             {success && <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: '#16A34A', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircleIcon size={16} color="#16A34A" /> {success}</div>}
 
             <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* 2-Column Grid for Form Fields */}
+              
+              {/* Account Role Selector */}
+              <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+                <label style={S.label}>Account Role / Type</label>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setNewIsReseller(false)}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: '10px',
+                      border: !newIsReseller ? '2px solid #2563EB' : '1px solid #CBD5E1',
+                      background: !newIsReseller ? '#EFF6FF' : '#FFFFFF',
+                      color: !newIsReseller ? '#2563EB' : '#64748B',
+                      fontWeight: 800,
+                      fontSize: '13px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    👤 Standard Client
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewIsReseller(true)}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: '10px',
+                      border: newIsReseller ? '2px solid #D97706' : '1px solid #CBD5E1',
+                      background: newIsReseller ? '#FEF3C7' : '#FFFFFF',
+                      color: newIsReseller ? '#B45309' : '#64748B',
+                      fontWeight: 800,
+                      fontSize: '13px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    💼 Reseller Master Account
+                  </button>
+                </div>
+                {newIsReseller && (
+                  <span style={{ fontSize: '11.5px', color: '#B45309', fontWeight: 600, marginTop: '8px', display: 'block' }}>
+                    💡 Reseller accounts can access the Reseller Hub to create and manage sub-clients within their instance/message quotas.
+                  </span>
+                )}
+              </div>
+
+              {/* Form Grid */}
               <div className="admin-form-grid">
                 <div>
                   <label style={S.label}>Username</label>
-                  <input type="text" placeholder="e.g. john_doe" value={newUsername} onChange={e => setNewUsername(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                  <input type="text" placeholder="e.g. john_doe" value={newUsername} onChange={e => setNewUsername(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
                 </div>
                 <div>
                   <label style={S.label}>Password</label>
-                  <input type="password" placeholder="••••••••" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                  <input type="password" placeholder="••••••••" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
                 </div>
                 <div>
-                  <label style={S.label}>Max Instances</label>
-                  <input type="number" min="1" value={newMaxInstances} onChange={e => setNewMaxInstances(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                  <label style={S.label}>{newIsReseller ? 'Master Instances Quota Pool' : 'Max Instances'}</label>
+                  <input type="number" min="1" value={newMaxInstances} onChange={e => setNewMaxInstances(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
                 </div>
                 <div>
-                  <label style={S.label}>Monthly Message Limit</label>
-                  <input type="number" min="1" value={newMessageLimit} onChange={e => setNewMessageLimit(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                  <label style={S.label}>{newIsReseller ? 'Master Message Quota Pool' : 'Monthly Message Limit'}</label>
+                  <input type="number" min="1" value={newMessageLimit} onChange={e => setNewMessageLimit(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
                 </div>
               </div>
 
               <div>
-                <label style={S.label}>Expiry Date <span style={{ color: '#94A3B8', fontWeight: 500 }}>(optional)</span></label>
+                <label style={S.label}>Subscription Expiry Date (Optional)</label>
                 <input type="date" value={newExpiresAt} onChange={e => setNewExpiresAt(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
               </div>
 
-              {/* Menu Permissions as Styled Interactive Chips */}
               <div>
                 <label style={S.label}>Menu Permissions</label>
                 <div className="admin-perms-grid">
                   {[
                     { id: 'instances', name: 'Instances' },
                     { id: 'broadcast', name: 'Broadcast' },
+                    { id: 'filter', name: 'Number Filter' },
+                    { id: 'groups', name: 'Groups Hub' },
                     { id: 'reports', name: 'Reports' },
                     { id: 'docs', name: 'API Docs' },
                   ].map(perm => {
@@ -303,7 +414,7 @@ export const AdminPanel = () => {
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={() => {}} // Handled by parent div
+                          onChange={() => {}}
                           style={{ accentColor: '#7C3AED', width: '15px', height: '15px', cursor: 'pointer' }}
                         />
                         <span>{perm.name}</span>
@@ -313,13 +424,12 @@ export const AdminPanel = () => {
                 </div>
               </div>
 
-              {/* Modal Actions */}
               <div style={{ display: 'flex', gap: '12px', marginTop: '8px', paddingTop: '16px', borderTop: '1px solid #F1F5F9' }}>
                 <button type="button" onClick={() => setIsAddUserModalOpen(false)} className="btn-outline" style={{ flex: 1, height: '46px', borderRadius: '12px', fontWeight: 700 }}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" style={{ flex: 2, height: '46px', borderRadius: '12px', fontWeight: 700, background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', boxShadow: '0 6px 16px rgba(124, 58, 237, 0.25)' }}>
-                  Create User Account
+                <button type="submit" className="btn-primary" style={{ flex: 2, height: '46px', borderRadius: '12px', fontWeight: 800, background: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <UserPlusIcon size={18} color="#FFFFFF" /> Create Account
                 </button>
               </div>
             </form>
@@ -331,60 +441,55 @@ export const AdminPanel = () => {
       {/* Edit User Modal */}
       {editingUser && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '24px' }}>
-          <div className="card" style={{ width: '100%', maxWidth: '640px', position: 'relative', borderRadius: '24px', padding: '32px', boxShadow: '0 25px 50px -12px rgba(124, 58, 237, 0.18), 0 0 0 1px rgba(226, 232, 240, 0.8)', background: '#FFFFFF' }}>
+          <div className="card" style={{ width: '100%', maxWidth: '640px', position: 'relative', borderRadius: '24px', padding: '32px', boxShadow: '0 25px 50px -12px rgba(124, 58, 237, 0.18), 0 0 0 1px rgba(226, 232, 240, 0.8)', background: '#FFFFFF', maxHeight: '90vh', overflowY: 'auto' }}>
             <button 
               onClick={() => setEditingUser(null)} 
               style={{ position: 'absolute', top: '24px', right: '24px', background: '#F1F5F9', border: 'none', borderRadius: '12px', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', transition: 'all 0.2s ease' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#E2E8F0'; e.currentTarget.style.color = '#0F172A'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = '#64748B'; }}
             >
               <XIcon size={18} color="currentColor" />
             </button>
 
-            {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '28px' }}>
               <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: 'linear-gradient(135deg, #F3E8FF 0%, #E9D5FF 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(124, 58, 237, 0.12)' }}>
                 <EditIcon size={24} color="#7C3AED" />
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <h3 style={{ fontWeight: 800, fontSize: '20px', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Edit User</h3>
-                  <span style={{ background: '#F3E8FF', color: '#7C3AED', padding: '3px 10px', borderRadius: '9999px', fontSize: '12px', fontWeight: 800 }}>
-                    {editingUser.username}
-                  </span>
-                </div>
-                <p style={{ fontSize: '13px', color: '#64748B', margin: 0, fontWeight: 500 }}>Update security settings, resource quotas, and permissions.</p>
+              <div>
+                <h3 style={{ fontWeight: 800, fontSize: '20px', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Edit Account: {editingUser.username}</h3>
+                <p style={{ fontSize: '13px', color: '#64748B', margin: '3px 0 0', fontWeight: 500 }}>Modify quotas, permissions, account status, or change password.</p>
               </div>
             </div>
 
+            {error && <div style={{ background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '12px', padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: '#DC2626', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}><WarningIcon size={16} color="#DC2626" /> {error}</div>}
+            {success && <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: '#16A34A', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircleIcon size={16} color="#16A34A" /> {success}</div>}
+
             <form onSubmit={handleUpdateUser} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* 2-Column Grid Layout */}
               <div className="admin-form-grid">
                 <div>
-                  <label style={S.label}>New Password <span style={{ color: '#94A3B8', fontWeight: 500 }}>(leave blank to keep)</span></label>
-                  <input type="password" value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="••••••••" className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                  <label style={S.label}>New Password (leave blank to keep)</label>
+                  <input type="password" placeholder="••••••••" value={editPassword} onChange={e => setEditPassword(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
                 </div>
                 <div>
-                  <label style={S.label}>Expiry Date</label>
+                  <label style={S.label}>Expires At (Optional)</label>
                   <input type="date" value={editingUser.expiresAt ? new Date(editingUser.expiresAt).toISOString().split('T')[0] : ''} onChange={e => setEditingUser({ ...editingUser, expiresAt: e.target.value })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
                 </div>
                 <div>
-                  <label style={S.label}>Max Instances</label>
-                  <input type="number" min="1" value={editingUser.maxInstances} onChange={e => setEditingUser({ ...editingUser, maxInstances: e.target.value })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                  <label style={S.label}>{editingUser.isReseller ? 'Master Instances Quota Pool' : 'Max Instances'}</label>
+                  <input type="number" min="1" value={editingUser.maxInstances} onChange={e => setEditingUser({ ...editingUser, maxInstances: parseInt(e.target.value) || 1 })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
                 </div>
                 <div>
-                  <label style={S.label}>Monthly Message Limit</label>
-                  <input type="number" min="1" value={editingUser.messageLimit} onChange={e => setEditingUser({ ...editingUser, messageLimit: e.target.value })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                  <label style={S.label}>{editingUser.isReseller ? 'Master Message Quota Pool' : 'Monthly Message Limit'}</label>
+                  <input type="number" min="1" value={editingUser.messageLimit} onChange={e => setEditingUser({ ...editingUser, messageLimit: parseInt(e.target.value) || 1000 })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
                 </div>
               </div>
 
-              {/* Menu Permissions as Styled Interactive Chips */}
               <div>
                 <label style={S.label}>Menu Permissions</label>
                 <div className="admin-perms-grid">
                   {[
                     { id: 'instances', name: 'Instances' },
                     { id: 'broadcast', name: 'Broadcast' },
+                    { id: 'filter', name: 'Number Filter' },
+                    { id: 'groups', name: 'Groups Hub' },
                     { id: 'reports', name: 'Reports' },
                     { id: 'docs', name: 'API Docs' },
                   ].map(perm => {
@@ -417,7 +522,7 @@ export const AdminPanel = () => {
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={() => {}} // Handled by parent div
+                          onChange={() => {}}
                           style={{ accentColor: '#7C3AED', width: '15px', height: '15px', cursor: 'pointer' }}
                         />
                         <span>{perm.name}</span>
@@ -427,13 +532,39 @@ export const AdminPanel = () => {
                 </div>
               </div>
 
+              {/* Reseller Account Option */}
+              <label 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '14px', 
+                  padding: '14px 20px', 
+                  background: editingUser.isReseller ? '#FEF3C7' : '#F8FAFC', 
+                  borderRadius: '16px', 
+                  border: editingUser.isReseller ? '1.5px solid #FDE68A' : '1.5px solid #E2E8F0', 
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <input 
+                  type="checkbox" 
+                  checked={editingUser.isReseller || false} 
+                  onChange={e => setEditingUser({ ...editingUser, isReseller: e.target.checked })} 
+                  style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#D97706', flexShrink: 0 }} 
+                />
+                <div>
+                  <p style={{ fontWeight: 800, fontSize: '14px', color: '#0F172A', margin: 0 }}>Enable Reseller Account</p>
+                  <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0', fontWeight: 500 }}>Grants access to the Reseller Client Management Hub to create and manage sub-clients</p>
+                </div>
+              </label>
+
               {/* Admin Privileges Card */}
               <label 
                 style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
                   gap: '14px', 
-                  padding: '16px 20px', 
+                  padding: '14px 20px', 
                   background: editingUser.isAdmin ? 'linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 100%)' : '#F8FAFC', 
                   borderRadius: '16px', 
                   border: editingUser.isAdmin ? '1.5px solid #DDD6FE' : '1.5px solid #E2E8F0', 
@@ -448,8 +579,8 @@ export const AdminPanel = () => {
                   style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#7C3AED', flexShrink: 0 }} 
                 />
                 <div>
-                  <p style={{ fontWeight: 800, fontSize: '14px', color: '#0F172A', margin: 0 }}>Grant Admin Privileges</p>
-                  <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0', fontWeight: 500 }}>Allows user to manage all user accounts, system quotas, and global settings</p>
+                  <p style={{ fontWeight: 800, fontSize: '14px', color: '#0F172A', margin: 0 }}>Grant Super Admin Privileges</p>
+                  <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0', fontWeight: 500 }}>Allows full platform control and global user quota management</p>
                 </div>
               </label>
 

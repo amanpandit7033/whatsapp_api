@@ -5,23 +5,29 @@ import { Instances } from './pages/Instances';
 import { Login } from './pages/Login';
 import { Scan } from './pages/Scan';
 import { Broadcast } from './pages/Broadcast';
+import { NumberFilter } from './pages/NumberFilter';
+import { NumberFilterBatch } from './pages/NumberFilterBatch';
+import { Groups } from './pages/Groups';
 import { ApiDocs } from './pages/ApiDocs';
 import { Reports } from './pages/Reports';
 import { AdminPanel } from './pages/AdminPanel';
+import { ResellerPanel } from './pages/ResellerPanel';
 import { Expired } from './pages/Expired';
 import { Profile } from './pages/Profile';
+import { NotFound } from './pages/NotFound';
 import { Layout } from './components/Layout';
 
 const ProtectedRoute = ({ children, requiredPermission }: { children: React.ReactNode, requiredPermission?: string }) => {
   const isAuthenticated = !!localStorage.getItem('token');
   const isExpired = localStorage.getItem('isExpired') === 'true';
-  const permissionsStr = localStorage.getItem('permissions') || 'instances,broadcast,reports,docs';
+  const isAdmin = localStorage.getItem('isAdmin') === 'true';
+  const permissionsStr = localStorage.getItem('permissions') || 'instances,broadcast,filter,groups,reports,docs';
   const permissions = permissionsStr.split(',');
   
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (isExpired) return <Navigate to="/expired" replace />;
   
-  if (requiredPermission && !permissions.includes(requiredPermission)) {
+  if (!isAdmin && requiredPermission && !permissions.includes(requiredPermission)) {
     return <Navigate to="/" replace />;
   }
   
@@ -39,9 +45,14 @@ function App() {
         <Route path="/instances" element={<ProtectedRoute requiredPermission="instances"><Instances /></ProtectedRoute>} />
         <Route path="/scan" element={<ProtectedRoute requiredPermission="instances"><Scan /></ProtectedRoute>} />
         <Route path="/broadcast" element={<ProtectedRoute requiredPermission="broadcast"><Broadcast /></ProtectedRoute>} />
+        <Route path="/filter" element={<ProtectedRoute requiredPermission="filter"><NumberFilter /></ProtectedRoute>} />
+        <Route path="/filter/batch/:id" element={<ProtectedRoute requiredPermission="filter"><NumberFilterBatch /></ProtectedRoute>} />
+        <Route path="/groups" element={<ProtectedRoute requiredPermission="groups"><Groups /></ProtectedRoute>} />
         <Route path="/docs" element={<ProtectedRoute requiredPermission="docs"><ApiDocs /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute requiredPermission="reports"><Reports /></ProtectedRoute>} />
+        <Route path="/reseller" element={<ProtectedRoute><ResellerPanel /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   )

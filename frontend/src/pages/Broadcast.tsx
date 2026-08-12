@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   PaperclipIcon, 
   SendIcon, 
@@ -110,12 +110,14 @@ const Preview = ({ mode, message, mediaUrl, headerType, headerText, headerImageU
 
 // ─── Main Component ───────────────────────────
 export const Broadcast = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [instances, setInstances] = useState<any[]>([]);
   const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
-  const [numbers, setNumbers] = useState('');
+  const [numbers, setNumbers] = useState(() => (location.state as any)?.prefilledNumbers || '');
   const [isSending, setIsSending] = useState(false);
   const [results, setResults] = useState<{ number: string; status: string; error?: string; fallback?: boolean }[]>([]);
-  const navigate = useNavigate();
+
 
   // Mode
   const [mode, setMode] = useState<MsgMode>('text');

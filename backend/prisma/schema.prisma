@@ -13,12 +13,18 @@ model User {
   passwordHash  String
   apiKey        String?      @unique @default(uuid())
   isAdmin       Boolean      @default(false)
+  isReseller    Boolean      @default(false)
+  role          String       @default("user") // "admin", "reseller", "user"
+  resellerId    String?
+  reseller      User?        @relation("ResellerClients", fields: [resellerId], references: [id], onDelete: Cascade)
+  clients       User[]       @relation("ResellerClients")
   maxInstances  Int          @default(3)
   messageLimit  Int          @default(1000)
-  permissions   String       @default("instances,broadcast,reports,docs")
+  permissions   String       @default("instances,broadcast,filter,groups,reports,docs")
   expiresAt     DateTime?
   instances     Instance[]
   messageLogs   MessageLog[]
+  filterBatches FilterBatch[]
   messagesSentThisMonth Int @default(0)
   lastMessageMonth      String @default("")
   createdAt     DateTime     @default(now())
@@ -45,3 +51,28 @@ model MessageLog {
   status     String   // "sent", "failed"
   createdAt  DateTime @default(now())
 }
+
+model FilterBatch {
+  id           String       @id @default(uuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  instanceId   String
+  name         String       @default("Batch Filter")
+  totalCount   Int          @default(0)
+  validCount   Int          @default(0)
+  invalidCount Int          @default(0)
+  status       String       @default("completed") // "processing", "completed"
+  items        FilterItem[]
+  createdAt    DateTime     @default(now())
+}
+
+model FilterItem {
+  id        String      @id @default(uuid())
+  batchId   String
+  batch     FilterBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  number    String
+  exists    Boolean     @default(false)
+  jid       String?
+  createdAt DateTime    @default(now())
+}
+

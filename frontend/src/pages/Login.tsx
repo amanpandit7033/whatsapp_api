@@ -34,6 +34,14 @@ export const Login = () => {
         } else {
           localStorage.removeItem('isAdmin');
         }
+        if (data.isReseller) {
+          localStorage.setItem('isReseller', 'true');
+        } else {
+          localStorage.removeItem('isReseller');
+        }
+        if (data.role) {
+          localStorage.setItem('role', data.role);
+        }
         if (data.permissions) {
           localStorage.setItem('permissions', data.permissions);
         }

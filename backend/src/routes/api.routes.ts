@@ -39,9 +39,13 @@ router.post('/auth/login', async (req, res) => {
         return res.status(401).json({ error: 'Invalid credentials' });
     }
     const isExpired = !user.isAdmin && user.expiresAt && new Date(user.expiresAt) < new Date();
-    
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1d' });
-    res.json({ token, isAdmin: user.isAdmin, isExpired, permissions: user.permissions, username: user.username });
+    const userPermissions = user.isAdmin 
+        ? 'instances,broadcast,filter,groups,reports,docs' 
+        : (user.permissions || 'instances,broadcast,filter,groups,reports,docs');
+    const isReseller = !!user.isReseller || user.role === 'reseller';
+    const role = user.isAdmin ? 'admin' : (isReseller ? 'reseller' : 'user');
+    res.json({ token, isAdmin: user.isAdmin, isReseller, role, isExpired, permissions: userPermissions, username: user.username });
 });
 
 // Middleware for user auth
@@ -990,7 +994,12 @@ router.get('/me', authenticate, async (req: any, res: any) => {
             messagesSentThisMonth = 0;
         }
         
-        res.json({ username: user.username, apiKey: user.apiKey, isAdmin: user.isAdmin, maxInstances: user.maxInstances, messageLimit: user.messageLimit, messagesSentThisMonth, permissions: user.permissions });
+        const userPermissions = user.isAdmin 
+            ? 'instances,broadcast,filter,groups,reports,docs' 
+            : (user.permissions || 'instances,broadcast,filter,groups,reports,docs');
+        const isReseller = !!user.isReseller || user.role === 'reseller';
+        const role = user.isAdmin ? 'admin' : (isReseller ? 'reseller' : 'user');
+        res.json({ username: user.username, apiKey: user.apiKey, isAdmin: user.isAdmin, isReseller, role, maxInstances: user.maxInstances, messageLimit: user.messageLimit, messagesSentThisMonth, permissions: userPermissions });
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch user' });
     }
@@ -999,11 +1008,14 @@ router.get('/me', authenticate, async (req: any, res: any) => {
 // --- ADMIN MANAGEMENT ---
 router.post('/admin/users', adminAuthenticate, async (req: any, res: any) => {
     try {
-        const { username, password, maxInstances, messageLimit, expiresAt, permissions } = req.body;
+        const { username, password, maxInstances, messageLimit, expiresAt, permissions, isReseller, role } = req.body;
         const passwordHash = await bcrypt.hash(password, 10);
+        const resolvedRole = isReseller ? 'reseller' : (role || 'user');
         const data: any = { 
-            username, 
+            username: username.trim(), 
             passwordHash, 
+            isReseller: Boolean(isReseller),
+            role: resolvedRole,
             maxInstances: Number(maxInstances) || 1, 
             messageLimit: Number(messageLimit) || 1000,
             apiKey: require('crypto').randomBytes(7).toString('hex').substring(0, 13)
@@ -1016,19 +1028,26 @@ router.post('/admin/users', adminAuthenticate, async (req: any, res: any) => {
         }
         const user = await prisma.user.create({ data });
         res.json({ message: 'User created successfully', user: { id: user.id, username: user.username } });
-    } catch (e) {
+    } catch (e: any) {
         res.status(400).json({ error: 'Username already exists' });
     }
 });
 
 router.put('/admin/users/:id', adminAuthenticate, async (req: any, res: any) => {
     try {
-        const { username, password, maxInstances, isAdmin, messageLimit, expiresAt, permissions } = req.body;
+        const { username, password, maxInstances, isAdmin, isReseller, role, messageLimit, expiresAt, permissions } = req.body;
         const data: any = {};
-        if (username) data.username = username;
+        if (username) data.username = username.trim();
         if (password) data.passwordHash = await bcrypt.hash(password, 10);
         if (maxInstances !== undefined) data.maxInstances = Number(maxInstances);
         if (isAdmin !== undefined) data.isAdmin = Boolean(isAdmin);
+        if (isReseller !== undefined) {
+            data.isReseller = Boolean(isReseller);
+            data.role = Boolean(isReseller) ? 'reseller' : (role || 'user');
+        } else if (role !== undefined) {
+            data.role = role;
+            data.isReseller = role === 'reseller';
+        }
         if (messageLimit !== undefined) data.messageLimit = Number(messageLimit);
         if (expiresAt !== undefined) {
             data.expiresAt = expiresAt ? new Date(expiresAt) : null;
@@ -1040,7 +1059,7 @@ router.put('/admin/users/:id', adminAuthenticate, async (req: any, res: any) => 
             data
         });
         res.json({ message: 'User updated successfully' });
-    } catch (e) {
+    } catch (e: any) {
         res.status(400).json({ error: 'Failed to update user. Username may already exist.' });
     }
 });
@@ -1058,13 +1077,288 @@ router.get('/admin/users', adminAuthenticate, async (req: any, res: any) => {
             where,
             skip,
             take: limit,
-            select: { id: true, username: true, isAdmin: true, maxInstances: true, messageLimit: true, expiresAt: true, permissions: true, createdAt: true, _count: { select: { instances: true } } },
+            select: { 
+                id: true, 
+                username: true, 
+                isAdmin: true, 
+                isReseller: true,
+                role: true,
+                resellerId: true,
+                reseller: { select: { username: true } },
+                maxInstances: true, 
+                messageLimit: true, 
+                expiresAt: true, 
+                permissions: true, 
+                createdAt: true, 
+                _count: { select: { instances: true, clients: true } } 
+            },
             orderBy: { createdAt: 'desc' }
         }),
         prisma.user.count({ where })
     ]);
 
     res.json({ users, total, page, totalPages: Math.ceil(total / limit) });
+});
+
+// --- RESELLER MANAGEMENT ENDPOINTS ---
+
+const resellerAuthenticate = async (req: any, res: any, next: any) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const decoded: any = jwt.verify(token, JWT_SECRET);
+        const dbUser = await prisma.user.findUnique({ where: { id: decoded.userId } });
+        
+        if (!dbUser) return res.status(401).json({ error: 'User not found' });
+        
+        if (!dbUser.isAdmin && dbUser.expiresAt && new Date(dbUser.expiresAt) < new Date()) {
+            return res.status(403).json({ error: 'Account has expired. Please contact admin.' });
+        }
+        
+        if (!dbUser.isAdmin && !dbUser.isReseller && dbUser.role !== 'reseller') {
+            return res.status(403).json({ error: 'Forbidden: Reseller access required' });
+        }
+        
+        req.user = { userId: dbUser.id, isAdmin: dbUser.isAdmin, isReseller: dbUser.isReseller };
+        next();
+    } catch (err) {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+};
+
+// Get Reseller Quotas & Stats
+router.get('/reseller/stats', resellerAuthenticate, async (req: any, res: any) => {
+    try {
+        const reseller = await prisma.user.findUnique({
+            where: { id: req.user.userId },
+            include: {
+                clients: {
+                    select: {
+                        id: true,
+                        maxInstances: true,
+                        messageLimit: true,
+                        expiresAt: true,
+                        _count: { select: { instances: true } }
+                    }
+                }
+            }
+        });
+
+        if (!reseller) return res.status(404).json({ error: 'Reseller not found' });
+
+        const totalClients = reseller.clients.length;
+        const activeClients = reseller.clients.filter(c => !c.expiresAt || new Date(c.expiresAt) >= new Date()).length;
+        const allocatedInstances = reseller.clients.reduce((acc, c) => acc + c.maxInstances, 0);
+        const actualActiveInstances = reseller.clients.reduce((acc, c) => acc + c._count.instances, 0);
+        const allocatedMessages = reseller.clients.reduce((acc, c) => acc + c.messageLimit, 0);
+
+        res.json({
+            masterMaxInstances: reseller.maxInstances,
+            masterMessageLimit: reseller.messageLimit,
+            allocatedInstances,
+            remainingInstances: Math.max(0, reseller.maxInstances - allocatedInstances),
+            actualActiveInstances,
+            allocatedMessages,
+            remainingMessages: Math.max(0, reseller.messageLimit - allocatedMessages),
+            totalClients,
+            activeClients
+        });
+    } catch (e: any) {
+        console.error('Reseller stats error:', e);
+        res.status(500).json({ error: 'Failed to fetch reseller stats' });
+    }
+});
+
+// List Reseller's Clients
+router.get('/reseller/clients', resellerAuthenticate, async (req: any, res: any) => {
+    try {
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
+        const search = req.query.search || '';
+        const skip = (page - 1) * limit;
+
+        const where: any = {
+            resellerId: req.user.userId,
+            ...(search ? { username: { contains: search } } : {})
+        };
+
+        const [clients, total] = await Promise.all([
+            prisma.user.findMany({
+                where,
+                skip,
+                take: limit,
+                select: {
+                    id: true,
+                    username: true,
+                    maxInstances: true,
+                    messageLimit: true,
+                    expiresAt: true,
+                    permissions: true,
+                    createdAt: true,
+                    _count: { select: { instances: true } }
+                },
+                orderBy: { createdAt: 'desc' }
+            }),
+            prisma.user.count({ where })
+        ]);
+
+        res.json({
+            clients,
+            total,
+            page,
+            totalPages: Math.ceil(total / limit)
+        });
+    } catch (e: any) {
+        console.error('Reseller clients fetch error:', e);
+        res.status(500).json({ error: 'Failed to fetch clients' });
+    }
+});
+
+// Create Client under Reseller
+router.post('/reseller/clients', resellerAuthenticate, async (req: any, res: any) => {
+    try {
+        const { username, password, maxInstances, messageLimit, expiresAt, permissions } = req.body;
+        if (!username || !password) return res.status(400).json({ error: 'Username and password are required' });
+
+        const reqInstances = Number(maxInstances) || 1;
+        const reqMessages = Number(messageLimit) || 1000;
+
+        // Check reseller quota pool
+        const reseller = await prisma.user.findUnique({
+            where: { id: req.user.userId },
+            include: { clients: { select: { maxInstances: true, messageLimit: true } } }
+        });
+
+        if (!reseller) return res.status(404).json({ error: 'Reseller not found' });
+
+        if (!reseller.isAdmin) {
+            const currentAllocatedInstances = reseller.clients.reduce((acc, c) => acc + c.maxInstances, 0);
+            if (currentAllocatedInstances + reqInstances > reseller.maxInstances) {
+                return res.status(400).json({
+                    error: `Instances quota exceeded! You have ${Math.max(0, reseller.maxInstances - currentAllocatedInstances)} instance(s) remaining in your master pool.`
+                });
+            }
+
+            const currentAllocatedMessages = reseller.clients.reduce((acc, c) => acc + c.messageLimit, 0);
+            if (currentAllocatedMessages + reqMessages > reseller.messageLimit) {
+                return res.status(400).json({
+                    error: `Message limit quota exceeded! You have ${Math.max(0, reseller.messageLimit - currentAllocatedMessages)} message quota remaining in your master pool.`
+                });
+            }
+        }
+
+        const passwordHash = await bcrypt.hash(password, 10);
+        const data: any = {
+            username: username.trim(),
+            passwordHash,
+            role: 'user',
+            isReseller: false,
+            resellerId: req.user.userId,
+            maxInstances: reqInstances,
+            messageLimit: reqMessages,
+            permissions: permissions || 'instances,broadcast,filter,groups,reports,docs',
+            apiKey: require('crypto').randomBytes(7).toString('hex').substring(0, 13)
+        };
+
+        if (expiresAt) {
+            data.expiresAt = new Date(expiresAt);
+        }
+
+        const newClient = await prisma.user.create({ data });
+        res.json({
+            message: 'Client account created successfully',
+            client: { id: newClient.id, username: newClient.username }
+        });
+    } catch (e: any) {
+        if (e.code === 'P2002') {
+            return res.status(400).json({ error: 'Username already exists' });
+        }
+        res.status(500).json({ error: e.message || 'Failed to create client' });
+    }
+});
+
+// Update Client under Reseller
+router.put('/reseller/clients/:id', resellerAuthenticate, async (req: any, res: any) => {
+    try {
+        const { id } = req.params;
+        const { username, password, maxInstances, messageLimit, expiresAt, permissions } = req.body;
+
+        const targetClient = await prisma.user.findFirst({
+            where: { id, ...(req.user.isAdmin ? {} : { resellerId: req.user.userId }) }
+        });
+
+        if (!targetClient) {
+            return res.status(404).json({ error: 'Client not found or unauthorized' });
+        }
+
+        const data: any = {};
+        if (username) data.username = username.trim();
+        if (password) data.passwordHash = await bcrypt.hash(password, 10);
+        if (expiresAt !== undefined) data.expiresAt = expiresAt ? new Date(expiresAt) : null;
+        if (permissions !== undefined) data.permissions = permissions;
+
+        const reseller = await prisma.user.findUnique({
+            where: { id: req.user.userId },
+            include: { clients: { select: { id: true, maxInstances: true, messageLimit: true } } }
+        });
+
+        if (maxInstances !== undefined) {
+            const newInst = Number(maxInstances);
+            if (!req.user.isAdmin && reseller) {
+                const otherAllocated = reseller.clients.filter(c => c.id !== id).reduce((acc, c) => acc + c.maxInstances, 0);
+                if (otherAllocated + newInst > reseller.maxInstances) {
+                    return res.status(400).json({ error: `Cannot allocate ${newInst} instances. Reseller pool limit exceeded.` });
+                }
+            }
+            data.maxInstances = newInst;
+        }
+
+        if (messageLimit !== undefined) {
+            const newMsg = Number(messageLimit);
+            if (!req.user.isAdmin && reseller) {
+                const otherAllocatedMsg = reseller.clients.filter(c => c.id !== id).reduce((acc, c) => acc + c.messageLimit, 0);
+                if (otherAllocatedMsg + newMsg > reseller.messageLimit) {
+                    return res.status(400).json({ error: `Cannot allocate ${newMsg} messages. Reseller pool limit exceeded.` });
+                }
+            }
+            data.messageLimit = newMsg;
+        }
+
+        await prisma.user.update({
+            where: { id },
+            data
+        });
+
+        res.json({ message: 'Client updated successfully' });
+    } catch (e: any) {
+        if (e.code === 'P2002') {
+            return res.status(400).json({ error: 'Username already taken' });
+        }
+        res.status(500).json({ error: e.message || 'Failed to update client' });
+    }
+});
+
+// Delete Client (Super Admin Only - Resellers cannot delete users)
+router.delete('/reseller/clients/:id', resellerAuthenticate, async (req: any, res: any) => {
+    try {
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ error: 'Permission denied. Resellers cannot delete client accounts. Please contact Super Admin.' });
+        }
+
+        const { id } = req.params;
+        const targetClient = await prisma.user.findUnique({
+            where: { id }
+        });
+
+        if (!targetClient) {
+            return res.status(404).json({ error: 'Client not found' });
+        }
+
+        await prisma.user.delete({ where: { id } });
+        res.json({ message: 'Client deleted successfully' });
+    } catch (e: any) {
+        res.status(500).json({ error: e.message || 'Failed to delete client' });
+    }
 });
 
 // --- CLIENT APIS ---
@@ -1471,4 +1765,647 @@ router.post('/me/regenerate-token', authenticate, async (req: any, res: any) => 
     }
 });
 
+// ─────────────────────────────────────────────
+// NUMBER FILTER & BATCH VALIDATOR ENDPOINTS
+// ─────────────────────────────────────────────
+
+// Create batch, save all numbers into database first, then process asynchronously in the background
+router.post('/filter/batches/create', authenticate, async (req: any, res: any) => {
+    try {
+        const { instanceId, name, numbers, delayMs } = req.body;
+        if (!instanceId) return res.status(400).json({ error: 'instanceId is required' });
+        if (!numbers) return res.status(400).json({ error: 'numbers is required' });
+
+        const inst = await prisma.instance.findUnique({ where: { id: instanceId } });
+        if (!inst || inst.userId !== req.user.userId) return res.status(404).json({ error: 'Instance not found or unauthorized' });
+        if (inst.status !== 'connected') return res.status(400).json({ error: 'Instance is not connected to WhatsApp' });
+
+        let numList: string[] = [];
+        if (Array.isArray(numbers)) {
+            numList = numbers;
+        } else {
+            numList = numbers.split(/[\n,;]+/).map((n: string) => n.trim()).filter(Boolean);
+        }
+
+        const uniqueNumbers = Array.from(new Set(numList.map(n => n.replace(/\D/g, '')).filter(n => n.length >= 7)));
+        if (uniqueNumbers.length === 0) return res.status(400).json({ error: 'No valid phone numbers found' });
+
+        if (uniqueNumbers.length > 10000) {
+            return res.status(400).json({ error: 'Maximum 10,000 numbers allowed per batch filter request.' });
+        }
+
+        const batchName = (name && name.trim()) ? name.trim() : `Batch Filter - ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+        // Step 1: Create the batch record in database with status 'processing'
+        const batch = await prisma.filterBatch.create({
+            data: {
+                userId: req.user.userId,
+                instanceId,
+                name: batchName,
+                totalCount: uniqueNumbers.length,
+                validCount: 0,
+                invalidCount: 0,
+                status: 'processing'
+            }
+        });
+
+        // Step 2: Save ALL raw numbers immediately into FilterItem table
+        await prisma.filterItem.createMany({
+            data: uniqueNumbers.map((num: string) => ({
+                batchId: batch.id,
+                number: num,
+                exists: false,
+                jid: null
+            }))
+        });
+
+        // Step 3: Respond to client IMMEDIATELY (Zero panel freezing / no timeout)
+        res.json({
+            success: true,
+            batchId: batch.id,
+            total: uniqueNumbers.length,
+            status: 'processing',
+            message: 'All numbers stored successfully. Verification running in background.'
+        });
+
+        // Step 4: Background asynchronous verification worker
+        (async () => {
+            try {
+                const { getSocket, waitUntilConnected } = require('../services/whatsapp.service');
+                const sock = await getSocket(instanceId);
+                const isOpen = await waitUntilConnected(instanceId);
+                if (!isOpen || !sock) {
+                    console.error(`[BackgroundFilter] Instance ${instanceId} disconnected. Aborting batch ${batch.id}`);
+                    await prisma.filterBatch.update({ where: { id: batch.id }, data: { status: 'failed' } });
+                    return;
+                }
+
+                let validCount = 0;
+                let invalidCount = 0;
+                const delay = typeof delayMs === 'number' ? Math.max(20, delayMs) : 100;
+
+                const batchItems = await prisma.filterItem.findMany({
+                    where: { batchId: batch.id },
+                    orderBy: { createdAt: 'asc' }
+                });
+
+                for (let i = 0; i < batchItems.length; i++) {
+                    const item = batchItems[i];
+                    try {
+                        const check = await sock.onWhatsApp(item.number);
+                        const exists = Array.isArray(check) && check.length > 0 && !!check[0]?.exists;
+                        const jid = exists ? check[0].jid : null;
+
+                        if (exists) validCount++;
+                        else invalidCount++;
+
+                        await prisma.filterItem.update({
+                            where: { id: item.id },
+                            data: { exists, jid }
+                        });
+                    } catch (err: any) {
+                        invalidCount++;
+                    }
+
+                    // Periodically update batch counts in DB every 10 numbers or at completion
+                    if ((i + 1) % 10 === 0 || i === batchItems.length - 1) {
+                        await prisma.filterBatch.update({
+                            where: { id: batch.id },
+                            data: { validCount, invalidCount }
+                        });
+                    }
+
+                    if (delay > 0 && i < batchItems.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                }
+
+                // Finalize batch status
+                await prisma.filterBatch.update({
+                    where: { id: batch.id },
+                    data: {
+                        validCount,
+                        invalidCount,
+                        status: 'completed'
+                    }
+                });
+                console.log(`[BackgroundFilter] ✅ Batch ${batch.id} completed! (Total: ${batchItems.length}, Valid: ${validCount}, Invalid: ${invalidCount})`);
+            } catch (bgError) {
+                console.error('[BackgroundFilter] Error processing batch:', bgError);
+                await prisma.filterBatch.update({
+                    where: { id: batch.id },
+                    data: { status: 'completed' }
+                });
+            }
+        })();
+
+    } catch (e: any) {
+        console.error('Batch create error:', e);
+        res.status(500).json({ error: e.message || 'Failed to process batch filter' });
+    }
+});
+
+// List all batches for current user
+router.get('/filter/batches', authenticate, async (req: any, res: any) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
+        const skip = (page - 1) * limit;
+
+        const where = { userId: req.user.userId };
+
+        const [batches, totalCount] = await Promise.all([
+            prisma.filterBatch.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit
+            }),
+            prisma.filterBatch.count({ where })
+        ]);
+
+        res.json({
+            batches,
+            totalCount,
+            page,
+            limit,
+            totalPages: Math.ceil(totalCount / limit) || 1
+        });
+    } catch (e: any) {
+        res.status(500).json({ error: 'Failed to fetch batches' });
+    }
+});
+
+// Get specific batch details with paginated numbers
+router.get('/filter/batches/:id', authenticate, async (req: any, res: any) => {
+    try {
+        const { id } = req.params;
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 25));
+        const status = req.query.status || 'all'; // 'all', 'valid', 'invalid'
+        const search = (req.query.search || '').trim();
+        const skip = (page - 1) * limit;
+
+        const batch = await prisma.filterBatch.findFirst({
+            where: { id, userId: req.user.userId }
+        });
+
+        if (!batch) return res.status(404).json({ error: 'Batch not found' });
+
+        const itemWhere: any = { batchId: id };
+        if (status === 'valid') itemWhere.exists = true;
+        if (status === 'invalid') itemWhere.exists = false;
+        if (search) itemWhere.number = { contains: search };
+
+        const [items, totalItems] = await Promise.all([
+            prisma.filterItem.findMany({
+                where: itemWhere,
+                orderBy: { createdAt: 'asc' },
+                skip,
+                take: limit
+            }),
+            prisma.filterItem.count({ where: itemWhere })
+        ]);
+
+        res.json({
+            batch,
+            items,
+            totalItems,
+            page,
+            limit,
+            totalPages: Math.ceil(totalItems / limit) || 1
+        });
+    } catch (e: any) {
+        res.status(500).json({ error: 'Failed to fetch batch details' });
+    }
+});
+
+// Export all items of a batch
+router.get('/filter/batches/:id/export', authenticate, async (req: any, res: any) => {
+    try {
+        const { id } = req.params;
+        const status = req.query.status || 'all'; // 'all', 'valid', 'invalid'
+
+        const batch = await prisma.filterBatch.findFirst({
+            where: { id, userId: req.user.userId }
+        });
+
+        if (!batch) return res.status(404).json({ error: 'Batch not found' });
+
+        const itemWhere: any = { batchId: id };
+        if (status === 'valid') itemWhere.exists = true;
+        if (status === 'invalid') itemWhere.exists = false;
+
+        const items = await prisma.filterItem.findMany({
+            where: itemWhere,
+            orderBy: { createdAt: 'asc' }
+        });
+
+        res.json({ batch, items });
+    } catch (e: any) {
+        res.status(500).json({ error: 'Failed to export batch' });
+    }
+});
+
+// Delete a batch
+router.delete('/filter/batches/:id', authenticate, async (req: any, res: any) => {
+    try {
+        const { id } = req.params;
+        const batch = await prisma.filterBatch.findFirst({
+            where: { id, userId: req.user.userId }
+        });
+
+        if (!batch) return res.status(404).json({ error: 'Batch not found' });
+
+        await prisma.filterBatch.delete({ where: { id } });
+        res.json({ success: true, message: 'Batch deleted successfully' });
+    } catch (e: any) {
+        res.status(500).json({ error: 'Failed to delete batch' });
+    }
+});
+
+// Authenticated fast single/batch filter check
+router.post('/filter/check', authenticate, async (req: any, res: any) => {
+    try {
+        const { instanceId, numbers, delayMs } = req.body;
+        if (!instanceId) {
+            return res.status(400).json({ error: 'instanceId is required' });
+        }
+        if (!numbers || (!Array.isArray(numbers) && typeof numbers !== 'string')) {
+            return res.status(400).json({ error: 'numbers array or string is required' });
+        }
+
+        const inst = await prisma.instance.findUnique({ where: { id: instanceId } });
+        if (!inst || inst.userId !== req.user.userId) {
+            return res.status(404).json({ error: 'Instance not found or unauthorized' });
+        }
+        if (inst.status !== 'connected') {
+            return res.status(400).json({ error: 'Instance is not connected to WhatsApp' });
+        }
+
+        let numList: string[] = [];
+        if (Array.isArray(numbers)) {
+            numList = numbers;
+        } else {
+            numList = numbers.split(/[\n,;]+/).map((n: string) => n.trim()).filter(Boolean);
+        }
+
+        if (numList.length === 0) {
+            return res.status(400).json({ error: 'No valid numbers provided' });
+        }
+
+        if (numList.length > 5000) {
+            return res.status(400).json({ error: 'Maximum 5,000 numbers allowed per batch filter request.' });
+        }
+
+        const { checkWhatsAppNumbers } = require('../services/whatsapp.service');
+        const results = await checkWhatsAppNumbers(instanceId, numList, typeof delayMs === 'number' ? delayMs : 100);
+
+        const validCount = results.filter((r: any) => r.exists).length;
+        const invalidCount = results.length - validCount;
+
+        res.json({
+            success: true,
+            total: results.length,
+            validCount,
+            invalidCount,
+            results
+        });
+    } catch (e: any) {
+        console.error('Filter check error:', e);
+        res.status(500).json({ error: e.message || 'Failed to verify phone numbers' });
+    }
+});
+
+// Public Developer REST API: check single or multiple numbers
+const checkNumberHandler = async (req: any, res: any) => {
+    try {
+        const instance_id = req.query.instance_id || req.body?.instance_id;
+        const access_token = req.query.access_token || req.body?.access_token;
+        const number = req.query.number || req.body?.number || req.query.numbers || req.body?.numbers;
+        const delay = req.query.delay || req.body?.delay;
+
+        const user = await getPublicUser(access_token);
+        if (!user) return res.status(401).json({ status: 'failed', message: 'Invalid or expired access_token' });
+        if (!instance_id) return res.status(400).json({ status: 'failed', message: 'instance_id is required' });
+        if (!number) return res.status(400).json({ status: 'failed', message: 'number or numbers is required' });
+
+        const inst = await prisma.instance.findFirst({ where: { id: instance_id, userId: user.id } });
+        if (!inst) return res.status(404).json({ status: 'failed', message: 'Instance not found or unauthorized' });
+        if (inst.status !== 'connected') return res.status(400).json({ status: 'failed', message: 'Instance is not connected' });
+
+        let numList: string[] = [];
+        if (Array.isArray(number)) {
+            numList = number;
+        } else if (typeof number === 'string') {
+            numList = number.split(/[\n,;]+/).map((n: string) => n.trim()).filter(Boolean);
+        }
+
+        if (numList.length === 0) {
+            return res.status(400).json({ status: 'failed', message: 'No valid numbers provided' });
+        }
+
+        const { checkWhatsAppNumbers } = require('../services/whatsapp.service');
+        const results = await checkWhatsAppNumbers(instance_id, numList, delay ? parseInt(delay) : 100);
+
+        if (numList.length === 1) {
+            const single = results[0];
+            return res.json({
+                status: 'success',
+                number: single.number,
+                exists: single.exists,
+                jid: single.jid || null
+            });
+        }
+
+        return res.json({
+            status: 'success',
+            total: results.length,
+            validCount: results.filter((r: any) => r.exists).length,
+            invalidCount: results.filter((r: any) => !r.exists).length,
+            results
+        });
+    } catch (e: any) {
+        return res.status(500).json({ status: 'failed', message: e.message || 'Failed to check WhatsApp number' });
+    }
+};
+
+router.get('/check-number', checkNumberHandler);
+router.post('/check-number', checkNumberHandler);
+router.get('/check_number', checkNumberHandler);
+router.post('/check_number', checkNumberHandler);
+
+// ─────────────────────────────────────────────
+// WHATSAPP GROUPS API ENDPOINTS
+// ─────────────────────────────────────────────
+
+// Dashboard: Get all groups for an instance
+router.get('/groups', authenticate, async (req: any, res: any) => {
+    try {
+        const { instanceId } = req.query;
+        if (!instanceId) return res.status(400).json({ error: 'instanceId is required' });
+
+        const inst = await prisma.instance.findUnique({ where: { id: instanceId } });
+        if (!inst || inst.userId !== req.user.userId) return res.status(404).json({ error: 'Instance not found or unauthorized' });
+        if (inst.status !== 'connected') return res.status(400).json({ error: 'Instance is not connected to WhatsApp' });
+
+        const { fetchInstanceGroups } = require('../services/whatsapp.service');
+        const groups = await fetchInstanceGroups(instanceId);
+
+        res.json({
+            success: true,
+            count: groups.length,
+            groups
+        });
+    } catch (e: any) {
+        console.error('Fetch groups error:', e);
+        res.status(500).json({ error: e.message || 'Failed to fetch WhatsApp groups' });
+    }
+});
+
+// Dashboard: Get group metadata and members
+router.get('/groups/:groupId/participants', authenticate, async (req: any, res: any) => {
+    try {
+        const { groupId } = req.params;
+        const { instanceId } = req.query;
+        if (!instanceId) return res.status(400).json({ error: 'instanceId is required' });
+        if (!groupId) return res.status(400).json({ error: 'groupId is required' });
+
+        const inst = await prisma.instance.findUnique({ where: { id: instanceId } });
+        if (!inst || inst.userId !== req.user.userId) return res.status(404).json({ error: 'Instance not found or unauthorized' });
+        if (inst.status !== 'connected') return res.status(400).json({ error: 'Instance is not connected to WhatsApp' });
+
+        const { fetchGroupMetadata } = require('../services/whatsapp.service');
+        const metadata = await fetchGroupMetadata(instanceId, groupId);
+
+        res.json({
+            success: true,
+            group: metadata
+        });
+    } catch (e: any) {
+        console.error('Fetch group participants error:', e);
+        res.status(500).json({ error: e.message || 'Failed to fetch group details' });
+    }
+});
+
+// Dashboard: Send message to a group
+router.post('/groups/send', authenticate, async (req: any, res: any) => {
+    try {
+        const { instanceId, groupJid, message, mediaUrl, filename } = req.body;
+        if (!instanceId) return res.status(400).json({ error: 'instanceId is required' });
+        if (!groupJid) return res.status(400).json({ error: 'groupJid is required' });
+
+        const inst = await prisma.instance.findUnique({ where: { id: instanceId } });
+        if (!inst || inst.userId !== req.user.userId) return res.status(404).json({ error: 'Instance not found or unauthorized' });
+        if (inst.status !== 'connected') return res.status(400).json({ error: 'Instance is not connected to WhatsApp' });
+
+        if (!(await checkMessageLimit(inst.userId))) {
+            return res.status(403).json({ error: 'Monthly message limit exceeded' });
+        }
+
+        const formattedJid = groupJid.includes('@') ? groupJid : `${groupJid}@g.us`;
+
+        let fileObj = undefined;
+        if (mediaUrl) {
+            const lower = mediaUrl.toLowerCase();
+            let mimetype = 'application/octet-stream';
+            if (lower.endsWith('.png')) mimetype = 'image/png';
+            else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) mimetype = 'image/jpeg';
+            else if (lower.endsWith('.mp4')) mimetype = 'video/mp4';
+            else if (lower.endsWith('.pdf')) mimetype = 'application/pdf';
+
+            fileObj = {
+                url: mediaUrl,
+                mimetype,
+                fileName: filename || mediaUrl.split('/').pop() || 'file'
+            };
+        }
+
+        // Log message
+        let logRecord: any = null;
+        try {
+            logRecord = await prisma.messageLog.create({
+                data: {
+                    instanceId,
+                    userId: req.user.userId,
+                    toNumber: formattedJid,
+                    message: message || (mediaUrl ? `[Media: ${mediaUrl}]` : ''),
+                    status: 'pending'
+                }
+            });
+
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            await prisma.user.update({
+                where: { id: req.user.userId },
+                data: { messagesSentThisMonth: { increment: 1 }, lastMessageMonth: currentMonth }
+            });
+        } catch (dbErr) { console.error('Group log error:', dbErr); }
+
+        const { sendMessage } = require('../services/whatsapp.service');
+        const sendResult = await sendMessage(instanceId, formattedJid, message || '', fileObj);
+
+        if (logRecord) {
+            try { await prisma.messageLog.update({ where: { id: logRecord.id }, data: { status: 'sent' } }); } catch {}
+        }
+
+        res.json({
+            success: true,
+            messageId: logRecord?.id,
+            result: sendResult
+        });
+    } catch (e: any) {
+        console.error('Send group message error:', e);
+        res.status(500).json({ error: e.message || 'Failed to send message to group' });
+    }
+});
+
+// Public Developer REST API: List all groups
+const publicGroupListHandler = async (req: any, res: any) => {
+    try {
+        const instance_id = req.query.instance_id || req.body?.instance_id;
+        const access_token = req.query.access_token || req.body?.access_token;
+
+        const user = await getPublicUser(access_token);
+        if (!user) return res.status(401).json({ status: 'failed', message: 'Invalid or expired access_token' });
+        if (!instance_id) return res.status(400).json({ status: 'failed', message: 'instance_id is required' });
+
+        const inst = await prisma.instance.findFirst({ where: { id: instance_id, userId: user.id } });
+        if (!inst) return res.status(404).json({ status: 'failed', message: 'Instance not found or unauthorized' });
+        if (inst.status !== 'connected') return res.status(400).json({ status: 'failed', message: 'Instance is not connected' });
+
+        const { fetchInstanceGroups } = require('../services/whatsapp.service');
+        const groups = await fetchInstanceGroups(instance_id);
+
+        res.json({
+            status: "success",
+            count: groups.length,
+            groups
+        });
+    } catch (e: any) {
+        return res.status(500).json({ status: 'failed', message: e.message || 'Failed to fetch groups' });
+    }
+};
+
+router.get('/group_list', publicGroupListHandler);
+router.post('/group_list', publicGroupListHandler);
+router.get('/group-list', publicGroupListHandler);
+router.post('/group-list', publicGroupListHandler);
+
+// Public Developer REST API: Get group participants
+const publicGroupParticipantsHandler = async (req: any, res: any) => {
+    try {
+        const instance_id = req.query.instance_id || req.body?.instance_id;
+        const access_token = req.query.access_token || req.body?.access_token;
+        const group_id = req.query.group_id || req.body?.group_id;
+
+        const user = await getPublicUser(access_token);
+        if (!user) return res.status(401).json({ status: 'failed', message: 'Invalid or expired access_token' });
+        if (!instance_id) return res.status(400).json({ status: 'failed', message: 'instance_id is required' });
+        if (!group_id) return res.status(400).json({ status: 'failed', message: 'group_id is required' });
+
+        const inst = await prisma.instance.findFirst({ where: { id: instance_id, userId: user.id } });
+        if (!inst) return res.status(404).json({ status: 'failed', message: 'Instance not found or unauthorized' });
+        if (inst.status !== 'connected') return res.status(400).json({ status: 'failed', message: 'Instance is not connected' });
+
+        const { fetchGroupMetadata } = require('../services/whatsapp.service');
+        const groupMeta = await fetchGroupMetadata(instance_id, group_id);
+
+        res.json({
+            status: "success",
+            group: groupMeta
+        });
+    } catch (e: any) {
+        return res.status(500).json({ status: 'failed', message: e.message || 'Failed to fetch group details' });
+    }
+};
+
+router.get('/group_participants', publicGroupParticipantsHandler);
+router.post('/group_participants', publicGroupParticipantsHandler);
+router.get('/group-participants', publicGroupParticipantsHandler);
+router.post('/group-participants', publicGroupParticipantsHandler);
+
+// Public Developer REST API: Send message to group
+const publicSendGroupHandler = async (req: any, res: any) => {
+    try {
+        const p = { ...req.query, ...req.body };
+        const { type = 'text', message, media_url, filename, instance_id, access_token } = p;
+        const group_id = p.group_id || p.group_jid || p.number;
+
+        const user = await getPublicUser(access_token);
+        if (!user) return res.status(401).json({ status: 'failed', message: 'Invalid or expired access_token' });
+        if (!instance_id) return res.status(400).json({ status: 'failed', message: 'instance_id is required' });
+        if (!group_id) return res.status(400).json({ status: 'failed', message: 'group_id is required' });
+
+        const inst = await prisma.instance.findFirst({ where: { id: instance_id, userId: user.id } });
+        if (!inst) return res.status(404).json({ status: 'failed', message: 'Instance not found or unauthorized' });
+        if (inst.status !== 'connected') return res.status(400).json({ status: 'failed', message: 'Instance is not connected' });
+
+        if (!(await checkMessageLimit(user.id))) {
+            return res.status(403).json({ status: 'failed', message: 'Monthly message limit exceeded' });
+        }
+
+        const formattedJid = group_id.includes('@') ? group_id : `${group_id}@g.us`;
+
+        let fileObj = undefined;
+        if (type !== 'text' && media_url) {
+            const lower = media_url.toLowerCase();
+            let mimetype = 'application/octet-stream';
+            if (lower.endsWith('.png')) mimetype = 'image/png';
+            else if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) mimetype = 'image/jpeg';
+            else if (lower.endsWith('.mp4')) mimetype = 'video/mp4';
+            else if (lower.endsWith('.pdf')) mimetype = 'application/pdf';
+            else if (type === 'image') mimetype = 'image/jpeg';
+            else if (type === 'video') mimetype = 'video/mp4';
+
+            fileObj = {
+                url: media_url,
+                mimetype,
+                fileName: filename || media_url.split('/').pop() || 'file'
+            };
+        }
+
+        let logRecord: any = null;
+        try {
+            logRecord = await prisma.messageLog.create({
+                data: {
+                    instanceId: instance_id,
+                    userId: user.id,
+                    toNumber: formattedJid,
+                    message: message || (media_url ? `[Media: ${media_url}]` : ''),
+                    status: 'pending'
+                }
+            });
+
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { messagesSentThisMonth: { increment: 1 }, lastMessageMonth: currentMonth }
+            });
+        } catch (dbErr) { console.error('Public group log error:', dbErr); }
+
+        const { sendMessage } = require('../services/whatsapp.service');
+        const sendResult = await sendMessage(instance_id, formattedJid, message || '', fileObj);
+
+        if (logRecord) {
+            try { await prisma.messageLog.update({ where: { id: logRecord.id }, data: { status: 'sent' } }); } catch {}
+        }
+
+        return res.json({
+            status: "success",
+            message: "Message sent to group",
+            group_id: formattedJid,
+            result: sendResult,
+            messageTimestamp: Math.floor(Date.now() / 1000).toString()
+        });
+    } catch (e: any) {
+        return res.status(500).json({ status: 'failed', message: e.message || 'Failed to send message to group' });
+    }
+};
+
+router.get('/send_group', publicSendGroupHandler);
+router.post('/send_group', publicSendGroupHandler);
+router.get('/send-group', publicSendGroupHandler);
+router.post('/send-group', publicSendGroupHandler);
+
 export default router;
+
