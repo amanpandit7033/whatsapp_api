@@ -14,13 +14,8 @@ import {
   SendIcon,
   CheckCircleIcon,
   WarningIcon,
+  WarningCircleIcon
 } from '../components/Icons';
-import {
-  Glass3DSendIcon,
-  Glass3DChartIcon,
-  Glass3DShieldIcon,
-  Glass3DCalendarIcon,
-} from '../components/Glass3DIcons';
 
 const S: Record<string, React.CSSProperties> = {
   label: { display: 'block', fontSize: '11px', fontWeight: 700, color: '#94a3b8', marginBottom: '7px', textTransform: 'uppercase' as const, letterSpacing: '0.05em' },
@@ -349,12 +344,20 @@ export const Reports = () => {
                     <span style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Status</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                       <span className={`status-dot ${selectedReport.status === 'sent' ? 'active' : 'suspended'}`}></span>
-                      <span style={{ fontSize: '13px', fontWeight: 600, color: selectedReport.status === 'sent' ? 'var(--success-color)' : 'var(--danger-color)', textTransform: 'capitalize' }}>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: selectedReport.status === 'sent' ? '#059669' : '#DC2626', textTransform: 'capitalize' }}>
                         {selectedReport.status}
                       </span>
                     </div>
                   </div>
                 </div>
+
+                {/* Delivery Warning if Not Sent */}
+                {selectedReport.status !== 'sent' && (
+                  <div style={{ background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12.5px', color: '#B91C1C' }}>
+                    <WarningCircleIcon size={16} color="#DC2626" />
+                    <span><strong>Delivery Failed:</strong> The recipient number (+{selectedReport.toNumber}) is not registered on WhatsApp or could not receive this message.</span>
+                  </div>
+                )}
 
                 {/* Simulated WhatsApp Preview */}
                 <div>
