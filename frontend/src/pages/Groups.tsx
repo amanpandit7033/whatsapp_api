@@ -45,6 +45,8 @@ export const Groups = () => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [filterTab, setFilterTab] = useState<'all' | 'admin' | 'public'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // Send Message Modal State
   const [sendingGroup, setSendingGroup] = useState<GroupItem | null>(null);
@@ -215,12 +217,23 @@ export const Groups = () => {
   const adminGroups = groups.filter((g) => g.isAdmin).length;
   const totalReach = groups.reduce((acc, g) => acc + (g.participantsCount || 0), 0);
 
+  // Reset pagination when filter or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterTab, selectedInstance]);
+
   // Filtered groups
   const filteredGroups = groups.filter((g) => {
     const matchesSearch = g.subject.toLowerCase().includes(search.toLowerCase()) || g.id.includes(search);
     const matchesTab = filterTab === 'all' ? true : filterTab === 'admin' ? g.isAdmin : !g.isAnnounce;
     return matchesSearch && matchesTab;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredGroups.length / itemsPerPage));
+  const paginatedGroups = filteredGroups.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   // Filtered members in modal
   const filteredMembers = members.filter((m) => {
@@ -466,7 +479,7 @@ export const Groups = () => {
                   </td>
                 </tr>
               ) : (
-                filteredGroups.map((g) => (
+                paginatedGroups.map((g) => (
                   <tr key={g.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                     
                     {/* Group Title & ID */}
@@ -589,6 +602,59 @@ export const Groups = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Bar */}
+        {filteredGroups.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px 0', borderTop: '1px solid #F1F5F9', flexWrap: 'wrap', gap: '12px' }}>
+            <span style={{ fontSize: '13px', color: '#64748B', fontWeight: 600 }}>
+              Showing <strong>{(currentPage - 1) * itemsPerPage + 1}</strong> to <strong>{Math.min(filteredGroups.length, currentPage * itemsPerPage)}</strong> of <strong>{filteredGroups.length}</strong> groups
+            </span>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                style={{
+                  padding: '6px 14px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  borderRadius: '8px',
+                  border: '1px solid #CBD5E1',
+                  background: '#FFFFFF',
+                  color: currentPage === 1 ? '#94A3B8' : '#0F172A',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === 1 ? 0.6 : 1,
+                  transition: 'all 0.2s'
+                }}
+              >
+                ← Prev
+              </button>
+
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#0F172A', padding: '0 6px' }}>
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                style={{
+                  padding: '6px 14px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  borderRadius: '8px',
+                  border: '1px solid #CBD5E1',
+                  background: '#FFFFFF',
+                  color: currentPage >= totalPages ? '#94A3B8' : '#0F172A',
+                  cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                  opacity: currentPage >= totalPages ? 0.6 : 1,
+                  transition: 'all 0.2s'
+                }}
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
 
       </div>
       </>
