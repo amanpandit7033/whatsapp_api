@@ -17,7 +17,8 @@ import {
   GlobeIcon,
   CopyIcon,
   CheckIcon,
-  LockIcon
+  LockIcon,
+  KeyIcon
 } from '../components/Icons';
 
 interface ResellerStats {
@@ -195,6 +196,49 @@ export const ResellerPanel = () => {
       }
     } catch (err: any) {
       alert(err.message || 'Server error');
+    }
+  };
+
+  const handlePreLogin = async (client: ClientUser) => {
+    if (!window.confirm(`Are you sure you want to Pre-Login into client @${client.username}'s account?`)) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reseller/impersonate/${client.id}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to pre-login');
+        return;
+      }
+
+      // Save original reseller session
+      const originalSession = {
+        token: localStorage.getItem('token'),
+        isAdmin: localStorage.getItem('isAdmin'),
+        isReseller: localStorage.getItem('isReseller'),
+        role: localStorage.getItem('role'),
+        username: localStorage.getItem('username'),
+        permissions: localStorage.getItem('permissions'),
+        returnUrl: '/reseller',
+        returnRoleTitle: 'Reseller Hub'
+      };
+      localStorage.setItem('originalSession', JSON.stringify(originalSession));
+      localStorage.setItem('isImpersonating', 'true');
+      localStorage.setItem('impersonatedUsername', data.username);
+
+      // Set target user's session
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('isAdmin', String(data.isAdmin));
+      localStorage.setItem('isReseller', String(data.isReseller));
+      localStorage.setItem('role', data.role);
+      localStorage.setItem('username', data.username);
+      localStorage.setItem('permissions', data.permissions || '');
+
+      // Reload into target client dashboard
+      window.location.href = '/';
+    } catch (e: any) {
+      alert('Error during pre-login: ' + e.message);
     }
   };
 
@@ -467,7 +511,27 @@ export const ResellerPanel = () => {
                           </td>
 
                           <td style={{ padding: '14px 24px', textAlign: 'right' }}>
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px' }}>
+                              <button
+                                onClick={() => handlePreLogin(c)}
+                                title={`Pre-Login as client @${c.username}`}
+                                style={{
+                                  background: '#FEF3C7',
+                                  border: '1px solid #FDE68A',
+                                  borderRadius: '8px',
+                                  padding: '6px 12px',
+                                  fontSize: '12px',
+                                  fontWeight: 800,
+                                  color: '#B45309',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  transition: 'all 0.2s ease'
+                                }}
+                              >
+                                <KeyIcon size={13} color="#B45309" /> Pre-Login
+                              </button>
                               <button
                                 onClick={() => {
                                   setError('');

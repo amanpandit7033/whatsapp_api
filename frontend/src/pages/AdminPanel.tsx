@@ -10,7 +10,9 @@ import {
   EditIcon,
   CheckCircleIcon,
   CalendarIcon,
-  XIcon
+  XIcon,
+  LogInIcon,
+  KeyIcon
 } from '../components/Icons';
 
 const S: Record<string, React.CSSProperties> = {
@@ -100,6 +102,49 @@ export const AdminPanel = () => {
     });
     if (res.ok) { setEditingUser(null); setEditPassword(''); fetchUsers(); }
     else { const d = await res.json(); alert(d.error || 'Failed'); }
+  };
+
+  const handlePreLogin = async (targetUser: any) => {
+    if (!window.confirm(`Are you sure you want to Pre-Login into @${targetUser.username}'s account?`)) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/impersonate/${targetUser.id}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to pre-login');
+        return;
+      }
+
+      // Save original admin session for quick return
+      const originalSession = {
+        token: localStorage.getItem('token'),
+        isAdmin: localStorage.getItem('isAdmin'),
+        isReseller: localStorage.getItem('isReseller'),
+        role: localStorage.getItem('role'),
+        username: localStorage.getItem('username'),
+        permissions: localStorage.getItem('permissions'),
+        returnUrl: '/admin',
+        returnRoleTitle: 'Admin Panel'
+      };
+      localStorage.setItem('originalSession', JSON.stringify(originalSession));
+      localStorage.setItem('isImpersonating', 'true');
+      localStorage.setItem('impersonatedUsername', data.username);
+
+      // Set target user's session
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('isAdmin', String(data.isAdmin));
+      localStorage.setItem('isReseller', String(data.isReseller));
+      localStorage.setItem('role', data.role);
+      localStorage.setItem('username', data.username);
+      localStorage.setItem('permissions', data.permissions || '');
+
+      // Reload into target user dashboard
+      window.location.href = '/';
+    } catch (e: any) {
+      alert('Error during pre-login: ' + e.message);
+    }
   };
 
   const totalUsers = users.length;
@@ -264,13 +309,37 @@ export const AdminPanel = () => {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td style={{ padding: '16px 28px', textAlign: 'right' }}>
-                      <button onClick={() => { setEditingUser({ ...user }); setEditPassword(''); }} style={{
-                        background: '#EFF6FF', border: 'none', borderRadius: '10px',
-                        padding: '8px 14px', fontSize: '13px', fontWeight: 700, color: '#2563EB',
-                        cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease'
-                      }}>
-                        <EditIcon size={14} color="#2563EB" /> Edit
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                        {!user.isAdmin && (
+                          <button
+                            onClick={() => handlePreLogin(user)}
+                            title={`Pre-Login as @${user.username}`}
+                            style={{
+                              background: '#FEF3C7',
+                              border: '1px solid #FDE68A',
+                              borderRadius: '10px',
+                              padding: '8px 14px',
+                              fontSize: '13px',
+                              fontWeight: 800,
+                              color: '#B45309',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <KeyIcon size={14} color="#B45309" /> Pre-Login
+                          </button>
+                        )}
+                        <button onClick={() => { setEditingUser({ ...user }); setEditPassword(''); }} style={{
+                          background: '#EFF6FF', border: 'none', borderRadius: '10px',
+                          padding: '8px 14px', fontSize: '13px', fontWeight: 700, color: '#2563EB',
+                          cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease'
+                        }}>
+                          <EditIcon size={14} color="#2563EB" /> Edit
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

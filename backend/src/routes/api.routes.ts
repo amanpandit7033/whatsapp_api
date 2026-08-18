@@ -1257,6 +1257,40 @@ router.get('/admin/users', adminAuthenticate, async (req: any, res: any) => {
     res.json({ users, total, page, totalPages: Math.ceil(total / limit) });
 });
 
+// POST /api/admin/impersonate/:userId (Admin Pre-Login)
+router.post('/admin/impersonate/:userId', adminAuthenticate, async (req: any, res: any) => {
+    try {
+        const { userId } = req.params;
+        const targetUser = await prisma.user.findUnique({ where: { id: userId } });
+        if (!targetUser) {
+            return res.status(404).json({ error: 'Target user not found' });
+        }
+
+        const isExpired = !targetUser.isAdmin && targetUser.expiresAt && new Date(targetUser.expiresAt) < new Date();
+        const token = jwt.sign({ userId: targetUser.id }, JWT_SECRET, { expiresIn: '1d' });
+        const userPermissions = targetUser.isAdmin 
+            ? 'instances,broadcast,filter,groups,reports,docs' 
+            : (targetUser.permissions || 'instances,broadcast,filter,groups,reports,docs');
+        const isReseller = !!targetUser.isReseller || targetUser.role === 'reseller';
+        const role = targetUser.isAdmin ? 'admin' : (isReseller ? 'reseller' : 'user');
+
+        res.json({
+            token,
+            isAdmin: targetUser.isAdmin,
+            isReseller,
+            role,
+            isExpired,
+            permissions: userPermissions,
+            username: targetUser.username,
+            userId: targetUser.id,
+            impersonated: true
+        });
+    } catch (e: any) {
+        console.error('Admin impersonation error:', e);
+        res.status(500).json({ error: 'Failed to pre-login as user' });
+    }
+});
+
 // GET /api/admin/live-usage (Live Traffic, Daily Usage, Belonging, and Status per User from DailyUsageStat table)
 router.get('/admin/live-usage', adminAuthenticate, async (req: any, res: any) => {
     try {
@@ -1896,6 +1930,42 @@ router.delete('/reseller/clients/:id', resellerAuthenticate, async (req: any, re
         res.json({ message: 'Client deleted successfully' });
     } catch (e: any) {
         res.status(500).json({ error: e.message || 'Failed to delete client' });
+    }
+});
+
+// POST /api/reseller/impersonate/:userId (Reseller Pre-Login into client)
+router.post('/reseller/impersonate/:userId', resellerAuthenticate, async (req: any, res: any) => {
+    try {
+        const { userId } = req.params;
+        const targetClient = await prisma.user.findFirst({
+            where: {
+                id: userId,
+                resellerId: req.user.userId
+            }
+        });
+
+        if (!targetClient) {
+            return res.status(404).json({ error: 'Client user not found or does not belong to your reseller account' });
+        }
+
+        const isExpired = targetClient.expiresAt && new Date(targetClient.expiresAt) < new Date();
+        const token = jwt.sign({ userId: targetClient.id }, JWT_SECRET, { expiresIn: '1d' });
+        const userPermissions = targetClient.permissions || 'instances,broadcast,filter,groups,reports,docs';
+
+        res.json({
+            token,
+            isAdmin: false,
+            isReseller: false,
+            role: 'user',
+            isExpired,
+            permissions: userPermissions,
+            username: targetClient.username,
+            userId: targetClient.id,
+            impersonated: true
+        });
+    } catch (e: any) {
+        console.error('Reseller impersonation error:', e);
+        res.status(500).json({ error: 'Failed to pre-login as client' });
     }
 });
 

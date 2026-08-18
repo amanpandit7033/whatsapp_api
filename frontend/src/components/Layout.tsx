@@ -15,7 +15,8 @@ import {
   FilterIcon,
   UsersGroupIcon,
   UserPlusIcon,
-  GlobeIcon
+  GlobeIcon,
+  ArrowLeftIcon
 } from './Icons';
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -31,6 +32,26 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     brandLogoUrl: null,
     isCustom: false
   });
+
+  const isImpersonating = localStorage.getItem('isImpersonating') === 'true';
+  const impersonatedUsername = localStorage.getItem('impersonatedUsername') || username;
+  const originalSession = JSON.parse(localStorage.getItem('originalSession') || 'null');
+
+  const handleReturnSession = () => {
+    if (!originalSession) return;
+    localStorage.setItem('token', originalSession.token);
+    localStorage.setItem('isAdmin', originalSession.isAdmin);
+    localStorage.setItem('isReseller', originalSession.isReseller);
+    localStorage.setItem('role', originalSession.role);
+    localStorage.setItem('username', originalSession.username);
+    localStorage.setItem('permissions', originalSession.permissions || '');
+
+    localStorage.removeItem('isImpersonating');
+    localStorage.removeItem('impersonatedUsername');
+    localStorage.removeItem('originalSession');
+
+    window.location.href = originalSession.returnUrl || '/admin';
+  };
 
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/api/branding`)
@@ -57,6 +78,9 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem('isReseller');
     localStorage.removeItem('role');
     localStorage.removeItem('username');
+    localStorage.removeItem('isImpersonating');
+    localStorage.removeItem('impersonatedUsername');
+    localStorage.removeItem('originalSession');
     navigate('/login');
   };
 
@@ -204,47 +228,76 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             </div>
           </div>
 
-          {/* Right Side: Profile Card (Clickable to /profile) */}
-          <div 
-            onClick={() => navigate('/profile')}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '12px', 
-              padding: '6px 16px 6px 8px', 
-              borderRadius: '12px', 
-              background: 'rgba(255, 255, 255, 0.15)', 
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.25)',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            {/* Profile Avatar */}
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: '8px',
-                background: '#FFFFFF',
-                color: '#2563EB',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 900,
-                fontSize: '14px',
-                boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
-                flexShrink: 0,
+          {/* Right Side: Return Impersonation Button (if Pre-Login Active) + Profile Card */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {isImpersonating && (
+              <button
+                onClick={handleReturnSession}
+                title={`Exit Pre-Login and return to ${originalSession?.returnRoleTitle || 'Admin Panel'}`}
+                style={{
+                  background: '#FEF3C7',
+                  color: '#92400E',
+                  border: '1px solid #FDE68A',
+                  borderRadius: '10px',
+                  padding: '7px 14px',
+                  fontSize: '12.5px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+                  transition: 'all 0.2s ease',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <ArrowLeftIcon size={14} color="#92400E" />
+                <span>Return to {originalSession?.returnRoleTitle || 'Admin Panel'}</span>
+              </button>
+            )}
+
+            {/* Profile Card (Clickable to /profile) */}
+            <div 
+              onClick={() => navigate('/profile')}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '12px', 
+                padding: '6px 16px 6px 8px', 
+                borderRadius: '12px', 
+                background: 'rgba(255, 255, 255, 0.15)', 
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.25)',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
               }}
             >
-              {avatarLetter}
-            </div>
+              {/* Profile Avatar */}
+              <div
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: '8px',
+                  background: '#FFFFFF',
+                  color: '#2563EB',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 900,
+                  fontSize: '14px',
+                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
+                  flexShrink: 0,
+                }}
+              >
+                {avatarLetter}
+              </div>
 
-            {/* Profile Username Only */}
-            <span style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
-              {username}
-            </span>
+              {/* Profile Username Only */}
+              <span style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
+                {username}
+              </span>
+            </div>
           </div>
         </header>
 
