@@ -156,6 +156,7 @@ export const createInstance = async (instanceId: string, retryCount = 0) => {
                 instances.delete(instanceId);
                 socketIo.emit(`status-${instanceId}`, 'disconnected');
             }
+            dispatchWebhook(instanceId, 'connection.update', { status: 'disconnected' });
         } else if (connection === 'open') {
             connectionStatus.set(instanceId, 'open');
             connectionEvents.emit(`open-${instanceId}`);
@@ -169,11 +170,65 @@ export const createInstance = async (instanceId: string, retryCount = 0) => {
                 });
             } catch (e) { }
             socketIo.emit(`status-${instanceId}`, 'connected');
+            dispatchWebhook(instanceId, 'connection.update', { status: 'connected', phoneNumber });
+        }
+    });
+
+    // Listen for incoming messages to trigger Webhook
+    sock.ev.on('messages.upsert', async (m: any) => {
+        if (m.type === 'notify' && m.messages) {
+            for (const msg of m.messages) {
+                if (!msg.key.fromMe) {
+                    const sender = msg.key.remoteJid?.split('@')[0] || '';
+                    const pushName = msg.pushName || '';
+                    const messageText = msg.message?.conversation || 
+                                       msg.message?.extendedTextMessage?.text || 
+                                       msg.message?.imageMessage?.caption || 
+                                       msg.message?.videoMessage?.caption || 
+                                       msg.message?.documentMessage?.caption || '';
+                    
+                    dispatchWebhook(instanceId, 'messages.upsert', {
+                        key: msg.key,
+                        sender,
+                        pushName,
+                        message: messageText,
+                        messageTimestamp: msg.messageTimestamp,
+                        rawMessage: msg
+                    });
+                }
+            }
         }
     });
 
     instances.set(instanceId, sock);
     return sock;
+};
+
+export const dispatchWebhook = async (instanceId: string, event: string, data: any) => {
+    try {
+        const inst = await prisma.instance.findUnique({ where: { id: instanceId } });
+        if (!inst || !inst.webhookEnabled || !inst.webhookUrl) return;
+
+        const body = {
+            event,
+            instance_id: instanceId,
+            phone_number: inst.phoneNumber,
+            timestamp: Math.floor(Date.now() / 1000),
+            data
+        };
+
+        const fetchFn = (globalThis as any).fetch;
+        if (fetchFn) {
+            await fetchFn(inst.webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+                signal: AbortSignal.timeout(8000)
+            }).catch((err: any) => {
+                console.warn(`[Webhook ${instanceId}] Failed to post to ${inst.webhookUrl}:`, err?.message || err);
+            });
+        }
+    } catch (e) {}
 };
 
 export const waitUntilConnected = (instanceId: string): Promise<boolean> => {

@@ -1036,6 +1036,98 @@ echo $response;`
           instance_id: "NEW1234567890"
         }, null, 2)
       }
+    },
+
+    // 15. Set Webhook API (POST & GET /api/set_webhook)
+    {
+      category: 'public',
+      method: 'POST',
+      path: '/api/set_webhook',
+      title: 'Set Receiving Webhook URL',
+      desc: 'Configure an HTTP POST Webhook URL to receive live callbacks from WhatsApp for incoming messages, outgoing delivery statuses, and connection updates.',
+      params: [
+        { name: 'access_token', type: 'string', req: true, desc: 'Your personal API Access Token (or api_key).' },
+        { name: 'instance_id', type: 'string', req: true, desc: 'Target connected WhatsApp instance ID.' },
+        { name: 'webhook_url', type: 'string', req: true, desc: 'Your server callback URL (e.g. https://yourdomain.com/webhook.php).' },
+        { name: 'enable', type: 'boolean | string', req: false, desc: '"true" (default) or "false" to enable/disable webhook delivery.' }
+      ],
+      snippets: [
+        {
+          label: 'Direct URL (Browser)',
+          language: 'http',
+          code: `${baseApiUrl}/api/set_webhook?webhook_url=${encodeURIComponent('https://yourdomain.com/webhook.php')}&enable=true&instance_id=${activeInstanceId}&access_token=${apiKey}`
+        },
+        {
+          label: 'cURL (POST)',
+          language: 'bash',
+          code: `curl -X POST "${baseApiUrl}/api/set_webhook" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "access_token": "${apiKey}",
+    "instance_id": "${activeInstanceId}",
+    "webhook_url": "https://yourdomain.com/webhook.php",
+    "enable": true
+  }'`
+        },
+        {
+          label: 'PHP',
+          language: 'php',
+          code: `<?php
+$url = "${baseApiUrl}/api/set_webhook?" . http_build_query([
+    "webhook_url" => "https://yourdomain.com/webhook.php",
+    "enable" => "true",
+    "instance_id" => "${activeInstanceId}",
+    "access_token" => "${apiKey}"
+]);
+
+$response = file_get_contents($url);
+echo $response;`
+        }
+      ],
+      resExample: {
+        title: 'RESPONSE JSON',
+        code: JSON.stringify({
+          status: "success",
+          message: "Webhook updated successfully",
+          instance_id: activeInstanceId,
+          webhook_url: "https://yourdomain.com/webhook.php",
+          enable: true
+        }, null, 2)
+      }
+    },
+
+    // 16. Get Webhook API (POST & GET /api/get_webhook)
+    {
+      category: 'public',
+      method: 'GET',
+      path: '/api/get_webhook',
+      title: 'Get Current Webhook Settings',
+      desc: 'Retrieve the currently configured Webhook URL and its active status for an instance.',
+      params: [
+        { name: 'access_token', type: 'string', req: true, desc: 'Your personal API Access Token.' },
+        { name: 'instance_id', type: 'string', req: true, desc: 'Target instance ID.' }
+      ],
+      snippets: [
+        {
+          label: 'Direct URL (Browser)',
+          language: 'http',
+          code: `${baseApiUrl}/api/get_webhook?instance_id=${activeInstanceId}&access_token=${apiKey}`
+        },
+        {
+          label: 'cURL',
+          language: 'bash',
+          code: `curl -X GET "${baseApiUrl}/api/get_webhook?instance_id=${activeInstanceId}&access_token=${apiKey}"`
+        }
+      ],
+      resExample: {
+        title: 'RESPONSE JSON',
+        code: JSON.stringify({
+          status: "success",
+          instance_id: activeInstanceId,
+          webhook_url: "https://yourdomain.com/webhook.php",
+          enable: true
+        }, null, 2)
+      }
     }
   ];
 

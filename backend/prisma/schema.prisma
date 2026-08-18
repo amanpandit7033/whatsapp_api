@@ -37,13 +37,15 @@ model User {
 }
 
 model Instance {
-  id          String       @id // This is the instance_id
-  userId      String
-  user        User         @relation(fields: [userId], references: [id])
-  status      String       @default("disconnected") // connected, disconnected
-  phoneNumber String?
-  createdAt   DateTime     @default(now())
-  messageLogs MessageLog[]
+  id             String       @id // This is the instance_id
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  status         String       @default("disconnected") // connected, disconnected
+  phoneNumber    String?
+  webhookUrl     String?
+  webhookEnabled Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  messageLogs    MessageLog[]
 }
 
 model MessageLog {

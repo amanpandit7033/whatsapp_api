@@ -2184,6 +2184,69 @@ router.get('/reset_instance', resetInstanceHandler);
 router.post('/reset-instance', resetInstanceHandler);
 router.get('/reset-instance', resetInstanceHandler);
 
+// POST & GET /api/set_webhook (Set Webhook URL & enable status)
+const setWebhookHandler = async (req: any, res: any) => {
+    const instance_id = req.query.instance_id || req.body?.instance_id || req.query.instanceId || req.body?.instanceId;
+    const access_token = req.query.access_token || req.body?.access_token || req.query.api_key || req.body?.api_key || req.headers?.['x-api-key'] || (req.headers?.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : undefined);
+    const webhook_url = req.query.webhook_url || req.body?.webhook_url || req.query.webhookUrl || req.body?.webhookUrl;
+    const enable = req.query.enable !== undefined ? req.query.enable : (req.body?.enable !== undefined ? req.body.enable : true);
+
+    const user = await getPublicUser(access_token);
+    if (!user) return res.status(401).json({ status: 'failed', message: 'Invalid or expired access_token' });
+    if (!instance_id) return res.status(400).json({ status: 'failed', message: 'instance_id is required' });
+
+    const inst = await prisma.instance.findFirst({ where: { id: instance_id, userId: user.id } });
+    if (!inst) return res.status(404).json({ status: 'failed', message: 'Instance not found or unauthorized' });
+
+    const isEnabled = enable === true || enable === 'true' || enable === 1 || enable === '1';
+    
+    await prisma.instance.update({
+        where: { id: instance_id },
+        data: {
+            webhookUrl: webhook_url ? String(webhook_url).trim() : null,
+            webhookEnabled: isEnabled
+        }
+    });
+
+    res.json({
+        status: "success",
+        message: "Webhook updated successfully",
+        instance_id,
+        webhook_url: webhook_url || "",
+        enable: isEnabled
+    });
+};
+
+router.post('/set_webhook', setWebhookHandler);
+router.get('/set_webhook', setWebhookHandler);
+router.post('/set-webhook', setWebhookHandler);
+router.get('/set-webhook', setWebhookHandler);
+
+// POST & GET /api/get_webhook (Retrieve current Webhook configuration)
+const getWebhookHandler = async (req: any, res: any) => {
+    const instance_id = req.query.instance_id || req.body?.instance_id || req.query.instanceId || req.body?.instanceId;
+    const access_token = req.query.access_token || req.body?.access_token || req.query.api_key || req.body?.api_key || req.headers?.['x-api-key'] || (req.headers?.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : undefined);
+
+    const user = await getPublicUser(access_token);
+    if (!user) return res.status(401).json({ status: 'failed', message: 'Invalid or expired access_token' });
+    if (!instance_id) return res.status(400).json({ status: 'failed', message: 'instance_id is required' });
+
+    const inst = await prisma.instance.findFirst({ where: { id: instance_id, userId: user.id } });
+    if (!inst) return res.status(404).json({ status: 'failed', message: 'Instance not found or unauthorized' });
+
+    res.json({
+        status: "success",
+        instance_id: inst.id,
+        webhook_url: inst.webhookUrl || "",
+        enable: inst.webhookEnabled
+    });
+};
+
+router.post('/get_webhook', getWebhookHandler);
+router.get('/get_webhook', getWebhookHandler);
+router.post('/get-webhook', getWebhookHandler);
+router.get('/get-webhook', getWebhookHandler);
+
 // --- Regenerate API Token ---
 router.post('/me/regenerate-token', authenticate, async (req: any, res: any) => {
     try {
