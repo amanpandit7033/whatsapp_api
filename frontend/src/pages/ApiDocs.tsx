@@ -966,6 +966,76 @@ print(res.json())`
           message: "Instance session cleared. Use /api/reboot to start a fresh QR."
         }, null, 2)
       }
+    },
+
+    // 14. Reset Instance API (POST & GET /api/reset_instance)
+    {
+      category: 'public',
+      method: 'POST',
+      path: '/api/reset_instance',
+      title: 'Reset Instance (Change ID & Delete Old Data)',
+      desc: 'Logs out WhatsApp Web, completely deletes all old instance data and message logs, terminates the old instance, and generates a fresh new instance ID ready for QR scanning.',
+      params: [
+        { name: 'access_token', type: 'string', req: true, desc: 'Your personal API Access Token (or api_key).' },
+        { name: 'instance_id', type: 'string', req: true, desc: 'The old/current instance ID to reset.' }
+      ],
+      snippets: [
+        {
+          label: 'Direct URL (Browser)',
+          language: 'http',
+          code: `${baseApiUrl}/api/reset_instance?instance_id=${activeInstanceId}&access_token=${apiKey}`
+        },
+        {
+          label: 'cURL (POST)',
+          language: 'bash',
+          code: `curl -X POST "${baseApiUrl}/api/reset_instance?instance_id=${activeInstanceId}&access_token=${apiKey}"`
+        },
+        {
+          label: 'cURL (JSON Body)',
+          language: 'bash',
+          code: `curl -X POST "${baseApiUrl}/api/reset_instance" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "access_token": "${apiKey}",
+    "instance_id": "${activeInstanceId}"
+  }'`
+        },
+        {
+          label: 'Python',
+          language: 'python',
+          code: `import requests
+
+url = "${baseApiUrl}/api/reset_instance"
+params = {
+    "instance_id": "${activeInstanceId}",
+    "access_token": "${apiKey}"
+}
+
+response = requests.post(url, params=params)
+print(response.json())`
+        },
+        {
+          label: 'PHP',
+          language: 'php',
+          code: `<?php
+$url = "${baseApiUrl}/api/reset_instance?" . http_build_query([
+    "instance_id" => "${activeInstanceId}",
+    "access_token" => "${apiKey}"
+]);
+
+$response = file_get_contents($url);
+echo $response;`
+        }
+      ],
+      resExample: {
+        title: 'RESPONSE JSON',
+        code: JSON.stringify({
+          status: "success",
+          message: "Instance reset successfully. Old instance and data deleted, new instance initialized.",
+          old_instance_id: activeInstanceId,
+          instance_id: "NEW1234567890"
+        }, null, 2)
+      }
     }
   ];
 

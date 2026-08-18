@@ -2117,6 +2117,73 @@ router.get('/reconnect', async (req: any, res: any) => {
     res.json({ success: true, message: 'Instance session cleared. Use /api/reboot to start a fresh QR.' });
 });
 
+// POST & GET /api/reset_instance?instance_id=xxx&access_token=xxx (Logout WhatsApp, change instance ID, delete old data)
+const resetInstanceHandler = async (req: any, res: any) => {
+    const instance_id = req.query.instance_id || req.body?.instance_id || req.query.instanceId || req.body?.instanceId;
+    const access_token = req.query.access_token || req.body?.access_token || req.query.api_key || req.body?.api_key || req.headers?.['x-api-key'] || (req.headers?.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : undefined);
+    
+    const user = await getPublicUser(access_token);
+    if (!user) return res.status(401).json({ status: 'failed', message: 'Invalid or expired access_token' });
+    if (!instance_id) return res.status(400).json({ status: 'failed', message: 'instance_id is required' });
+
+    const inst = await prisma.instance.findFirst({ where: { id: instance_id, userId: user.id } });
+    if (!inst) return res.status(404).json({ status: 'failed', message: 'Instance not found or unauthorized' });
+
+    // 1. Terminate and logout WhatsApp session
+    await deleteInstanceSession(instance_id);
+
+    // 2. Wipe session files on disk
+    try {
+        fs.rmSync(`sessions/${instance_id}`, { recursive: true, force: true });
+    } catch (e) {}
+
+    // 3. Delete all old instance data (message logs & filter batches)
+    try {
+        await prisma.messageLog.deleteMany({ where: { instanceId: instance_id } });
+        await prisma.filterBatch.deleteMany({ where: { instanceId: instance_id } });
+    } catch (e) {}
+
+    // 4. Delete the old instance record from DB
+    await prisma.instance.delete({ where: { id: instance_id } });
+
+    // 5. Generate a brand new instance ID and create it
+    const newInstanceId = generateRandomString(13, true);
+    await prisma.instance.create({
+        data: {
+            id: newInstanceId,
+            userId: user.id,
+            status: 'initializing'
+        }
+    });
+
+    // 6. Initialize the new instance session
+    await createInstance(newInstanceId);
+
+    // 7. Auto-cleanup after 3 minutes if never scanned
+    setTimeout(async () => {
+        try {
+            const freshInst = await prisma.instance.findUnique({ where: { id: newInstanceId } });
+            if (freshInst && freshInst.status === 'initializing') {
+                await deleteInstanceSession(newInstanceId);
+                await prisma.instance.delete({ where: { id: newInstanceId } });
+                fs.rmSync(`sessions/${newInstanceId}`, { recursive: true, force: true });
+            }
+        } catch (e) {}
+    }, 3 * 60 * 1000);
+
+    res.json({
+        status: "success",
+        message: "Instance reset successfully. Old instance and data deleted, new instance initialized.",
+        old_instance_id: instance_id,
+        instance_id: newInstanceId
+    });
+};
+
+router.post('/reset_instance', resetInstanceHandler);
+router.get('/reset_instance', resetInstanceHandler);
+router.post('/reset-instance', resetInstanceHandler);
+router.get('/reset-instance', resetInstanceHandler);
+
 // --- Regenerate API Token ---
 router.post('/me/regenerate-token', authenticate, async (req: any, res: any) => {
     try {
