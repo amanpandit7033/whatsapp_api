@@ -13,6 +13,7 @@ import { Reports } from './pages/Reports';
 import { AdminPanel } from './pages/AdminPanel';
 import { AdminWhiteLabel } from './pages/AdminWhiteLabel';
 import { ResellerPanel } from './pages/ResellerPanel';
+import { LiveStatus } from './pages/LiveStatus';
 import { Expired } from './pages/Expired';
 import { Profile } from './pages/Profile';
 import { NotFound } from './pages/NotFound';
@@ -51,6 +52,7 @@ function App() {
         <Route path="/groups" element={<ProtectedRoute requiredPermission="groups"><Groups /></ProtectedRoute>} />
         <Route path="/docs" element={<ProtectedRoute requiredPermission="docs"><ApiDocs /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute requiredPermission="reports"><Reports /></ProtectedRoute>} />
+        <Route path="/live-status" element={<ProtectedRoute><LiveStatus /></ProtectedRoute>} />
         <Route path="/reseller" element={<ProtectedRoute><ResellerPanel /></ProtectedRoute>} />
         <Route path="/whitelabel" element={<ProtectedRoute><AdminWhiteLabel /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />

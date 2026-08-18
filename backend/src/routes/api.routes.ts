@@ -434,10 +434,89 @@ router.post('/instances/:id/send', authenticate, upload.single('file'), async (r
                 });
             } catch (updateErr) { console.error('Failed to update log status:', updateErr); }
         }
+        await recordDailyUsage(req.user.userId, finalStatus);
     })();
 
     res.json({ success: true, message: 'Message queued', message_id: logRecord?.id });
 });
+
+// --- DEDICATED DAILY USAGE ATOMIC TRACKER ---
+// Stores daily total, delivered, and failed counts per user permanently (even if reports/message logs are deleted)
+export const recordDailyUsage = async (userId: string, status: string, dateStr?: string) => {
+    try {
+        const today = dateStr || new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+        const isDelivered = status === 'sent';
+        const isFailed = status === 'failed' || status === 'Non-Whatsapp';
+
+        await (prisma as any).dailyUsageStat.upsert({
+            where: {
+                userId_date: {
+                    userId,
+                    date: today
+                }
+            },
+            create: {
+                userId,
+                date: today,
+                totalCount: 1,
+                deliveredCount: isDelivered ? 1 : 0,
+                failedCount: isFailed ? 1 : 0
+            },
+            update: {
+                totalCount: { increment: 1 },
+                ...(isDelivered ? { deliveredCount: { increment: 1 } } : {}),
+                ...(isFailed ? { failedCount: { increment: 1 } } : {})
+            }
+        });
+    } catch (e: any) {
+        console.error('Failed to record daily usage stat:', e?.message || e);
+    }
+};
+
+export const backfillDailyStats = async () => {
+    try {
+        const count = await (prisma as any).dailyUsageStat.count();
+        if (count === 0) {
+            console.log('[DailyUsage] Initializing historical daily stats from existing logs...');
+            const logs = await prisma.messageLog.findMany({
+                select: { userId: true, status: true, createdAt: true }
+            });
+            const aggregated: Record<string, { total: number; delivered: number; failed: number }> = {};
+            for (const log of logs) {
+                const dateStr = log.createdAt.toISOString().split('T')[0];
+                const key = `${log.userId}_${dateStr}`;
+                if (!aggregated[key]) {
+                    aggregated[key] = { total: 0, delivered: 0, failed: 0 };
+                }
+                aggregated[key].total += 1;
+                if (log.status === 'sent') aggregated[key].delivered += 1;
+                else if (log.status === 'failed' || log.status === 'Non-Whatsapp') aggregated[key].failed += 1;
+            }
+
+            for (const [key, val] of Object.entries(aggregated)) {
+                const [userId, date] = key.split('_');
+                await (prisma as any).dailyUsageStat.upsert({
+                    where: { userId_date: { userId, date } },
+                    create: {
+                        userId,
+                        date,
+                        totalCount: val.total,
+                        deliveredCount: val.delivered,
+                        failedCount: val.failed
+                    },
+                    update: {
+                        totalCount: val.total,
+                        deliveredCount: val.delivered,
+                        failedCount: val.failed
+                    }
+                });
+            }
+            console.log(`[DailyUsage] Initialized ${Object.keys(aggregated).length} daily records into DailyUsageStat!`);
+        }
+    } catch (e: any) {
+        console.error('[DailyUsage] Backfill error:', e?.message || e);
+    }
+};
 
 // --- API TO SEND MESSAGE ---
 const handleSendMessage = async (req: any, res: any) => {
@@ -526,6 +605,7 @@ const handleSendMessage = async (req: any, res: any) => {
                     });
                 } catch (updateErr) { console.error('Update log error:', updateErr); }
             }
+            await recordDailyUsage(inst.userId, finalStatus);
         })();
 
         res.json({ success: true, message: 'Message queued', message_id: logRecord?.id });
@@ -700,6 +780,7 @@ const handleSendInteractiveMessage = async (req: any, res: any) => {
                     });
                 } catch (updateErr) { console.error('Update log error:', updateErr); }
             }
+            await recordDailyUsage(inst.userId, finalStatus);
         })();
 
         res.json({ success: true, message: 'Message queued', message_id: logRecord?.id });
@@ -725,7 +806,7 @@ const handleMessageStatus = async (req: any, res: any) => {
     }
 
     try {
-        const user = await prisma.user.findUnique({ where: { apiKey: api_key } });
+        const user = await prisma.user.findFirst({ where: { OR: [{ apiKey: api_key }, { id: api_key }] } });
         if (!user) return res.status(401).json({ error: 'Invalid api_key' });
 
         const log = await prisma.messageLog.findFirst({
@@ -778,14 +859,23 @@ router.post('/message/broadcast', authenticate, upload.single('file'), async (re
                 failed.push(targetNumbers[i] + ' (Limit Exceeded)');
                 continue;
             }
-            currentMonthCount++;
-            const number = targetNumbers[i];
+
             const instanceId = instanceIds[i % instanceIds.length];
+            const number = targetNumbers[i];
             
             let status = 'sent';
             try {
-                await sendMessage(instanceId, number, message || '', file);
+                if (file) {
+                    await sendMessage(instanceId, number, message || '', file);
+                } else {
+                    await sendMessage(instanceId, number, message || '');
+                }
                 sentCount++;
+                currentMonthCount++;
+                await prisma.user.update({
+                    where: { id: req.user.userId },
+                    data: { messagesSentThisMonth: { increment: 1 }, lastMessageMonth: currentMonth }
+                });
             } catch (err: any) {
                 console.error(`Failed to send to ${number} via ${instanceId}:`, err);
                 if (err?.message === 'Non-Whatsapp') {
@@ -816,6 +906,7 @@ router.post('/message/broadcast', authenticate, upload.single('file'), async (re
             } catch (dbErr) {
                 console.error('Failed to log message:', dbErr);
             }
+            await recordDailyUsage(req.user.userId, status);
         }
 
         res.json({ success: true, sentCount, failed });
@@ -1166,6 +1257,218 @@ router.get('/admin/users', adminAuthenticate, async (req: any, res: any) => {
     res.json({ users, total, page, totalPages: Math.ceil(total / limit) });
 });
 
+// GET /api/admin/live-usage (Live Traffic, Daily Usage, Belonging, and Status per User from DailyUsageStat table)
+router.get('/admin/live-usage', adminAuthenticate, async (req: any, res: any) => {
+    try {
+        const range = req.query.range || 'today';
+        const search = (req.query.search || '').trim();
+        const role = req.query.role || 'all';
+        const resellerId = req.query.resellerId || 'all';
+
+        // 1. Calculate Date Range (YYYY-MM-DD)
+        const now = new Date();
+        const formatDateStr = (d: Date) => {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        
+        let startStr: string;
+        let endStr: string = formatDateStr(now);
+
+        if (range === 'today') {
+            startStr = formatDateStr(now);
+            endStr = formatDateStr(now);
+        } else if (range === 'yesterday') {
+            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            startStr = formatDateStr(yesterday);
+            endStr = formatDateStr(yesterday);
+        } else if (range === '7days') {
+            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            startStr = formatDateStr(sevenDaysAgo);
+        } else if (range === '30days') {
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            startStr = formatDateStr(thirtyDaysAgo);
+        } else if (range === 'month') {
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            startStr = formatDateStr(firstDay);
+        } else if (range === 'custom' && req.query.startDate) {
+            startStr = String(req.query.startDate).trim();
+            if (req.query.endDate) {
+                endStr = String(req.query.endDate).trim();
+            }
+        } else {
+            startStr = '1970-01-01'; // all-time
+            endStr = '2099-12-31';
+        }
+
+        // 2. Build User Filters
+        const userWhere: any = {};
+        if (search) {
+            userWhere.OR = [
+                { username: { contains: search } },
+                { reseller: { username: { contains: search } } }
+            ];
+        }
+        if (role === 'reseller') {
+            userWhere.OR = [{ isReseller: true }, { role: 'reseller' }];
+        } else if (role === 'user') {
+            userWhere.AND = [{ isReseller: false }, { isAdmin: false }, { role: 'user' }];
+        } else if (role === 'admin') {
+            userWhere.isAdmin = true;
+        }
+
+        if (resellerId !== 'all') {
+            if (resellerId === 'direct') {
+                userWhere.resellerId = null;
+            } else {
+                userWhere.resellerId = resellerId;
+            }
+        }
+
+        // 3. Fetch Users with Instances and Reseller info
+        const users = await prisma.user.findMany({
+            where: userWhere,
+            select: {
+                id: true,
+                username: true,
+                isAdmin: true,
+                isReseller: true,
+                role: true,
+                resellerId: true,
+                reseller: { select: { id: true, username: true } },
+                maxInstances: true,
+                messageLimit: true,
+                messagesSentThisMonth: true,
+                expiresAt: true,
+                createdAt: true,
+                instances: {
+                    select: {
+                        id: true,
+                        status: true,
+                        phoneNumber: true
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        const userIds = users.map(u => u.id);
+
+        // 4. Fetch from dedicated DailyUsageStat table (100% Independent of message logs!)
+        const dailyStats = await (prisma as any).dailyUsageStat.findMany({
+            where: {
+                date: {
+                    gte: startStr,
+                    lte: endStr
+                },
+                ...(userIds.length > 0 ? { userId: { in: userIds } } : {})
+            }
+        });
+
+        // Group counts per user and per day
+        const userStatsMap: Record<string, { total: number; delivered: number; failed: number }> = {};
+        const dailyTrendMap: Record<string, { total: number; delivered: number; failed: number }> = {};
+
+        dailyStats.forEach((stat: any) => {
+            // Per user
+            if (!userStatsMap[stat.userId]) {
+                userStatsMap[stat.userId] = { total: 0, delivered: 0, failed: 0 };
+            }
+            userStatsMap[stat.userId].total += stat.totalCount;
+            userStatsMap[stat.userId].delivered += stat.deliveredCount;
+            userStatsMap[stat.userId].failed += stat.failedCount;
+
+            // Per date trend
+            if (!dailyTrendMap[stat.date]) {
+                dailyTrendMap[stat.date] = { total: 0, delivered: 0, failed: 0 };
+            }
+            dailyTrendMap[stat.date].total += stat.totalCount;
+            dailyTrendMap[stat.date].delivered += stat.deliveredCount;
+            dailyTrendMap[stat.date].failed += stat.failedCount;
+        });
+
+        // Fetch all available resellers for dropdown filtering
+        const resellersList = await prisma.user.findMany({
+            where: { OR: [{ isReseller: true }, { role: 'reseller' }] },
+            select: { id: true, username: true }
+        });
+
+        let grandTotal = 0;
+        let grandDelivered = 0;
+        let grandFailed = 0;
+        let grandConnectedInstances = 0;
+        let grandTotalInstances = 0;
+
+        const results = users
+            .map(u => {
+                const stats = userStatsMap[u.id] || { total: 0, delivered: 0, failed: 0 };
+                const connectedInstances = u.instances.filter(i => i.status === 'connected').length;
+                const totalInstances = u.instances.length;
+
+                grandTotal += stats.total;
+                grandDelivered += stats.delivered;
+                grandFailed += stats.failed;
+                grandConnectedInstances += connectedInstances;
+                grandTotalInstances += totalInstances;
+
+                const successRate = stats.total > 0 ? ((stats.delivered / stats.total) * 100).toFixed(1) : '100.0';
+                const isExpired = u.expiresAt && new Date(u.expiresAt) < new Date();
+
+                return {
+                    id: u.id,
+                    username: u.username,
+                    role: u.isAdmin ? 'admin' : (u.isReseller ? 'reseller' : 'user'),
+                    isAdmin: u.isAdmin,
+                    isReseller: u.isReseller,
+                    resellerId: u.resellerId,
+                    resellerName: u.reseller?.username || (u.isAdmin ? 'System Admin' : 'Direct / Admin'),
+                    isExpired,
+                    expiresAt: u.expiresAt,
+                    maxInstances: u.maxInstances,
+                    totalInstances,
+                    connectedInstances,
+                    instances: u.instances,
+                    messageLimit: u.messageLimit,
+                    messagesSentThisMonth: u.messagesSentThisMonth,
+                    totalSent: stats.total,
+                    deliveredCount: stats.delivered,
+                    failedCount: stats.failed,
+                    successRate: `${successRate}%`,
+                    createdAt: u.createdAt
+                };
+            })
+            .filter(u => u.totalSent > 0);
+
+        // Convert trend map to sorted array
+        const dailyTrend = Object.entries(dailyTrendMap)
+            .map(([date, counts]) => ({ date, ...counts }))
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+        res.json({
+            range,
+            startDate: startStr,
+            endDate: endStr,
+            totals: {
+                grandTotal,
+                grandDelivered,
+                grandFailed,
+                grandConnectedInstances,
+                grandTotalInstances,
+                totalUsers: users.length,
+                overallSuccessRate: grandTotal > 0 ? `${((grandDelivered / grandTotal) * 100).toFixed(1)}%` : '100.0%'
+            },
+            dailyTrend,
+            resellers: resellersList,
+            users: results
+        });
+    } catch (e: any) {
+        console.error('Live usage fetch error:', e);
+        res.status(500).json({ error: e.message || 'Failed to fetch live usage data' });
+    }
+});
+
 // --- RESELLER MANAGEMENT ENDPOINTS ---
 
 const resellerAuthenticate = async (req: any, res: any, next: any) => {
@@ -1277,6 +1580,175 @@ router.get('/reseller/clients', resellerAuthenticate, async (req: any, res: any)
     } catch (e: any) {
         console.error('Reseller clients fetch error:', e);
         res.status(500).json({ error: 'Failed to fetch clients' });
+    }
+});
+
+// GET /api/reseller/live-usage (Live Traffic & Usage for Reseller's own clients from DailyUsageStat table)
+router.get('/reseller/live-usage', resellerAuthenticate, async (req: any, res: any) => {
+    try {
+        const range = req.query.range || 'today';
+        const search = (req.query.search || '').trim();
+
+        const now = new Date();
+        const formatDateStr = (d: Date) => {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        let startStr: string;
+        let endStr: string = formatDateStr(now);
+
+        if (range === 'today') {
+            startStr = formatDateStr(now);
+            endStr = formatDateStr(now);
+        } else if (range === 'yesterday') {
+            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            startStr = formatDateStr(yesterday);
+            endStr = formatDateStr(yesterday);
+        } else if (range === '7days') {
+            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            startStr = formatDateStr(sevenDaysAgo);
+        } else if (range === '30days') {
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            startStr = formatDateStr(thirtyDaysAgo);
+        } else if (range === 'month') {
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            startStr = formatDateStr(firstDay);
+        } else if (range === 'custom' && req.query.startDate) {
+            startStr = String(req.query.startDate).trim();
+            if (req.query.endDate) {
+                endStr = String(req.query.endDate).trim();
+            }
+        } else {
+            startStr = '1970-01-01';
+            endStr = '2099-12-31';
+        }
+
+        const userWhere: any = {
+            resellerId: req.user.userId,
+            ...(search ? { username: { contains: search } } : {})
+        };
+
+        const clients = await prisma.user.findMany({
+            where: userWhere,
+            select: {
+                id: true,
+                username: true,
+                role: true,
+                maxInstances: true,
+                messageLimit: true,
+                messagesSentThisMonth: true,
+                expiresAt: true,
+                createdAt: true,
+                instances: {
+                    select: {
+                        id: true,
+                        status: true,
+                        phoneNumber: true
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        const clientIds = clients.map(c => c.id);
+
+        const dailyStats = await (prisma as any).dailyUsageStat.findMany({
+            where: {
+                date: {
+                    gte: startStr,
+                    lte: endStr
+                },
+                ...(clientIds.length > 0 ? { userId: { in: clientIds } } : {})
+            }
+        });
+
+        const userStatsMap: Record<string, { total: number; delivered: number; failed: number }> = {};
+        const dailyTrendMap: Record<string, { total: number; delivered: number; failed: number }> = {};
+
+        dailyStats.forEach((stat: any) => {
+            if (!userStatsMap[stat.userId]) {
+                userStatsMap[stat.userId] = { total: 0, delivered: 0, failed: 0 };
+            }
+            userStatsMap[stat.userId].total += stat.totalCount;
+            userStatsMap[stat.userId].delivered += stat.deliveredCount;
+            userStatsMap[stat.userId].failed += stat.failedCount;
+
+            if (!dailyTrendMap[stat.date]) {
+                dailyTrendMap[stat.date] = { total: 0, delivered: 0, failed: 0 };
+            }
+            dailyTrendMap[stat.date].total += stat.totalCount;
+            dailyTrendMap[stat.date].delivered += stat.deliveredCount;
+            dailyTrendMap[stat.date].failed += stat.failedCount;
+        });
+
+        let grandTotal = 0;
+        let grandDelivered = 0;
+        let grandFailed = 0;
+        let grandConnectedInstances = 0;
+        let grandTotalInstances = 0;
+
+        const results = clients
+            .map(u => {
+                const stats = userStatsMap[u.id] || { total: 0, delivered: 0, failed: 0 };
+                const connectedInstances = u.instances.filter(i => i.status === 'connected').length;
+                const totalInstances = u.instances.length;
+
+                grandTotal += stats.total;
+                grandDelivered += stats.delivered;
+                grandFailed += stats.failed;
+                grandConnectedInstances += connectedInstances;
+                grandTotalInstances += totalInstances;
+
+                const successRate = stats.total > 0 ? ((stats.delivered / stats.total) * 100).toFixed(1) : '100.0';
+                const isExpired = u.expiresAt && new Date(u.expiresAt) < new Date();
+
+                return {
+                    id: u.id,
+                    username: u.username,
+                    role: 'user',
+                    isExpired,
+                    expiresAt: u.expiresAt,
+                    maxInstances: u.maxInstances,
+                    totalInstances,
+                    connectedInstances,
+                    instances: u.instances,
+                    messageLimit: u.messageLimit,
+                    messagesSentThisMonth: u.messagesSentThisMonth,
+                    totalSent: stats.total,
+                    deliveredCount: stats.delivered,
+                    failedCount: stats.failed,
+                    successRate: `${successRate}%`,
+                    createdAt: u.createdAt
+                };
+            })
+            .filter(u => u.totalSent > 0);
+
+        const dailyTrend = Object.entries(dailyTrendMap)
+            .map(([date, counts]) => ({ date, ...counts }))
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+        res.json({
+            range,
+            startDate: startStr,
+            endDate: endStr,
+            totals: {
+                grandTotal,
+                grandDelivered,
+                grandFailed,
+                grandConnectedInstances,
+                grandTotalInstances,
+                totalClients: clients.length,
+                overallSuccessRate: grandTotal > 0 ? `${((grandDelivered / grandTotal) * 100).toFixed(1)}%` : '100.0%'
+            },
+            dailyTrend,
+            clients: results
+        });
+    } catch (e: any) {
+        console.error('Reseller live usage error:', e);
+        res.status(500).json({ error: e.message || 'Failed to fetch client usage data' });
     }
 });
 
@@ -1966,6 +2438,7 @@ const publicSendHandler = async (req: any, res: any) => {
         if (logRecord) {
             try { await prisma.messageLog.update({ where: { id: logRecord.id }, data: { status: 'sent' } }); } catch {}
         }
+        await recordDailyUsage(user.id, 'sent');
 
         return res.json({
             status: "success",
@@ -1979,6 +2452,7 @@ const publicSendHandler = async (req: any, res: any) => {
         if (logRecord) {
             try { await prisma.messageLog.update({ where: { id: logRecord.id }, data: { status: finalStatus } }); } catch {}
         }
+        await recordDailyUsage(user.id, finalStatus);
         return res.status(500).json({ success: false, error: err?.message || 'Failed to send message' });
     }
 };

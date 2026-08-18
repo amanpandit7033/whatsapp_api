@@ -114,11 +114,24 @@ export const AdminPanel = () => {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', margin: '0 0 4px' }}>Admin Control Panel</h2>
-          <p style={{ color: '#64748B', fontSize: '14px', margin: 0, fontWeight: 500 }}>Manage users, reseller accounts, permissions, and system limits.</p>
+          <p style={{ color: '#64748B', fontSize: '14px', margin: 0, fontWeight: 500 }}>Manage users, reseller accounts, permissions, and system quotas.</p>
         </div>
-        <button onClick={() => { setIsAddUserModalOpen(true); setError(''); setSuccess(''); }} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-          <UserPlusIcon size={16} /> Add User
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button 
+            onClick={() => navigate('/live-status')} 
+            className="btn-outline" 
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 700 }}
+          >
+            ⚡ View Live Status
+          </button>
+          <button 
+            onClick={() => { setIsAddUserModalOpen(true); setError(''); setSuccess(''); }} 
+            className="btn-primary" 
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', fontSize: '13px', fontWeight: 800 }}
+          >
+            <UserPlusIcon size={16} /> Add User
+          </button>
+        </div>
       </div>
 
       {/* Stat strip (Shopeers Style) */}
@@ -351,11 +364,6 @@ export const AdminPanel = () => {
                     <UserPlusIcon size={14} color={newIsReseller ? '#B45309' : '#64748B'} /> Reseller Master Account
                   </button>
                 </div>
-                {newIsReseller && (
-                  <span style={{ fontSize: '11.5px', color: '#B45309', fontWeight: 600, marginTop: '8px', display: 'block' }}>
-                    Reseller accounts can access the Reseller Hub to create and manage sub-clients within their instance/message quotas.
-                  </span>
-                )}
               </div>
 
               {/* Form Grid */}
@@ -399,46 +407,48 @@ export const AdminPanel = () => {
                       <div
                         key={perm.id}
                         onClick={() => {
-                          if (isChecked) setNewPermissions(newPermissions.filter(p => p !== perm.id));
-                          else setNewPermissions([...newPermissions, perm.id]);
+                          setNewPermissions(prev =>
+                            isChecked ? prev.filter(p => p !== perm.id) : [...prev, perm.id]
+                          );
                         }}
                         style={{
-                          padding: '10px 12px',
-                          borderRadius: '12px',
-                          border: isChecked ? '1.5px solid #7C3AED' : '1.5px solid #E2E8F0',
-                          background: isChecked ? '#F3E8FF' : '#F8FAFC',
-                          color: isChecked ? '#7C3AED' : '#64748B',
-                          fontSize: '13px',
-                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '10px 14px',
+                          borderRadius: '10px',
+                          border: isChecked ? '1.5px solid #7C3AED' : '1px solid #E2E8F0',
+                          background: isChecked ? '#F3E8FF' : '#FFFFFF',
                           cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          userSelect: 'none'
+                        }}
+                      >
+                        <div style={{
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '6px',
+                          border: isChecked ? 'none' : '2px solid #CBD5E1',
+                          background: isChecked ? '#7C3AED' : 'transparent',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '6px',
-                          transition: 'all 0.2s ease',
-                          userSelect: 'none',
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => {}}
-                          style={{ accentColor: '#7C3AED', width: '15px', height: '15px', cursor: 'pointer' }}
-                        />
-                        <span>{perm.name}</span>
+                          flexShrink: 0
+                        }}>
+                          {isChecked && <CheckCircleIcon size={12} color="#FFFFFF" />}
+                        </div>
+                        <span style={{ fontSize: '13px', fontWeight: isChecked ? 700 : 500, color: isChecked ? '#7C3AED' : '#475569' }}>
+                          {perm.name}
+                        </span>
                       </div>
                     );
                   })}
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', marginTop: '8px', paddingTop: '16px', borderTop: '1px solid #F1F5F9' }}>
-                <button type="button" onClick={() => setIsAddUserModalOpen(false)} className="btn-outline" style={{ flex: 1, height: '46px', borderRadius: '12px', fontWeight: 700 }}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary" style={{ flex: 2, height: '46px', borderRadius: '12px', fontWeight: 800, background: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <UserPlusIcon size={18} color="#FFFFFF" /> Create Account
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                <button type="button" onClick={() => setIsAddUserModalOpen(false)} className="btn-outline">Cancel</button>
+                <button type="submit" className="btn-primary">Create Account</button>
               </div>
             </form>
           </div>
@@ -458,154 +468,107 @@ export const AdminPanel = () => {
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '28px' }}>
-              <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: 'linear-gradient(135deg, #F3E8FF 0%, #E9D5FF 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(124, 58, 237, 0.12)' }}>
-                <EditIcon size={24} color="#7C3AED" />
+              <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(37, 99, 235, 0.12)' }}>
+                <EditIcon size={24} color="#2563EB" />
               </div>
               <div>
-                <h3 style={{ fontWeight: 800, fontSize: '20px', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Edit Account: {editingUser.username}</h3>
-                <p style={{ fontSize: '13px', color: '#64748B', margin: '3px 0 0', fontWeight: 500 }}>Modify quotas, permissions, account status, or change password.</p>
+                <h3 style={{ fontWeight: 800, fontSize: '20px', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Edit User Account</h3>
+                <p style={{ fontSize: '13px', color: '#64748B', margin: '3px 0 0', fontWeight: 500 }}>Update permissions, max instances, or reset password.</p>
               </div>
             </div>
 
-            {error && <div style={{ background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '12px', padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: '#DC2626', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}><WarningIcon size={16} color="#DC2626" /> {error}</div>}
-            {success && <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '12px', padding: '12px 16px', fontSize: '13px', fontWeight: 600, color: '#16A34A', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircleIcon size={16} color="#16A34A" /> {success}</div>}
-
             <form onSubmit={handleUpdateUser} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              {/* Account Role Selector */}
+              <div style={{ background: '#F8FAFC', padding: '16px', borderRadius: '16px', border: '1px solid #E2E8F0' }}>
+                <label style={S.label}>Account Role / Type</label>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setEditingUser({ ...editingUser, isReseller: false, role: 'user' })}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: '10px',
+                      border: !editingUser.isReseller && !editingUser.isAdmin ? '2px solid #2563EB' : '1px solid #CBD5E1',
+                      background: !editingUser.isReseller && !editingUser.isAdmin ? '#EFF6FF' : '#FFFFFF',
+                      color: !editingUser.isReseller && !editingUser.isAdmin ? '#2563EB' : '#64748B',
+                      fontWeight: 800,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <UserIcon size={14} color={!editingUser.isReseller && !editingUser.isAdmin ? '#2563EB' : '#64748B'} /> Standard Client
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingUser({ ...editingUser, isReseller: true, role: 'reseller' })}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: '10px',
+                      border: editingUser.isReseller ? '2px solid #D97706' : '1px solid #CBD5E1',
+                      background: editingUser.isReseller ? '#FEF3C7' : '#FFFFFF',
+                      color: editingUser.isReseller ? '#B45309' : '#64748B',
+                      fontWeight: 800,
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <UserPlusIcon size={14} color={editingUser.isReseller ? '#B45309' : '#64748B'} /> Reseller Master
+                  </button>
+                </div>
+              </div>
+
+              {/* Form Grid */}
               <div className="admin-form-grid">
                 <div>
-                  <label style={S.label}>New Password (leave blank to keep)</label>
+                  <label style={S.label}>Username</label>
+                  <input type="text" value={editingUser.username} onChange={e => setEditingUser({ ...editingUser, username: e.target.value })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
+                </div>
+                <div>
+                  <label style={S.label}>New Password (leave blank to keep current)</label>
                   <input type="password" placeholder="••••••••" value={editPassword} onChange={e => setEditPassword(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
                 </div>
                 <div>
-                  <label style={S.label}>Expires At (Optional)</label>
-                  <input type="date" value={editingUser.expiresAt ? new Date(editingUser.expiresAt).toISOString().split('T')[0] : ''} onChange={e => setEditingUser({ ...editingUser, expiresAt: e.target.value })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
-                </div>
-                <div>
                   <label style={S.label}>{editingUser.isReseller ? 'Master Instances Quota Pool' : 'Max Instances'}</label>
-                  <input type="number" min="1" value={editingUser.maxInstances} onChange={e => setEditingUser({ ...editingUser, maxInstances: parseInt(e.target.value) || 1 })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                  <input type="number" min="1" value={editingUser.maxInstances} onChange={e => setEditingUser({ ...editingUser, maxInstances: e.target.value })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
                 </div>
                 <div>
                   <label style={S.label}>{editingUser.isReseller ? 'Master Message Quota Pool' : 'Monthly Message Limit'}</label>
-                  <input type="number" min="1" value={editingUser.messageLimit} onChange={e => setEditingUser({ ...editingUser, messageLimit: parseInt(e.target.value) || 1000 })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                  <input type="number" min="1" value={editingUser.messageLimit} onChange={e => setEditingUser({ ...editingUser, messageLimit: e.target.value })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
                 </div>
               </div>
 
               <div>
-                <label style={S.label}>Menu Permissions</label>
-                <div className="admin-perms-grid">
-                  {[
-                    { id: 'instances', name: 'Instances' },
-                    { id: 'broadcast', name: 'Broadcast' },
-                    { id: 'filter', name: 'Number Filter' },
-                    { id: 'groups', name: 'Groups Hub' },
-                    { id: 'reports', name: 'Reports' },
-                    { id: 'docs', name: 'API Docs' },
-                  ].map(perm => {
-                    const perms = (editingUser.permissions || '').split(',');
-                    const isChecked = perms.includes(perm.id);
-                    return (
-                      <div
-                        key={perm.id}
-                        onClick={() => {
-                          const newPerms = isChecked ? perms.filter((p: string) => p !== perm.id && p !== '') : [...perms, perm.id];
-                          setEditingUser({ ...editingUser, permissions: newPerms.join(',') });
-                        }}
-                        style={{
-                          padding: '10px 12px',
-                          borderRadius: '12px',
-                          border: isChecked ? '1.5px solid #7C3AED' : '1.5px solid #E2E8F0',
-                          background: isChecked ? '#F3E8FF' : '#F8FAFC',
-                          color: isChecked ? '#7C3AED' : '#64748B',
-                          fontSize: '13px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          transition: 'all 0.2s ease',
-                          userSelect: 'none',
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => {}}
-                          style={{ accentColor: '#7C3AED', width: '15px', height: '15px', cursor: 'pointer' }}
-                        />
-                        <span>{perm.name}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+                <label style={S.label}>Subscription Expiry Date</label>
+                <input 
+                  type="date" 
+                  value={editingUser.expiresAt ? new Date(editingUser.expiresAt).toISOString().split('T')[0] : ''} 
+                  onChange={e => setEditingUser({ ...editingUser, expiresAt: e.target.value ? new Date(e.target.value).toISOString() : null })} 
+                  className="rounded-input" 
+                  style={{ height: '44px', borderRadius: '10px' }} 
+                />
               </div>
 
-              {/* Reseller Account Option */}
-              <label 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '14px', 
-                  padding: '14px 20px', 
-                  background: editingUser.isReseller ? '#FEF3C7' : '#F8FAFC', 
-                  borderRadius: '16px', 
-                  border: editingUser.isReseller ? '1.5px solid #FDE68A' : '1.5px solid #E2E8F0', 
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <input 
-                  type="checkbox" 
-                  checked={editingUser.isReseller || false} 
-                  onChange={e => setEditingUser({ ...editingUser, isReseller: e.target.checked })} 
-                  style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#D97706', flexShrink: 0 }} 
-                />
-                <div>
-                  <p style={{ fontWeight: 800, fontSize: '14px', color: '#0F172A', margin: 0 }}>Enable Reseller Account</p>
-                  <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0', fontWeight: 500 }}>Grants access to the Reseller Client Management Hub to create and manage sub-clients</p>
-                </div>
-              </label>
-
-              {/* Admin Privileges Card */}
-              <label 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '14px', 
-                  padding: '14px 20px', 
-                  background: editingUser.isAdmin ? 'linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 100%)' : '#F8FAFC', 
-                  borderRadius: '16px', 
-                  border: editingUser.isAdmin ? '1.5px solid #DDD6FE' : '1.5px solid #E2E8F0', 
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <input 
-                  type="checkbox" 
-                  checked={editingUser.isAdmin} 
-                  onChange={e => setEditingUser({ ...editingUser, isAdmin: e.target.checked })} 
-                  style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#7C3AED', flexShrink: 0 }} 
-                />
-                <div>
-                  <p style={{ fontWeight: 800, fontSize: '14px', color: '#0F172A', margin: 0 }}>Grant Super Admin Privileges</p>
-                  <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0', fontWeight: 500 }}>Allows full platform control and global user quota management</p>
-                </div>
-              </label>
-
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: '12px', marginTop: '8px', paddingTop: '16px', borderTop: '1px solid #F1F5F9' }}>
-                <button type="button" onClick={() => setEditingUser(null)} className="btn-outline" style={{ flex: 1, height: '46px', borderRadius: '12px', fontWeight: 700 }}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary" style={{ flex: 2, height: '46px', borderRadius: '12px', fontWeight: 700, background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)', boxShadow: '0 6px 16px rgba(124, 58, 237, 0.25)' }}>
-                  Save Changes
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+                <button type="button" onClick={() => setEditingUser(null)} className="btn-outline">Cancel</button>
+                <button type="submit" className="btn-primary">Save Changes</button>
               </div>
             </form>
           </div>
         </div>,
         document.body
       )}
+
     </div>
   );
 };

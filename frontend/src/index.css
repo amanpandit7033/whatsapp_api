@@ -94,6 +94,64 @@
   border-right: 1px solid #E2E8F0 !important;
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.02);
   z-index: 20;
+  transition: width 0.25s ease, min-width 0.25s ease, padding 0.25s ease, opacity 0.2s ease, transform 0.25s ease;
+}
+
+/* Desktop Collapsed Mini-Sidebar: Icon-Only Rail */
+.app-sidebar.closed {
+  width: 74px !important;
+  min-width: 74px !important;
+  padding: 24px 10px !important;
+  align-items: center;
+  overflow: hidden !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.app-sidebar.closed .sidebar-brand-text,
+.app-sidebar.closed .sidebar-nav-heading,
+.app-sidebar.closed .sidebar-item-label,
+.app-sidebar.closed .sidebar-item-badge {
+  display: none !important;
+}
+
+.app-sidebar.closed .sidebar-brand-container {
+  justify-content: center !important;
+  margin-bottom: 28px !important;
+  padding: 0 !important;
+}
+
+.app-sidebar.closed .sidebar-item {
+  justify-content: center !important;
+  padding: 10px !important;
+  width: 46px !important;
+  height: 44px !important;
+  margin: 0 auto 4px !important;
+  border-radius: 10px !important;
+}
+
+.app-sidebar.closed .sidebar-item.active::before {
+  left: -10px !important;
+}
+
+.top-header-hamburger {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.15);
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.top-header-hamburger:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(1.05);
 }
 
 .sidebar-item {

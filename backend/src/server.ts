@@ -3,7 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
-import apiRoutes from './routes/api.routes';
+import apiRoutes, { backfillDailyStats } from './routes/api.routes';
 import { initWhatsAppService, qrs } from './services/whatsapp.service';
 
 const app = express();
@@ -55,6 +55,8 @@ app.use((err: any, req: any, res: any, next: any) => {
 });
 httpServer.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
+  // Backfill historical daily stats into dedicated table
+  await backfillDailyStats();
   // Initialize existing WhatsApp instances from DB
   await initWhatsAppService();
 });

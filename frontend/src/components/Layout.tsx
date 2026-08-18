@@ -7,6 +7,8 @@ import {
   DeviceIcon,
   SendIcon,
   ChartIcon,
+  ReportIcon,
+  ActivityIcon,
   BookIcon,
   ShieldIcon,
   LogoutIcon,
@@ -67,7 +69,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     { to: '/broadcast', icon: SendIcon, label: 'Broadcast', id: 'broadcast' },
     { to: '/filter', icon: FilterIcon, label: 'Number Filter', id: 'filter' },
     { to: '/groups', icon: UsersGroupIcon, label: 'Groups Hub', id: 'groups' },
-    { to: '/reports', icon: ChartIcon, label: 'Reports', id: 'reports' },
+    { to: '/reports', icon: ReportIcon, label: 'Reports', id: 'reports' },
     { to: '/docs', icon: BookIcon, label: 'API Docs', id: 'docs' },
   ];
 
@@ -76,10 +78,12 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   );
 
   if (isReseller && !isAdmin) {
+    navItems.push({ to: '/live-status', icon: ActivityIcon, label: 'Live Status', id: 'live-status' });
     navItems.push({ to: '/reseller', icon: UserPlusIcon, label: 'Reseller Hub', id: 'reseller' });
   }
 
   if (isAdmin) {
+    navItems.push({ to: '/live-status', icon: ActivityIcon, label: 'Live Status', id: 'live-status' });
     navItems.push({ to: '/whitelabel', icon: GlobeIcon, label: 'White-Label', id: 'whitelabel' });
     navItems.push({ to: '/admin', icon: ShieldIcon, label: 'Admin Panel', id: 'admin' });
   }
@@ -95,7 +99,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       {/* Shopeers Style Clean Sidebar */}
       <aside className={`app-sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
         {/* Brand Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px', padding: '0 4px', color: '#0F172A', fontWeight: 800, fontSize: '18px', letterSpacing: '-0.03em' }}>
+        <div className="sidebar-brand-container" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px', padding: '0 4px', color: '#0F172A', fontWeight: 800, fontSize: '18px', letterSpacing: '-0.03em' }}>
           {branding.brandLogoUrl ? (
             <img src={branding.brandLogoUrl} alt={branding.brandName} style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'contain' }} />
           ) : (
@@ -103,15 +107,15 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               {branding.brandName.charAt(0).toUpperCase()}
             </div>
           )}
-          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{branding.brandName}</span>
+          <span className="sidebar-brand-text" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{branding.brandName}</span>
         </div>
 
-        <span style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', marginBottom: '12px', paddingLeft: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <span className="sidebar-nav-heading" style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', marginBottom: '12px', paddingLeft: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Navigation
         </span>
 
         {/* Navigation items */}
-        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
           {navItems.map((item) => {
             const isActive = location.pathname === item.to;
             const Icon = item.icon;
@@ -120,11 +124,12 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                 key={item.to}
                 to={item.to}
                 className={`sidebar-item ${isActive ? 'active' : ''}`}
+                title={item.label}
               >
                 <Icon size={18} color={isActive ? '#2563EB' : '#64748B'} />
-                <span style={{ flex: 1 }}>{item.label}</span>
+                <span className="sidebar-item-label" style={{ flex: 1 }}>{item.label}</span>
                 {item.badge && (
-                  <span className="badge badge-success" style={{ fontSize: '10px', padding: '2px 8px' }}>
+                  <span className="sidebar-item-badge badge badge-success" style={{ fontSize: '10px', padding: '2px 8px' }}>
                     {item.badge}
                   </span>
                 )}
@@ -134,10 +139,11 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         </nav>
 
         {/* Logout */}
-        <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '12px' }}>
+        <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '12px', width: '100%' }}>
           <button
             onClick={handleLogout}
             className="sidebar-item"
+            title="Log out"
             style={{
               border: 'none',
               background: 'transparent',
@@ -147,7 +153,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             }}
           >
             <LogoutIcon size={18} color="#EF4444" />
-            <span>Log out</span>
+            <span className="sidebar-item-label">Log out</span>
           </button>
         </div>
       </aside>
@@ -171,14 +177,15 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             zIndex: 10,
           }}
         >
-          {/* Left Side: Hamburger Toggle (Mobile) + Page Title Indicator */}
+          {/* Left Side: Hamburger Toggle + Page Title Indicator */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <button 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
               className="top-header-hamburger"
               aria-label="Toggle Navigation"
+              title="Toggle Menu"
             >
-              {isSidebarOpen ? <XIcon size={22} color="#FFFFFF" /> : <ListIcon size={22} color="#FFFFFF" />}
+              <ListIcon size={22} color="#FFFFFF" />
             </button>
             <div>
               <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.01em' }}>

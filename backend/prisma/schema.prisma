@@ -33,7 +33,24 @@ model User {
   brandThemeColor String?
   messagesSentThisMonth Int @default(0)
   lastMessageMonth      String @default("")
+  dailyUsageStats DailyUsageStat[]
   createdAt     DateTime     @default(now())
+}
+
+model DailyUsageStat {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date           String   // Format: "YYYY-MM-DD" (Indexed for instant historical date filtering)
+  totalCount     Int      @default(0)
+  deliveredCount Int      @default(0)
+  failedCount    Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([date])
+  @@index([userId])
 }
 
 model Instance {
