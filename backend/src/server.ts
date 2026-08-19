@@ -32,9 +32,16 @@ app.use((req, res, next) => {
     next();
 });
 
-// Global Request Logger to help debug PHP portal
+// Clean, informative HTTP Request Logger (filters repetitive polling noise)
+const SILENT_POLL_SUFFIXES = ['/qr', '/me', '/branding', '/reports/stats', '/instances'];
 app.use((req, res, next) => {
-    console.log(`[GLOBAL LOG] ${req.method} ${req.originalUrl} - Body:`, req.body);
+    const isSilent = req.method === 'GET' && SILENT_POLL_SUFFIXES.some(suffix => req.path.endsWith(suffix));
+    if (!isSilent) {
+        const bodyPreview = req.body && Object.keys(req.body).length > 0 
+            ? ` | Body: ${JSON.stringify(req.body).substring(0, 80)}` 
+            : '';
+        console.log(`[HTTP] 🌐 ${req.method} ${req.originalUrl}${bodyPreview}`);
+    }
     next();
 });
 

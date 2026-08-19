@@ -1,17 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import {
-  CopyIcon,
-  CheckIcon,
-  BookIcon,
-  SendIcon,
-  DeviceIcon,
-  SearchIcon,
-  UsersGroupIcon,
-  RefreshIcon,
-  CheckCircleIcon,
-  WarningCircleIcon
-} from '../components/Icons';
+  GlassDocsIcon,
+  GlassBookIcon,
+  GlassSendIcon,
+  GlassInstanceIcon,
+  GlassDeviceIcon,
+  GlassSearchIcon,
+  GlassUsersGroupIcon,
+  GlassRefreshIcon,
+  GlassCopyIcon,
+  GlassCheckCircleIcon
+} from '../components/GlassIcons';
 import { copyToClipboard } from '../utils/clipboard';
 import { getBaseApiUrl } from '../utils/apiUrl';
 
@@ -93,7 +94,7 @@ const CodeViewer = ({ tabs, defaultTab = 0, title }: { tabs: ICodeTab[]; default
             transition: 'all 0.2s ease',
           }}
         >
-          {copied ? <CheckIcon size={12} color="#34D399" /> : <CopyIcon size={12} color="#CBD5E1" />}
+          {copied ? <GlassCheckCircleIcon size={13} /> : <GlassCopyIcon size={13} />}
           {copied ? 'Copied!' : 'Copy Code'}
         </button>
       </div>
@@ -1174,8 +1175,8 @@ echo $response;`
         {/* Header Row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <BookIcon size={24} color="#2563EB" />
+            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <GlassBookIcon size={26} />
             </div>
             <div>
               <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em' }}>
@@ -1193,7 +1194,7 @@ echo $response;`
               className="btn-primary"
               style={{ padding: '10px 18px', fontSize: '13px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
-              {copiedKey ? <CheckIcon size={16} color="white" /> : <CopyIcon size={16} color="white" />}
+              {copiedKey ? <GlassCheckCircleIcon size={16} /> : <GlassCopyIcon size={16} />}
               {copiedKey ? 'Token Copied!' : 'Copy Access Token'}
             </button>
 
@@ -1211,9 +1212,8 @@ echo $response;`
                 cursor: regenerating ? 'not-allowed' : 'pointer'
               }}
             >
-              <RefreshIcon
-                size={14}
-                color="currentColor"
+              <GlassRefreshIcon
+                size={16}
                 style={{
                   animation: regenerating ? 'spin 0.8s linear infinite' : 'none',
                   transition: 'transform 0.2s ease'
@@ -1360,10 +1360,10 @@ echo $response;`
         {/* Category Tabs */}
         <div style={{ display: 'flex', background: '#FFFFFF', padding: '5px', borderRadius: '14px', border: '1px solid #E2E8F0', boxShadow: 'var(--shadow-soft)', gap: '4px', flexWrap: 'wrap' }}>
           {[
-            { id: 'all', label: 'All Endpoints', icon: BookIcon },
-            { id: 'messaging', label: 'Messaging & Filter APIs', icon: SendIcon },
-            { id: 'groups', label: 'WhatsApp Groups', icon: UsersGroupIcon },
-            { id: 'public', label: 'Instance & QR APIs', icon: DeviceIcon },
+            { id: 'all', label: 'All Endpoints', icon: GlassBookIcon },
+            { id: 'messaging', label: 'Messaging & Filter APIs', icon: GlassSendIcon },
+            { id: 'groups', label: 'WhatsApp Groups', icon: GlassUsersGroupIcon },
+            { id: 'public', label: 'Instance & QR APIs', icon: GlassDeviceIcon },
           ].map(tab => {
             const isActive = activeTab === tab.id;
             const TabIcon = tab.icon;
@@ -1386,7 +1386,7 @@ echo $response;`
                   transition: 'all 0.2s ease',
                 }}
               >
-                <TabIcon size={14} color={isActive ? '#FFFFFF' : '#64748B'} />
+                <TabIcon size={16} />
                 {tab.label}
               </button>
             );
@@ -1395,7 +1395,9 @@ echo $response;`
 
         {/* Search Input Filter */}
         <div style={{ position: 'relative', width: '280px' }}>
-          <SearchIcon size={16} color="#94A3B8" style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+          <div style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)' }}>
+            <GlassSearchIcon size={16} />
+          </div>
           <input
             type="text"
             placeholder="Search API endpoints..."

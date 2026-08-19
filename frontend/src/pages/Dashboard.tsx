@@ -3,15 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { copyToClipboard } from '../utils/clipboard';
 import { getBaseApiUrl } from '../utils/apiUrl';
 import { 
-  DeviceIcon, 
-  SendIcon, 
-  ChartIcon, 
-  KeyIcon,
-  CheckCircleIcon,
-  CalendarIcon,
   PlusIcon,
   EyeIcon,
 } from '../components/Icons';
+import {
+  GlassInstanceIcon,
+  GlassBroadcastIcon,
+  GlassCheckCircleIcon,
+  GlassCalendarIcon,
+  GlassCopyIcon,
+  GlassKeyIcon,
+} from '../components/GlassIcons';
 
 export const Dashboard = () => {
   const [instances, setInstances] = useState<any[]>([]);
@@ -121,11 +123,11 @@ export const Dashboard = () => {
       {/* 1. Top 4 Metric Stat Cards (Shopeers Style) */}
       <div className="stats-grid">
         {/* Card 1: Linked Devices */}
-        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRadius: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Linked Devices</span>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <DeviceIcon size={16} color="#2563EB" />
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassInstanceIcon size={24} />
             </div>
           </div>
           <div>
@@ -140,11 +142,11 @@ export const Dashboard = () => {
         </div>
 
         {/* Card 2: Total Deliveries */}
-        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRadius: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Total Messages</span>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <SendIcon size={16} color="#2563EB" />
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassBroadcastIcon size={24} />
             </div>
           </div>
           <div>
@@ -159,11 +161,11 @@ export const Dashboard = () => {
         </div>
 
         {/* Card 3: Success Rate */}
-        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRadius: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Delivery Rate</span>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CheckCircleIcon size={16} color="#059669" />
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassCheckCircleIcon size={24} />
             </div>
           </div>
           <div>
@@ -178,11 +180,11 @@ export const Dashboard = () => {
         </div>
 
         {/* Card 4: Monthly Quota */}
-        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRadius: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Monthly Quota</span>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CalendarIcon size={16} color="#D97706" />
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassCalendarIcon size={24} />
             </div>
           </div>
           <div>

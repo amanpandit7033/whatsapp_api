@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserIcon, ShieldIcon, LockIcon, KeyIcon, CheckCircleIcon, CalendarIcon, DeviceIcon, SendIcon, WarningIcon } from '../components/Icons';
+import {
+  GlassUserIcon,
+  GlassShieldIcon,
+  GlassKeyIcon,
+  GlassCalendarIcon,
+  GlassDeviceIcon,
+  GlassSendIcon,
+  GlassWarningIcon,
+  GlassCheckCircleIcon
+} from '../components/GlassIcons';
 
 export const Profile = () => {
   const [user, setUser] = useState<any>(null);
@@ -81,7 +90,7 @@ export const Profile = () => {
     );
   }
 
-  const Icon = user?.isAdmin ? ShieldIcon : UserIcon;
+  const Icon = user?.isAdmin ? GlassShieldIcon : GlassUserIcon;
   const isExpired = user?.expiresAt && new Date(user.expiresAt) < new Date();
   const instancePct = user ? Math.min(100, ((user._count?.instances || 0) / user.maxInstances) * 100) : 0;
   const msgPct = user ? Math.min(100, (user.messagesSentThisMonth / user.messageLimit) * 100) : 0;
@@ -103,7 +112,7 @@ export const Profile = () => {
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px', paddingBottom: '20px', borderBottom: '1px solid #F1F5F9' }}>
           <div style={{ width: '54px', height: '54px', borderRadius: '16px', background: user?.isAdmin ? '#F3E8FF' : '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon size={26} color={user?.isAdmin ? '#7C3AED' : '#2563EB'} />
+            <Icon size={28} />
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -125,7 +134,7 @@ export const Profile = () => {
           <div style={{ background: '#F8FAFC', borderRadius: '14px', padding: '16px 20px', border: '1px solid #E2E8F0' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>MAX INSTANCES</span>
-              <DeviceIcon size={16} color="#2563EB" />
+              <GlassDeviceIcon size={18} />
             </div>
             <p style={{ fontSize: '20px', fontWeight: 900, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
               {user?._count?.instances || 0} <span style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>/ {user?.maxInstances}</span>
@@ -139,7 +148,7 @@ export const Profile = () => {
           <div style={{ background: '#F8FAFC', borderRadius: '14px', padding: '16px 20px', border: '1px solid #E2E8F0' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>MONTHLY MESSAGES</span>
-              <SendIcon size={16} color="#059669" />
+              <GlassSendIcon size={18} />
             </div>
             <p style={{ fontSize: '20px', fontWeight: 900, color: '#0F172A', margin: 0, letterSpacing: '-0.02em', fontFamily: 'var(--font-mono)' }}>
               {(user?.messagesSentThisMonth || 0).toLocaleString()} <span style={{ fontSize: '13px', fontWeight: 600, color: '#94A3B8' }}>/ {(user?.messageLimit || 0).toLocaleString()}</span>
@@ -153,11 +162,11 @@ export const Profile = () => {
           <div style={{ background: '#F8FAFC', borderRadius: '14px', padding: '16px 20px', border: '1px solid #E2E8F0' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>EXPIRATION DATE</span>
-              <CalendarIcon size={16} color="#7C3AED" />
+              <GlassCalendarIcon size={18} />
             </div>
             {user?.expiresAt ? (
               <span style={{ fontSize: '14px', fontWeight: 800, color: isExpired ? '#DC2626' : '#0F172A', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                {isExpired && <WarningIcon size={14} color="#DC2626" />}
+                {isExpired && <GlassWarningIcon size={14} />}
                 <span>{new Date(user.expiresAt).toLocaleDateString()}{isExpired ? ' (Expired)' : ''}</span>
               </span>
             ) : (
@@ -173,7 +182,7 @@ export const Profile = () => {
       {/* Change Password Card */}
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-          <KeyIcon size={20} color="#2563EB" />
+          <GlassKeyIcon size={20} />
           <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>Update Password</h3>
         </div>
 
@@ -182,9 +191,11 @@ export const Profile = () => {
             background: msg.type === 'success' ? '#F0FDF4' : '#FEF2F2',
             border: `1px solid ${msg.type === 'success' ? '#BBF7D0' : '#FEE2E2'}`,
             color: msg.type === 'success' ? '#15803D' : '#DC2626',
-            borderRadius: '12px', padding: '12px 16px', fontSize: '13px', fontWeight: 700, marginBottom: '20px'
+            borderRadius: '12px', padding: '12px 16px', fontSize: '13px', fontWeight: 700, marginBottom: '20px',
+            display: 'flex', alignItems: 'center', gap: '8px'
           }}>
-            {msg.text}
+            {msg.type === 'success' ? <GlassCheckCircleIcon size={16} /> : <GlassWarningIcon size={16} />}
+            <span>{msg.text}</span>
           </div>
         )}
 
@@ -245,3 +256,4 @@ export const Profile = () => {
     </div>
   );
 };
+

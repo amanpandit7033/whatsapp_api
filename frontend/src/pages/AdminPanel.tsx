@@ -3,17 +3,33 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   UserIcon,
-  ShieldIcon,
   WarningIcon,
-  UserPlusIcon,
   SearchIcon,
   EditIcon,
   CheckCircleIcon,
-  CalendarIcon,
   XIcon,
   LogInIcon,
-  KeyIcon
+  KeyIcon,
+  ToggleIcon
 } from '../components/Icons';
+import {
+  GlassUsersIcon,
+  GlassResellerIcon,
+  GlassCheckCircleIcon,
+  GlassSearchIcon,
+  GlassAstronautIcon,
+  GlassEditIcon,
+  GlassTurboIcon,
+  GlassAdminIcon,
+  GlassUserIcon,
+  GlassUserPlusIcon,
+  GlassPlusIcon,
+  GlassCancelIcon,
+  GlassLockIcon,
+  GlassCalendarIcon,
+  GlassSendIcon,
+  GlassInstanceIcon
+} from '../components/GlassIcons';
 
 const S: Record<string, React.CSSProperties> = {
   label: { display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748B', marginBottom: '8px' },
@@ -30,6 +46,7 @@ export const AdminPanel = () => {
   const [newMessageLimit, setNewMessageLimit] = useState('1000');
   const [newExpiresAt, setNewExpiresAt] = useState('');
   const [newIsReseller, setNewIsReseller] = useState(false);
+  const [newCheckWhatsAppNumber, setNewCheckWhatsAppNumber] = useState(true);
   const [newPermissions, setNewPermissions] = useState<string[]>(['instances', 'broadcast', 'filter', 'groups', 'reports', 'docs']);
   
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
@@ -47,7 +64,11 @@ export const AdminPanel = () => {
     });
     if (res.status === 401 || res.status === 403) { navigate('/'); return; }
     const data = await res.json();
-    if (data.users) { setUsers(data.users); setTotalPages(data.totalPages); }
+    if (data.users) {
+      const sortedUsers = [...data.users].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setUsers(sortedUsers);
+      setTotalPages(data.totalPages);
+    }
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -64,6 +85,7 @@ export const AdminPanel = () => {
         expiresAt: newExpiresAt || undefined,
         isReseller: newIsReseller,
         role: newIsReseller ? 'reseller' : 'user',
+        checkWhatsAppNumber: newCheckWhatsAppNumber,
         permissions: newPermissions.join(',')
       })
     });
@@ -77,6 +99,7 @@ export const AdminPanel = () => {
       setNewMessageLimit('1000');
       setNewExpiresAt('');
       setNewIsReseller(false);
+      setNewCheckWhatsAppNumber(true);
       setNewPermissions(['instances', 'broadcast', 'filter', 'groups', 'reports', 'docs']);
       setIsAddUserModalOpen(false);
       fetchUsers();
@@ -97,6 +120,7 @@ export const AdminPanel = () => {
         isAdmin: editingUser.isAdmin,
         isReseller: editingUser.isReseller,
         role: editingUser.isReseller ? 'reseller' : (editingUser.isAdmin ? 'admin' : 'user'),
+        checkWhatsAppNumber: editingUser.checkWhatsAppNumber !== false,
         permissions: editingUser.permissions
       })
     });
@@ -125,8 +149,8 @@ export const AdminPanel = () => {
         role: localStorage.getItem('role'),
         username: localStorage.getItem('username'),
         permissions: localStorage.getItem('permissions'),
-        returnUrl: '/admin',
-        returnRoleTitle: 'Admin Panel'
+        returnUrl: '/user-management',
+        returnRoleTitle: 'User Management'
       };
       localStorage.setItem('originalSession', JSON.stringify(originalSession));
       localStorage.setItem('isImpersonating', 'true');
@@ -158,8 +182,8 @@ export const AdminPanel = () => {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', margin: '0 0 4px' }}>Admin Control Panel</h2>
-          <p style={{ color: '#64748B', fontSize: '14px', margin: 0, fontWeight: 500 }}>Manage users, reseller accounts, permissions, and system quotas.</p>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', margin: '0 0 4px' }}>User Management</h2>
+          <p style={{ color: '#64748B', fontSize: '14px', margin: 0, fontWeight: 500 }}>Manage client user accounts, quotas, subscriptions, and role access.</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button 
@@ -167,14 +191,14 @@ export const AdminPanel = () => {
             className="btn-outline" 
             style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 700 }}
           >
-            ⚡ View Live Status
+            <GlassTurboIcon size={16} /> View Live Status
           </button>
           <button 
             onClick={() => { setIsAddUserModalOpen(true); setError(''); setSuccess(''); }} 
             className="btn-primary" 
             style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', fontSize: '13px', fontWeight: 800 }}
           >
-            <UserPlusIcon size={16} /> Add User
+            <GlassPlusIcon size={16} /> Add User
           </button>
         </div>
       </div>
@@ -182,16 +206,16 @@ export const AdminPanel = () => {
       {/* Stat strip (Shopeers Style) */}
       <div className="stats-grid">
         {[
-          { label: 'Total Users', val: totalUsers, sub: 'Registered accounts', badge: 'Total', bg: '#EFF6FF', color: '#2563EB', icon: UserIcon },
-          { label: 'Admins', val: adminCount, sub: 'System Managers', badge: 'Admin', bg: '#F3E8FF', color: '#7C3AED', icon: ShieldIcon },
-          { label: 'Resellers', val: resellerCount, sub: 'Master Accounts', badge: 'Reseller', bg: '#FEF3C7', color: '#D97706', icon: UserPlusIcon },
-          { label: 'Active Users', val: activeCount, sub: 'Valid Subscriptions', badge: 'Active', bg: '#D1FAE5', color: '#059669', icon: CheckCircleIcon },
-        ].map(({ label, val, sub, badge, bg, color, icon: IconComp }) => (
-          <div key={label} className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          { label: 'Total Users', val: totalUsers, sub: 'Registered accounts', badge: 'Total', bg: '#EFF6FF', icon: GlassUserIcon },
+          { label: 'Admins', val: adminCount, sub: 'System Managers', badge: 'Admin', bg: '#F3E8FF', icon: GlassAdminIcon },
+          { label: 'Resellers', val: resellerCount, sub: 'Master Accounts', badge: 'Reseller', bg: '#FEF3C7', icon: GlassResellerIcon },
+          { label: 'Active Users', val: activeCount, sub: 'Valid Subscriptions', badge: 'Active', bg: '#D1FAE5', icon: GlassCheckCircleIcon },
+        ].map(({ label, val, sub, badge, bg, icon: IconComp }) => (
+          <div key={label} className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRadius: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>{label}</span>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <IconComp size={16} color={color} />
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconComp size={24} />
               </div>
             </div>
             <div>
@@ -215,7 +239,7 @@ export const AdminPanel = () => {
             <p style={{ color: '#64748B', fontSize: '13px', margin: 0, fontWeight: 500 }}>Active registered clients and instance quotas.</p>
           </div>
           <div style={{ position: 'relative', width: '280px' }}>
-            <SearchIcon size={16} color="#94A3B8" style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+            <GlassSearchIcon size={18} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
             <input
               type="text"
               placeholder="Search by username..."
@@ -234,6 +258,7 @@ export const AdminPanel = () => {
               <tr style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
                 <th style={{ padding: '14px 28px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>USER ACCOUNT</th>
                 <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>ROLE</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>USER BELONGING</th>
                 <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>INSTANCES</th>
                 <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>MONTHLY LIMIT</th>
                 <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>EXPIRY</th>
@@ -246,36 +271,43 @@ export const AdminPanel = () => {
                 const isExpired = user.expiresAt && new Date(user.expiresAt) < new Date();
                 const usagePct = Math.min(100, (user._count.instances / user.maxInstances) * 100);
                 const isReseller = user.isReseller || user.role === 'reseller';
-                const Icon = user.isAdmin ? ShieldIcon : isReseller ? UserPlusIcon : UserIcon;
                 return (
                   <tr key={user.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.15s ease' }}>
                     <td style={{ padding: '16px 28px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: user.isAdmin ? '#F3E8FF' : isReseller ? '#FEF3C7' : '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <Icon size={18} color={user.isAdmin ? '#7C3AED' : isReseller ? '#D97706' : '#2563EB'} />
-                        </div>
-                        <div>
-                          <p style={{ fontWeight: 800, fontSize: '14px', color: '#0F172A', margin: 0, lineHeight: 1.2 }}>{user.username}</p>
-                          {user.reseller && (
-                            <span style={{ fontSize: '11px', color: '#64748B', display: 'block', marginTop: '2px' }}>
-                              By Reseller: <strong>@{user.reseller.username}</strong>
+                      <div>
+                        <p style={{ fontWeight: 800, fontSize: '14px', color: '#0F172A', margin: 0, lineHeight: 1.2 }}>{user.username}</p>
+                        {user.checkWhatsAppNumber === false && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
+                            <span title="Turbo Mode Active: Sends directly without pre-checking WhatsApp numbers" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FEF3C7', color: '#B45309', border: '1px solid #FDE68A', padding: '2px 7px', borderRadius: '6px', fontSize: '10px', fontWeight: 800 }}>
+                              <GlassTurboIcon size={12} /> Turbo Direct Send
                             </span>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td style={{ padding: '16px 16px' }}>
                       {user.isAdmin ? (
-                        <span style={{ background: '#F3E8FF', color: '#7C3AED', padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <ShieldIcon size={12} color="#7C3AED" /> Admin
+                        <span style={{ background: '#F3E8FF', color: '#7C3AED', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center' }}>
+                          Admin
                         </span>
                       ) : isReseller ? (
-                        <span style={{ background: '#FEF3C7', color: '#B45309', padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <UserPlusIcon size={12} color="#B45309" /> Reseller ({user._count?.clients || 0} clients)
+                        <span style={{ background: '#FEF3C7', color: '#B45309', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center' }}>
+                          Reseller ({user._count?.clients || 0} clients)
                         </span>
                       ) : (
-                        <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <UserIcon size={12} color="#2563EB" /> Client
+                        <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                          Client
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: '16px 16px' }}>
+                      {user.reseller?.username ? (
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>
+                          {user.reseller.username}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>
+                          Direct
                         </span>
                       )}
                     </td>
@@ -293,12 +325,7 @@ export const AdminPanel = () => {
                     </td>
                     <td style={{ padding: '16px 16px' }}>
                       {user.expiresAt ? (
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: isExpired ? '#FEE2E2' : '#EFF6FF', padding: '4px 10px', borderRadius: '8px' }}>
-                          {isExpired ? (
-                            <WarningIcon size={14} color="#DC2626" />
-                          ) : (
-                            <CalendarIcon size={14} color="#2563EB" />
-                          )}
+                        <div style={{ display: 'inline-flex', alignItems: 'center', background: isExpired ? '#FEE2E2' : '#EFF6FF', padding: '4px 10px', borderRadius: '8px' }}>
                           <span style={{ fontSize: '12px', fontWeight: 800, color: isExpired ? '#DC2626' : '#2563EB' }}>
                             {new Date(user.expiresAt).toLocaleDateString()}
                           </span>
@@ -313,12 +340,12 @@ export const AdminPanel = () => {
                         {!user.isAdmin && (
                           <button
                             onClick={() => handlePreLogin(user)}
-                            title={`Pre-Login as @${user.username}`}
+                            title={`Pre-Login as ${user.username}`}
                             style={{
                               background: '#FEF3C7',
                               border: '1px solid #FDE68A',
                               borderRadius: '10px',
-                              padding: '8px 14px',
+                              padding: '6px 12px',
                               fontSize: '13px',
                               fontWeight: 800,
                               color: '#B45309',
@@ -329,15 +356,15 @@ export const AdminPanel = () => {
                               transition: 'all 0.2s ease'
                             }}
                           >
-                            <KeyIcon size={14} color="#B45309" /> Pre-Login
+                            <GlassAstronautIcon size={16} /> 
                           </button>
                         )}
                         <button onClick={() => { setEditingUser({ ...user }); setEditPassword(''); }} style={{
-                          background: '#EFF6FF', border: 'none', borderRadius: '10px',
-                          padding: '8px 14px', fontSize: '13px', fontWeight: 700, color: '#2563EB',
+                          background: '#EFF6FF', border: '1px solid #DBEAFE', borderRadius: '10px',
+                          padding: '6px 12px', fontSize: '13px', fontWeight: 700, color: '#2563EB',
                           cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease'
                         }}>
-                          <EditIcon size={14} color="#2563EB" /> Edit
+                          <GlassEditIcon size={16} /> 
                         </button>
                       </div>
                     </td>
@@ -363,17 +390,34 @@ export const AdminPanel = () => {
       {/* Add User Modal */}
       {isAddUserModalOpen && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '24px' }}>
-          <div className="card" style={{ width: '100%', maxWidth: '640px', position: 'relative', borderRadius: '24px', padding: '32px', boxShadow: '0 25px 50px -12px rgba(124, 58, 237, 0.18), 0 0 0 1px rgba(226, 232, 240, 0.8)', background: '#FFFFFF', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="card hide-scrollbar" style={{ width: '100%', maxWidth: '640px', position: 'relative', borderRadius: '24px', padding: '32px', boxShadow: '0 25px 50px -12px rgba(124, 58, 237, 0.18), 0 0 0 1px rgba(226, 232, 240, 0.8)', background: '#FFFFFF', maxHeight: '90vh', overflowY: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <button 
               onClick={() => setIsAddUserModalOpen(false)} 
-              style={{ position: 'absolute', top: '24px', right: '24px', background: '#F1F5F9', border: 'none', borderRadius: '12px', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', transition: 'all 0.2s ease' }}
+              title="Close modal"
+              style={{
+                position: 'absolute',
+                top: '24px',
+                right: '24px',
+                background: '#F1F5F9',
+                border: 'none',
+                borderRadius: '12px',
+                width: '36px',
+                height: '36px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#64748B',
+                transition: 'all 0.2s ease',
+                padding: 0
+              }}
             >
-              <XIcon size={18} color="currentColor" />
+              <GlassCancelIcon size={18} />
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '28px' }}>
-              <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: 'linear-gradient(135deg, #F3E8FF 0%, #E9D5FF 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(124, 58, 237, 0.12)' }}>
-                <UserPlusIcon size={26} color="#7C3AED" />
+              <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: '#F3E8FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <GlassUserPlusIcon size={28} />
               </div>
               <div>
                 <h3 style={{ fontWeight: 800, fontSize: '20px', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Add New Account</h3>
@@ -406,10 +450,10 @@ export const AdminPanel = () => {
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px'
+                      gap: '8px'
                     }}
                   >
-                    <UserIcon size={14} color={!newIsReseller ? '#2563EB' : '#64748B'} /> Standard Client
+                    <GlassUserIcon size={16} /> Standard Client
                   </button>
                   <button
                     type="button"
@@ -427,10 +471,10 @@ export const AdminPanel = () => {
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px'
+                      gap: '8px'
                     }}
                   >
-                    <UserPlusIcon size={14} color={newIsReseller ? '#B45309' : '#64748B'} /> Reseller Master Account
+                    <GlassResellerIcon size={16} /> Reseller Master Account
                   </button>
                 </div>
               </div>
@@ -439,25 +483,195 @@ export const AdminPanel = () => {
               <div className="admin-form-grid">
                 <div>
                   <label style={S.label}>Username</label>
-                  <input type="text" placeholder="e.g. john_doe" value={newUsername} onChange={e => setNewUsername(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassUserIcon size={16} />
+                    </span>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. john_doe" 
+                      value={newUsername} 
+                      onChange={e => setNewUsername(e.target.value)} 
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                      required 
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={S.label}>Password</label>
-                  <input type="password" placeholder="••••••••" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassLockIcon size={16} />
+                    </span>
+                    <input 
+                      type="password" 
+                      placeholder="••••••••" 
+                      value={newPassword} 
+                      onChange={e => setNewPassword(e.target.value)} 
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                      required 
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={S.label}>{newIsReseller ? 'Master Instances Quota Pool' : 'Max Instances'}</label>
-                  <input type="number" min="1" value={newMaxInstances} onChange={e => setNewMaxInstances(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassInstanceIcon size={16} />
+                    </span>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      value={newMaxInstances} 
+                      onChange={e => setNewMaxInstances(e.target.value)} 
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                      required 
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={S.label}>{newIsReseller ? 'Master Message Quota Pool' : 'Monthly Message Limit'}</label>
-                  <input type="number" min="1" value={newMessageLimit} onChange={e => setNewMessageLimit(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassSendIcon size={16} />
+                    </span>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      value={newMessageLimit} 
+                      onChange={e => setNewMessageLimit(e.target.value)} 
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                      required 
+                    />
+                  </div>
                 </div>
               </div>
 
               <div>
                 <label style={S.label}>Subscription Expiry Date (Optional)</label>
-                <input type="date" value={newExpiresAt} onChange={e => setNewExpiresAt(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                    <GlassCalendarIcon size={16} />
+                  </span>
+                  <input 
+                    type="date" 
+                    value={newExpiresAt} 
+                    onChange={e => setNewExpiresAt(e.target.value)} 
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    style={{
+                      width: '100%',
+                      height: '44px',
+                      borderRadius: '12px',
+                      fontSize: '13.5px',
+                      fontWeight: 600,
+                      background: '#FFFFFF',
+                      border: '1.5px solid #E2E8F0',
+                      padding: '0 12px 0 38px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                  />
+                </div>
+              </div>
+
+              {/* WhatsApp Number Verification Mode Toggle */}
+              <div 
+                onClick={() => setNewCheckWhatsAppNumber(!newCheckWhatsAppNumber)}
+                style={{ 
+                  background: '#F8FAFC', 
+                  padding: '16px', 
+                  borderRadius: '16px', 
+                  border: newCheckWhatsAppNumber ? '1px solid #E2E8F0' : '1px solid #FDE68A', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  gap: '16px',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>⚡ WhatsApp Number Verification Mode</span>
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#64748B', margin: '3px 0 0', fontWeight: 500 }}>
+                    {newCheckWhatsAppNumber 
+                      ? 'Default ON: Checks if numbers are registered on WhatsApp before dispatch.' 
+                      : 'OFF (Turbo Mode): Sends directly without checking WhatsApp existence for 2x faster delivery speed.'}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: newCheckWhatsAppNumber ? '#15803D' : '#B45309' }}>
+                    {newCheckWhatsAppNumber ? 'Verification ON' : '⚡ Turbo Mode'}
+                  </span>
+                  <ToggleIcon
+                    size={38}
+                    checked={newCheckWhatsAppNumber}
+                    onColor="#16A34A"
+                    offColor="#F59E0B"
+                  />
+                </div>
               </div>
 
               <div>
@@ -493,19 +707,17 @@ export const AdminPanel = () => {
                           userSelect: 'none'
                         }}
                       >
-                        <div style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '6px',
-                          border: isChecked ? 'none' : '2px solid #CBD5E1',
-                          background: isChecked ? '#7C3AED' : 'transparent',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0
-                        }}>
-                          {isChecked && <CheckCircleIcon size={12} color="#FFFFFF" />}
-                        </div>
+                        {isChecked ? (
+                          <GlassCheckCircleIcon size={18} />
+                        ) : (
+                          <div style={{
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '50%',
+                            border: '2px solid #CBD5E1',
+                            flexShrink: 0
+                          }} />
+                        )}
                         <span style={{ fontSize: '13px', fontWeight: isChecked ? 700 : 500, color: isChecked ? '#7C3AED' : '#475569' }}>
                           {perm.name}
                         </span>
@@ -528,17 +740,34 @@ export const AdminPanel = () => {
       {/* Edit User Modal */}
       {editingUser && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.55)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '24px' }}>
-          <div className="card" style={{ width: '100%', maxWidth: '640px', position: 'relative', borderRadius: '24px', padding: '32px', boxShadow: '0 25px 50px -12px rgba(124, 58, 237, 0.18), 0 0 0 1px rgba(226, 232, 240, 0.8)', background: '#FFFFFF', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="card hide-scrollbar" style={{ width: '100%', maxWidth: '640px', position: 'relative', borderRadius: '24px', padding: '32px', boxShadow: '0 25px 50px -12px rgba(124, 58, 237, 0.18), 0 0 0 1px rgba(226, 232, 240, 0.8)', background: '#FFFFFF', maxHeight: '90vh', overflowY: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             <button 
               onClick={() => setEditingUser(null)} 
-              style={{ position: 'absolute', top: '24px', right: '24px', background: '#F1F5F9', border: 'none', borderRadius: '12px', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B', transition: 'all 0.2s ease' }}
+              title="Close modal"
+              style={{
+                position: 'absolute',
+                top: '24px',
+                right: '24px',
+                background: '#F1F5F9',
+                border: 'none',
+                borderRadius: '12px',
+                width: '36px',
+                height: '36px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#64748B',
+                transition: 'all 0.2s ease',
+                padding: 0
+              }}
             >
-              <XIcon size={18} color="currentColor" />
+              <GlassCancelIcon size={18} />
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '28px' }}>
-              <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(37, 99, 235, 0.12)' }}>
-                <EditIcon size={24} color="#2563EB" />
+              <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <GlassEditIcon size={28} />
               </div>
               <div>
                 <h3 style={{ fontWeight: 800, fontSize: '20px', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>Edit User Account</h3>
@@ -568,10 +797,10 @@ export const AdminPanel = () => {
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px'
+                      gap: '8px'
                     }}
                   >
-                    <UserIcon size={14} color={!editingUser.isReseller && !editingUser.isAdmin ? '#2563EB' : '#64748B'} /> Standard Client
+                    <GlassUserIcon size={16} /> Standard Client
                   </button>
                   <button
                     type="button"
@@ -589,10 +818,10 @@ export const AdminPanel = () => {
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px'
+                      gap: '8px'
                     }}
                   >
-                    <UserPlusIcon size={14} color={editingUser.isReseller ? '#B45309' : '#64748B'} /> Reseller Master
+                    <GlassResellerIcon size={16} /> Reseller Master
                   </button>
                 </div>
               </div>
@@ -601,31 +830,251 @@ export const AdminPanel = () => {
               <div className="admin-form-grid">
                 <div>
                   <label style={S.label}>Username</label>
-                  <input type="text" value={editingUser.username} onChange={e => setEditingUser({ ...editingUser, username: e.target.value })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassUserIcon size={16} />
+                    </span>
+                    <input 
+                      type="text" 
+                      value={editingUser.username} 
+                      onChange={e => setEditingUser({ ...editingUser, username: e.target.value })} 
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                      required 
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={S.label}>New Password (leave blank to keep current)</label>
-                  <input type="password" placeholder="••••••••" value={editPassword} onChange={e => setEditPassword(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassLockIcon size={16} />
+                    </span>
+                    <input 
+                      type="password" 
+                      placeholder="••••••••" 
+                      value={editPassword} 
+                      onChange={e => setEditPassword(e.target.value)} 
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={S.label}>{editingUser.isReseller ? 'Master Instances Quota Pool' : 'Max Instances'}</label>
-                  <input type="number" min="1" value={editingUser.maxInstances} onChange={e => setEditingUser({ ...editingUser, maxInstances: e.target.value })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassInstanceIcon size={16} />
+                    </span>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      value={editingUser.maxInstances} 
+                      onChange={e => setEditingUser({ ...editingUser, maxInstances: e.target.value })} 
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                      required 
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={S.label}>{editingUser.isReseller ? 'Master Message Quota Pool' : 'Monthly Message Limit'}</label>
-                  <input type="number" min="1" value={editingUser.messageLimit} onChange={e => setEditingUser({ ...editingUser, messageLimit: e.target.value })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassSendIcon size={16} />
+                    </span>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      value={editingUser.messageLimit} 
+                      onChange={e => setEditingUser({ ...editingUser, messageLimit: e.target.value })} 
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                      required 
+                    />
+                  </div>
                 </div>
               </div>
 
               <div>
                 <label style={S.label}>Subscription Expiry Date</label>
-                <input 
-                  type="date" 
-                  value={editingUser.expiresAt ? new Date(editingUser.expiresAt).toISOString().split('T')[0] : ''} 
-                  onChange={e => setEditingUser({ ...editingUser, expiresAt: e.target.value ? new Date(e.target.value).toISOString() : null })} 
-                  className="rounded-input" 
-                  style={{ height: '44px', borderRadius: '10px' }} 
-                />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                    <GlassCalendarIcon size={16} />
+                  </span>
+                  <input 
+                    type="date" 
+                    value={editingUser.expiresAt ? new Date(editingUser.expiresAt).toISOString().split('T')[0] : ''} 
+                    onChange={e => setEditingUser({ ...editingUser, expiresAt: e.target.value ? new Date(e.target.value).toISOString() : null })} 
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    style={{
+                      width: '100%',
+                      height: '44px',
+                      borderRadius: '12px',
+                      fontSize: '13.5px',
+                      fontWeight: 600,
+                      background: '#FFFFFF',
+                      border: '1.5px solid #E2E8F0',
+                      padding: '0 12px 0 38px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                  />
+                </div>
+              </div>
+
+              {/* WhatsApp Number Verification Mode Toggle */}
+              <div 
+                onClick={() => setEditingUser({ ...editingUser, checkWhatsAppNumber: editingUser.checkWhatsAppNumber === false })}
+                style={{ 
+                  background: '#F8FAFC', 
+                  padding: '16px', 
+                  borderRadius: '16px', 
+                  border: editingUser.checkWhatsAppNumber !== false ? '1px solid #E2E8F0' : '1px solid #FDE68A', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  gap: '16px',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>⚡ WhatsApp Number Verification Mode</span>
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#64748B', margin: '3px 0 0', fontWeight: 500 }}>
+                    {editingUser.checkWhatsAppNumber !== false 
+                      ? 'Default ON: Checks if numbers are registered on WhatsApp before dispatch.' 
+                      : 'OFF (Turbo Mode): Sends directly without checking WhatsApp existence for 2x faster delivery speed.'}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: editingUser.checkWhatsAppNumber !== false ? '#15803D' : '#B45309' }}>
+                    {editingUser.checkWhatsAppNumber !== false ? 'Verification ON' : '⚡ Turbo Mode'}
+                  </span>
+                  <ToggleIcon
+                    size={38}
+                    checked={editingUser.checkWhatsAppNumber !== false}
+                    onColor="#16A34A"
+                    offColor="#F59E0B"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={S.label}>Menu Permissions</label>
+                <div className="admin-perms-grid">
+                  {[
+                    { id: 'instances', name: 'Instances' },
+                    { id: 'broadcast', name: 'Broadcast' },
+                    { id: 'filter', name: 'Number Filter' },
+                    { id: 'groups', name: 'Groups Hub' },
+                    { id: 'reports', name: 'Reports' },
+                    { id: 'docs', name: 'API Docs' },
+                  ].map(perm => {
+                    const currentPerms = (editingUser.permissions || 'instances,broadcast,filter,groups,reports,docs')
+                      .split(',')
+                      .map((p: string) => p.trim())
+                      .filter(Boolean);
+                    const isChecked = currentPerms.includes(perm.id);
+                    return (
+                      <div
+                        key={perm.id}
+                        onClick={() => {
+                          const updated = isChecked
+                            ? currentPerms.filter((p: string) => p !== perm.id)
+                            : [...currentPerms, perm.id];
+                          setEditingUser({ ...editingUser, permissions: updated.join(',') });
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          padding: '10px 14px',
+                          borderRadius: '10px',
+                          border: isChecked ? '1.5px solid #7C3AED' : '1px solid #E2E8F0',
+                          background: isChecked ? '#F3E8FF' : '#FFFFFF',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          userSelect: 'none'
+                        }}
+                      >
+                        {isChecked ? (
+                          <GlassCheckCircleIcon size={18} />
+                        ) : (
+                          <div style={{
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '50%',
+                            border: '2px solid #CBD5E1',
+                            flexShrink: 0
+                          }} />
+                        )}
+                        <span style={{ fontSize: '13px', fontWeight: isChecked ? 700 : 500, color: isChecked ? '#7C3AED' : '#475569' }}>
+                          {perm.name}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>

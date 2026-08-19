@@ -2,20 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
-  GlobeIcon,
-  CopyIcon,
-  CheckIcon,
-  LockIcon,
-  UserIcon,
-  WarningIcon,
-  CheckCircleIcon,
-  RefreshIcon,
-  EditIcon,
-  XIcon,
-  SearchIcon,
-  ShieldIcon,
-  UserPlusIcon
-} from '../components/Icons';
+  GlassGlobeIcon,
+  GlassCopyIcon,
+  GlassCheckCircleIcon,
+  GlassLockIcon,
+  GlassUserIcon,
+  GlassWarningIcon,
+  GlassRefreshIcon,
+  GlassEditIcon,
+  GlassCancelIcon,
+  GlassSearchIcon,
+  GlassShieldIcon,
+  GlassUserPlusIcon,
+  GlassSparklesIcon,
+  GlassLinkIcon
+} from '../components/GlassIcons';
+import { SearchableSelect } from '../components/SearchableSelect';
 
 interface UserDomainData {
   id: string;
@@ -79,7 +81,10 @@ export const AdminWhiteLabel = () => {
       }
       const data = await res.json();
       if (data.serverIp) setServerIp(data.serverIp);
-      if (data.users) setUsers(data.users);
+      if (data.users) {
+        const sortedUsers = [...data.users].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setUsers(sortedUsers);
+      }
     } catch (e) {
       console.error('Failed to load white-label data', e);
     } finally {
@@ -186,7 +191,7 @@ export const AdminWhiteLabel = () => {
               Enterprise White-Label Management Hub
             </h2>
             <span className="badge badge-primary" style={{ fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <ShieldIcon size={12} color="#2563EB" /> Super Admin Control
+              <GlassShieldIcon size={13} /> Super Admin Control
             </span>
           </div>
           <p style={{ color: '#64748B', fontSize: '14px', margin: '4px 0 0', fontWeight: 500 }}>
@@ -212,7 +217,7 @@ export const AdminWhiteLabel = () => {
               boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
             }}
           >
-            <RefreshIcon size={14} color="#475569" /> Refresh
+            <GlassRefreshIcon size={15} /> Refresh
           </button>
 
           <button
@@ -231,7 +236,7 @@ export const AdminWhiteLabel = () => {
               cursor: 'pointer'
             }}
           >
-            <GlobeIcon size={16} color="#FFFFFF" /> + Add Domain
+            <GlassGlobeIcon size={18} />Add Domain
           </button>
         </div>
       </div>
@@ -241,7 +246,7 @@ export const AdminWhiteLabel = () => {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <GlobeIcon size={24} color="#2563EB" />
+              <GlassGlobeIcon size={26} />
             </div>
             <div>
               <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#0F172A' }}>
@@ -270,14 +275,14 @@ export const AdminWhiteLabel = () => {
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
+                gap: '6px',
                 fontSize: '12px',
                 fontWeight: 700,
                 color: copiedIp ? '#059669' : '#334155',
                 transition: 'all 0.2s'
               }}
             >
-              {copiedIp ? <CheckIcon size={14} color="#059669" /> : <CopyIcon size={14} color="#334155" />}
+              {copiedIp ? <GlassCheckCircleIcon size={14} /> : <GlassCopyIcon size={14} />}
               <span>{copiedIp ? 'Copied!' : 'Copy IP'}</span>
             </button>
           </div>
@@ -327,7 +332,7 @@ export const AdminWhiteLabel = () => {
               </span>
             </div>
             <p style={{ fontSize: '13px', color: '#64748B', margin: '4px 0 0', fontWeight: 500 }}>
-              Click on <strong>"+ Add Domain"</strong> or <strong>"Edit"</strong> on any account to attach or update custom domain and branding.
+              Click on <strong>"Add Domain"</strong> or <strong>"Edit"</strong> on any account to attach or update custom domain and branding.
             </p>
           </div>
 
@@ -347,8 +352,8 @@ export const AdminWhiteLabel = () => {
                 outline: 'none'
               }}
             />
-            <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#94A3B8' }}>
-              <SearchIcon size={16} color="currentColor" />
+            <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+              <GlassSearchIcon size={16} />
             </div>
           </div>
         </div>
@@ -372,7 +377,7 @@ export const AdminWhiteLabel = () => {
                   <td colSpan={6} style={{ padding: '48px 16px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                       <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '4px' }}>
-                        <GlobeIcon size={24} color="#2563EB" />
+                        <GlassGlobeIcon size={26} />
                       </div>
                       <h4 style={{ margin: 0, color: '#0F172A', fontSize: '15px', fontWeight: 800 }}>
                         {search ? 'No Matching Custom Domains Found' : 'No Custom Domains Configured Yet'}
@@ -400,7 +405,7 @@ export const AdminWhiteLabel = () => {
                             cursor: 'pointer'
                           }}
                         >
-                          <GlobeIcon size={15} color="#FFFFFF" /> + Add Domain
+                          <GlassGlobeIcon size={16} />Add Domain
                         </button>
                       )}
                     </div>
@@ -429,15 +434,15 @@ export const AdminWhiteLabel = () => {
                     <td style={{ padding: '16px' }}>
                       {u.isAdmin ? (
                         <span className="badge badge-primary" style={{ fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <ShieldIcon size={12} color="#2563EB" /> Super Admin
+                          <GlassShieldIcon size={13} /> Super Admin
                         </span>
                       ) : u.isReseller ? (
                         <span className="badge badge-warning" style={{ fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <UserPlusIcon size={12} color="#D97706" /> Reseller
+                          <GlassUserPlusIcon size={13} /> Reseller
                         </span>
                       ) : (
                         <span className="badge badge-neutral" style={{ fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <UserIcon size={12} color="#64748B" /> Client
+                          <GlassUserIcon size={13} /> Client
                         </span>
                       )}
                     </td>
@@ -492,7 +497,7 @@ export const AdminWhiteLabel = () => {
                     {/* SSL & Status */}
                     <td style={{ padding: '16px' }}>
                       <span className="badge badge-success" style={{ fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <LockIcon size={12} color="#15803D" /> SSL Active
+                        <GlassLockIcon size={13} /> SSL Active
                       </span>
                     </td>
 
@@ -516,7 +521,7 @@ export const AdminWhiteLabel = () => {
                             gap: '4px'
                           }}
                         >
-                          <EditIcon size={13} color="#475569" />
+                          <GlassEditIcon size={13} />
                           <span>Edit</span>
                         </button>
 
@@ -565,7 +570,7 @@ export const AdminWhiteLabel = () => {
           }}
         >
           <div
-            className="card animate-in"
+            className="card animate-in hide-scrollbar"
             style={{
               width: '100%',
               maxWidth: '560px',
@@ -575,7 +580,9 @@ export const AdminWhiteLabel = () => {
               boxShadow: '0 25px 50px -12px rgba(37, 99, 235, 0.25)',
               background: '#FFFFFF',
               maxHeight: '90vh',
-              overflowY: 'auto'
+              overflowY: 'auto',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
             }}
           >
             {/* Close X Button */}
@@ -597,7 +604,7 @@ export const AdminWhiteLabel = () => {
                 color: '#64748B'
               }}
             >
-              <XIcon size={18} color="currentColor" />
+              <GlassCancelIcon size={18} />
             </button>
 
             {/* Modal Header */}
@@ -614,7 +621,7 @@ export const AdminWhiteLabel = () => {
                   flexShrink: 0
                 }}
               >
-                <GlobeIcon size={24} color="#2563EB" />
+                <GlassGlobeIcon size={24} />
               </div>
               <div>
                 <h3 style={{ fontWeight: 800, fontSize: '20px', color: '#0F172A', margin: 0 }}>
@@ -643,7 +650,7 @@ export const AdminWhiteLabel = () => {
                   gap: '8px'
                 }}
               >
-                {message.type === 'success' ? <CheckCircleIcon size={16} color="#15803D" /> : <WarningIcon size={16} color="#DC2626" />}
+                {message.type === 'success' ? <GlassCheckCircleIcon size={16} /> : <GlassWarningIcon size={16} />}
                 <span>{message.text}</span>
               </div>
             )}
@@ -656,10 +663,11 @@ export const AdminWhiteLabel = () => {
                 <label style={S.label}>
                   Select Target Account <span style={{ color: '#EF4444' }}>*</span>
                 </label>
-                <select
+                <SearchableSelect
+                  placeholder="-- Choose Client or Reseller Account --"
+                  searchPlaceholder="Search account by username, role, domain..."
                   value={selectedUserId}
-                  onChange={(e) => {
-                    const userId = e.target.value;
+                  onChange={(userId) => {
                     setSelectedUserId(userId);
                     const user = users.find(u => u.id === userId);
                     if (user) {
@@ -668,25 +676,15 @@ export const AdminWhiteLabel = () => {
                       setBrandLogoInput(user.brandLogoUrl || '');
                     }
                   }}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    borderRadius: '12px',
-                    border: '1.5px solid #CBD5E1',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    outline: 'none',
-                    background: '#FFFFFF'
-                  }}
-                >
-                  <option value="">-- Choose Client or Reseller Account --</option>
-                  {users.map(u => (
-                    <option key={u.id} value={u.id}>
-                      {u.username} ({u.isAdmin ? 'Super Admin' : u.isReseller ? 'Reseller' : 'Client'}) {u.customDomain ? `— [${u.customDomain}]` : ''}
-                    </option>
-                  ))}
-                </select>
+                  options={users.map(u => ({
+                    value: u.id,
+                    label: u.username,
+                    sublabel: u.customDomain ? `Domain: ${u.customDomain}` : undefined,
+                    badge: u.isAdmin ? 'Super Admin' : u.isReseller ? 'Reseller' : 'Client',
+                    badgeColor: u.isAdmin ? { bg: '#F3E8FF', text: '#7C3AED' } : u.isReseller ? { bg: '#FEF3C7', text: '#B45309' } : { bg: '#EFF6FF', text: '#2563EB' },
+                    icon: u.isAdmin ? <GlassUserPlusIcon size={16} /> : u.isReseller ? <GlassUserIcon size={16} /> : <GlassUserIcon size={16} />
+                  }))}
+                />
               </div>
 
               {/* Custom Domain Input */}
@@ -694,64 +692,99 @@ export const AdminWhiteLabel = () => {
                 <label style={S.label}>
                   Custom Domain Name <span style={{ color: '#EF4444' }}>*</span>
                 </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. portal.clientbrand.com or app.agency.in"
-                  value={domainInput}
-                  onChange={(e) => setDomainInput(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    borderRadius: '12px',
-                    border: '1.5px solid #CBD5E1',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    outline: 'none',
-                    fontFamily: 'var(--font-mono)'
-                  }}
-                />
-                <span style={{ fontSize: '11.5px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>
-                  Do not include https://. Example: <code>portal.clientbrand.com</code>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                    <GlassGlobeIcon size={16} />
+                  </span>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. portal.clientbrand.com or app.agency.in"
+                    value={domainInput}
+                    onChange={(e) => setDomainInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      height: '44px',
+                      borderRadius: '12px',
+                      fontSize: '13.5px',
+                      fontWeight: 600,
+                      background: '#FFFFFF',
+                      border: '1.5px solid #E2E8F0',
+                      padding: '0 12px 0 38px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      transition: 'all 0.2s ease',
+                      fontFamily: 'var(--font-mono)'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                  />
+                </div>
+                <span style={{ fontSize: '11.5px', color: '#94A3B8', marginTop: '5px', display: 'block' }}>
+                  Do not include https://. Example: <code style={{ background: '#F1F5F9', padding: '2px 5px', borderRadius: '4px' }}>portal.clientbrand.com</code>
                 </span>
               </div>
 
               {/* Brand Title */}
               <div>
                 <label style={S.label}>Portal Brand Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Client Messaging Cloud"
-                  value={brandNameInput}
-                  onChange={(e) => setBrandNameInput(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    borderRadius: '12px',
-                    border: '1.5px solid #CBD5E1',
-                    fontSize: '14px',
-                    outline: 'none'
-                  }}
-                />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                    <GlassSparklesIcon size={16} />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="e.g. Client Messaging Cloud"
+                    value={brandNameInput}
+                    onChange={(e) => setBrandNameInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      height: '44px',
+                      borderRadius: '12px',
+                      fontSize: '13.5px',
+                      fontWeight: 600,
+                      background: '#FFFFFF',
+                      border: '1.5px solid #E2E8F0',
+                      padding: '0 12px 0 38px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                  />
+                </div>
               </div>
 
               {/* Logo URL */}
               <div>
                 <label style={S.label}>Custom Brand Logo URL (Optional)</label>
-                <input
-                  type="url"
-                  placeholder="e.g. https://clientbrand.com/logo.png"
-                  value={brandLogoInput}
-                  onChange={(e) => setBrandLogoInput(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '12px 14px',
-                    borderRadius: '12px',
-                    border: '1.5px solid #CBD5E1',
-                    fontSize: '14px',
-                    outline: 'none'
-                  }}
-                />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                    <GlassLinkIcon size={16} />
+                  </span>
+                  <input
+                    type="url"
+                    placeholder="e.g. https://clientbrand.com/logo.png"
+                    value={brandLogoInput}
+                    onChange={(e) => setBrandLogoInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      height: '44px',
+                      borderRadius: '12px',
+                      fontSize: '13.5px',
+                      fontWeight: 600,
+                      background: '#FFFFFF',
+                      border: '1.5px solid #E2E8F0',
+                      padding: '0 12px 0 38px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                  />
+                </div>
               </div>
 
               {/* Submit Button */}
@@ -793,7 +826,7 @@ export const AdminWhiteLabel = () => {
                     opacity: verifying ? 0.7 : 1
                   }}
                 >
-                  <GlobeIcon size={18} color="#FFFFFF" />
+                  <GlassGlobeIcon size={18} />
                   <span>{verifying ? 'Verifying DNS & Activating SSL...' : 'Verify DNS & Connect Domain'}</span>
                 </button>
               </div>

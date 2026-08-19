@@ -62,6 +62,26 @@
   }
 }
 
+/* Remove default browser calendar icon and spinners from date inputs */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none !important;
+  -webkit-appearance: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+input[type="date"]::-webkit-inner-spin-button,
+input[type="date"]::-webkit-clear-button {
+  display: none !important;
+  -webkit-appearance: none !important;
+}
+
+input[type="date"] {
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+}
+
 /* App Container */
 .app-container {
   display: flex;
@@ -141,7 +161,7 @@
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: none;
   background: rgba(255, 255, 255, 0.15);
   color: #FFFFFF;
   cursor: pointer;
@@ -236,6 +256,16 @@
 .rounded-input:focus {
   border-color: #2563EB !important;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+
+/* Prevent browser autofill background tint */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+  -webkit-text-fill-color: #0F172A !important;
+  transition: background-color 5000s ease-in-out 0s;
 }
 
 .btn-primary {
@@ -334,20 +364,118 @@
 .status-dot.suspended { background: var(--danger-color); }
 .status-dot.new { background: var(--info-color); }
 
-/* Custom Scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
+/* Sleek Global Scrollbar */
+::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.65);
+}
+
+/* Hide Scrollbar for Modals, Cards and No-Scrollbar Elements */
+.modal-card,
+.card[style*="overflow"],
+.no-scrollbar,
+.hide-scrollbar,
+div[style*="overflowY: 'auto'"],
+div[style*="overflow-y: auto"] {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.modal-card::-webkit-scrollbar,
+.card[style*="overflow"]::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar,
+div[style*="overflowY: 'auto'"]::-webkit-scrollbar,
+div[style*="overflow-y: auto"]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Global Sleek Scrollbar Design */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(203, 213, 225, 0.6) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(203, 213, 225, 0.6);
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.85);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(203, 213, 225, 0.6) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.12);
+  background: rgba(203, 213, 225, 0.6);
   border-radius: 10px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(0,0,0,0.25);
+  background: rgba(148, 163, 184, 0.85);
+}
+
+/* Sidebar Specific Ultra-Sleek Scrollbar (Fades in on hover) */
+.sidebar-nav-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar-thumb {
+  background: rgba(203, 213, 225, 0.4);
+  border-radius: 10px;
+}
+
+.sidebar-nav-scroll:hover::-webkit-scrollbar-thumb,
+.app-sidebar:hover .sidebar-nav-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.6);
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(37, 99, 235, 0.7) !important;
 }
 
 /* Animations */
@@ -773,7 +901,7 @@
 .top-header-hamburger {
   display: none;
   background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: none;
   border-radius: 10px;
   padding: 7px 9px;
   cursor: pointer;

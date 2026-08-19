@@ -2,18 +2,22 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
-  FilterIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  DownloadIcon,
-  UploadIcon,
-  WarningIcon,
-  TrashIcon,
-  EyeIcon,
-  RefreshIcon,
   XIcon,
   CheckIcon
 } from '../components/Icons';
+import {
+  GlassFilterIcon,
+  GlassCheckCircleIcon,
+  GlassCancelIcon,
+  GlassDownloadIcon,
+  GlassUploadIcon,
+  GlassAlertIcon,
+  GlassTrashIcon,
+  GlassEyeIcon,
+  GlassRefreshIcon,
+  GlassInstanceIcon
+} from '../components/GlassIcons';
+import { SearchableSelect } from '../components/SearchableSelect';
 
 interface FilterBatch {
   id: string;
@@ -273,7 +277,7 @@ export const NumberFilter = () => {
             transition: 'all 0.2s ease'
           }}
         >
-          <FilterIcon size={16} color="#FFFFFF" /> Create New Filter Batch
+          <GlassFilterIcon size={18} /> Create New Filter Batch
         </button>
       </div>
 
@@ -283,8 +287,8 @@ export const NumberFilter = () => {
         <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Total Batches</span>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FilterIcon size={16} color="#2563EB" />
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassFilterIcon size={20} />
             </div>
           </div>
           <div>
@@ -299,8 +303,8 @@ export const NumberFilter = () => {
         <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Numbers Scanned</span>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <RefreshIcon size={16} color="#2563EB" />
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassRefreshIcon size={20} />
             </div>
           </div>
           <div>
@@ -315,8 +319,8 @@ export const NumberFilter = () => {
         <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Active WhatsApp</span>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CheckCircleIcon size={16} color="#059669" />
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassCheckCircleIcon size={20} />
             </div>
           </div>
           <div>
@@ -331,8 +335,8 @@ export const NumberFilter = () => {
         <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Non-WhatsApp</span>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <XCircleIcon size={16} color="#DC2626" />
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassCancelIcon size={20} />
             </div>
           </div>
           <div>
@@ -375,7 +379,7 @@ export const NumberFilter = () => {
                 gap: '6px'
               }}
             >
-              <RefreshIcon size={13} color="#475569" /> Refresh
+              <GlassRefreshIcon size={14} /> Refresh
             </button>
           </div>
         </div>
@@ -405,8 +409,8 @@ export const NumberFilter = () => {
                 <tr>
                   <td colSpan={6} style={{ padding: '50px 24px', textAlign: 'center' }}>
                     <div style={{ maxWidth: '380px', margin: '0 auto' }}>
-                      <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-                        <FilterIcon size={24} color="#2563EB" />
+                      <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                        <GlassFilterIcon size={32} />
                       </div>
                       <h4 style={{ margin: '0 0 6px', color: '#0F172A', fontSize: '15px', fontWeight: 800 }}>No Filter Batches Yet</h4>
                       <p style={{ margin: '0 0 16px', color: '#64748B', fontSize: '13px' }}>
@@ -445,8 +449,8 @@ export const NumberFilter = () => {
                       </span>
                     </td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                      <span className={`badge ${b.status === 'processing' ? 'badge-warning' : 'badge-info'}`} style={{ fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        {b.status === 'processing' ? <RefreshIcon size={12} color="#D97706" style={{ animation: 'spin 1.5s linear infinite' }} /> : <CheckIcon size={12} color="#2563EB" />}
+                      <span className={`badge ${b.status === 'processing' ? 'badge-warning' : 'badge-info'}`} style={{ fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        {b.status === 'processing' ? <GlassRefreshIcon size={14} style={{ animation: 'spin 1.5s linear infinite' }} /> : <GlassCheckCircleIcon size={14} />}
                         <span>{b.status === 'processing' ? 'Processing' : 'Completed'}</span>
                       </span>
                     </td>
@@ -466,10 +470,10 @@ export const NumberFilter = () => {
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px'
+                            gap: '6px'
                           }}
                         >
-                          <EyeIcon size={13} color="#2563EB" /> View Details
+                          <GlassEyeIcon size={16} /> View Details
                         </button>
 
                         {/* Export CSV Button */}
@@ -477,18 +481,19 @@ export const NumberFilter = () => {
                           onClick={() => handleExportBatch(b)}
                           title="Export CSV"
                           style={{
-                            background: '#F8FAFC',
-                            border: '1px solid #E2E8F0',
+                            background: '#0F172A',
+                            border: 'none',
                             borderRadius: '8px',
                             padding: '6px 10px',
-                            color: '#475569',
+                            color: '#FFFFFF',
                             fontSize: '12px',
                             cursor: 'pointer',
                             display: 'flex',
-                            alignItems: 'center'
+                            alignItems: 'center',
+                            boxShadow: '0 2px 6px rgba(15,23,42,0.2)'
                           }}
                         >
-                          <DownloadIcon size={13} color="#475569" />
+                          <GlassDownloadIcon size={16} />
                         </button>
 
                         {/* Delete Button */}
@@ -507,7 +512,7 @@ export const NumberFilter = () => {
                             alignItems: 'center'
                           }}
                         >
-                          <TrashIcon size={13} color="#DC2626" />
+                          <GlassTrashIcon size={16} />
                         </button>
                       </div>
                     </td>
@@ -579,17 +584,19 @@ export const NumberFilter = () => {
           onClick={() => !isProcessing && setIsCreateModalOpen(false)}
         >
           <div
-            className="card animate-in"
+            className="card animate-in hide-scrollbar"
             style={{
               width: '100%',
-              maxWidth: '600px',
+              maxWidth: '580px',
               position: 'relative',
               borderRadius: '24px',
               padding: '32px',
               boxShadow: '0 25px 50px -12px rgba(37, 99, 235, 0.25), 0 0 0 1px rgba(226, 232, 240, 0.8)',
               background: '#FFFFFF',
               maxHeight: '90vh',
-              overflowY: 'auto'
+              overflowY: 'auto',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -597,6 +604,7 @@ export const NumberFilter = () => {
             <button
               onClick={() => !isProcessing && setIsCreateModalOpen(false)}
               disabled={isProcessing}
+              title="Close modal"
               style={{
                 position: 'absolute',
                 top: '24px',
@@ -611,18 +619,17 @@ export const NumberFilter = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#64748B',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                padding: 0
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#E2E8F0'; e.currentTarget.style.color = '#0F172A'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = '#64748B'; }}
             >
-              <XIcon size={18} color="currentColor" />
+              <GlassCancelIcon size={18} />
             </button>
 
             {/* Modal Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(37, 99, 235, 0.12)' }}>
-                <FilterIcon size={24} color="#2563EB" />
+              <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <GlassFilterIcon size={26} />
               </div>
               <div>
                 <h3 style={{ fontWeight: 800, fontSize: '20px', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
@@ -660,23 +667,25 @@ export const NumberFilter = () => {
                 </label>
                 {instances.length === 0 ? (
                   <div style={{ padding: '12px', background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '10px', color: '#DC2626', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <WarningIcon size={16} color="#DC2626" />
+                    <GlassAlertIcon size={18} />
                     <span>No connected instances found. Connect an instance in the <strong>Instances</strong> page first.</span>
                   </div>
                 ) : (
-                  <select
+                  <SearchableSelect
+                    placeholder="-- Select WhatsApp Instance --"
+                    searchPlaceholder="Search instance name or phone number..."
                     value={selectedInstance}
-                    onChange={(e) => setSelectedInstance(e.target.value)}
-                    className="rounded-input"
-                    style={{ height: '44px', cursor: 'pointer', background: '#FFFFFF', fontWeight: 600, fontSize: '13px', borderRadius: '10px' }}
+                    onChange={(val) => setSelectedInstance(val)}
                     disabled={isProcessing}
-                  >
-                    {instances.map((inst) => (
-                      <option key={inst.id} value={inst.id}>
-                        {inst.id} {inst.phoneNumber ? `(+${inst.phoneNumber})` : ''} - Connected
-                      </option>
-                    ))}
-                  </select>
+                    options={instances.map((inst) => ({
+                      value: inst.id,
+                      label: inst.id,
+                      sublabel: inst.phoneNumber ? `+${inst.phoneNumber}` : undefined,
+                      badge: 'Connected',
+                      badgeColor: { bg: '#D1FAE5', text: '#059669' },
+                      icon: <GlassInstanceIcon size={16} />
+                    }))}
+                  />
                 )}
               </div>
 
@@ -708,10 +717,10 @@ export const NumberFilter = () => {
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px'
+                        gap: '6px'
                       }}
                     >
-                      <UploadIcon size={12} color="#2563EB" /> Upload TXT/CSV
+                      <GlassUploadIcon size={14} /> Upload TXT/CSV
                     </button>
                     {rawInput && (
                       <button
@@ -780,7 +789,7 @@ export const NumberFilter = () => {
 
               {errorMsg && (
                 <div style={{ background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '10px', padding: '10px 14px', color: '#DC2626', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <WarningIcon size={14} color="#DC2626" /> {errorMsg}
+                  <GlassAlertIcon size={16} /> {errorMsg}
                 </div>
               )}
 
@@ -831,7 +840,7 @@ export const NumberFilter = () => {
                     </>
                   ) : (
                     <>
-                      <FilterIcon size={16} color="#FFFFFF" /> Filter & Create Batch
+                      <GlassFilterIcon size={18} /> Filter & Create Batch
                     </>
                   )}
                 </button>

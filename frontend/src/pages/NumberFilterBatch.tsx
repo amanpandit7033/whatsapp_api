@@ -1,18 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  CheckCircleIcon,
-  XCircleIcon,
-  CopyIcon,
-  DownloadIcon,
-  SendIcon,
-  CheckIcon,
-  SearchIcon,
-  RefreshIcon,
-  DeviceIcon,
-  CalendarIcon,
-  FilterIcon
+  CheckIcon
 } from '../components/Icons';
+import {
+  GlassCheckCircleIcon,
+  GlassCancelIcon,
+  GlassCopyIcon,
+  GlassDownloadIcon,
+  GlassSendIcon,
+  GlassSearchIcon,
+  GlassRefreshIcon,
+  GlassInstanceIcon,
+  GlassCalendarIcon,
+  GlassFilterIcon
+} from '../components/GlassIcons';
 import { copyToClipboard } from '../utils/clipboard';
 
 interface FilterItem {
@@ -210,8 +212,8 @@ export const NumberFilterBatch = () => {
   if (!batch && !loading) {
     return (
       <div className="card animate-in" style={{ padding: '48px', textAlign: 'center', maxWidth: '520px', margin: '40px auto' }}>
-        <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-          <XCircleIcon size={24} color="#DC2626" />
+        <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+          <GlassCancelIcon size={28} />
         </div>
         <h3 style={{ margin: '0 0 8px', color: '#0F172A', fontSize: '18px', fontWeight: 800 }}>Batch Not Found</h3>
         <p style={{ color: '#64748B', fontSize: '14px', margin: '0 0 24px' }}>This filter batch may have been deleted or does not exist.</p>
@@ -269,12 +271,12 @@ export const NumberFilterBatch = () => {
 
               {isProcessing ? (
                 <span className="badge badge-warning" style={{ fontSize: '11.5px', fontWeight: 800, padding: '4px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <RefreshIcon size={13} color="#D97706" style={{ animation: 'spin 1.5s linear infinite' }} />
+                  <GlassRefreshIcon size={14} style={{ animation: 'spin 1.5s linear infinite' }} />
                   <span>Verifying in Background ({progressPercent}%)</span>
                 </span>
               ) : (
-                <span className="badge badge-success" style={{ fontSize: '11.5px', fontWeight: 800, padding: '4px 12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                  <CheckCircleIcon size={14} color="#15803D" />
+                <span className="badge badge-success" style={{ fontSize: '11.5px', fontWeight: 800, padding: '4px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <GlassCheckCircleIcon size={16} />
                   <span>Completed</span>
                 </span>
               )}
@@ -283,12 +285,12 @@ export const NumberFilterBatch = () => {
             {/* Metadata Tags Strip */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginTop: '2px' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#475569', background: '#FFFFFF', padding: '4px 10px', borderRadius: '8px', border: '1px solid #CBD5E1' }}>
-                <DeviceIcon size={14} color="#2563EB" />
+                <GlassInstanceIcon size={16} />
                 <span>Instance: <strong style={{ color: '#0F172A', fontFamily: 'var(--font-mono)' }}>{batch?.instanceId}</strong></span>
               </div>
 
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#475569', background: '#FFFFFF', padding: '4px 10px', borderRadius: '8px', border: '1px solid #CBD5E1' }}>
-                <CalendarIcon size={14} color="#64748B" />
+                <GlassCalendarIcon size={16} />
                 <span>Created: {new Date(batch?.createdAt || '').toLocaleString()}</span>
               </div>
             </div>
@@ -314,7 +316,7 @@ export const NumberFilterBatch = () => {
                 boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
               }}
             >
-              <RefreshIcon size={14} color="#475569" /> Refresh
+              <GlassRefreshIcon size={14} /> Refresh
             </button>
 
             {batch && batch.validCount > 0 && (
@@ -336,7 +338,7 @@ export const NumberFilterBatch = () => {
                   boxShadow: '0 4px 15px rgba(37, 99, 235, 0.3)'
                 }}
               >
-                <SendIcon size={16} color="#FFFFFF" /> Forward {batch.validCount.toLocaleString()} Valid to Broadcast Hub
+                <GlassSendIcon size={18} /> Forward {batch.validCount.toLocaleString()} Valid to Broadcast Hub
               </button>
             )}
           </div>
@@ -349,7 +351,7 @@ export const NumberFilterBatch = () => {
         <div style={{ background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)', border: '1px solid #BFDBFE', borderRadius: '16px', padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#1E40AF', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <RefreshIcon size={15} color="#1E40AF" style={{ animation: 'spin 1.5s linear infinite' }} />
+              <GlassRefreshIcon size={16} style={{ animation: 'spin 1.5s linear infinite' }} />
               <span>Background Verification Active: {processedCount.toLocaleString()} of {totalCount.toLocaleString()} verified</span>
             </span>
             <span style={{ fontSize: '14px', fontWeight: 800, color: '#2563EB', fontFamily: 'var(--font-mono)' }}>
@@ -372,8 +374,8 @@ export const NumberFilterBatch = () => {
         <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#64748B' }}>Total Numbers</span>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FilterIcon size={16} color="#2563EB" />
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassFilterIcon size={20} />
             </div>
           </div>
           <div>
@@ -388,8 +390,8 @@ export const NumberFilterBatch = () => {
         <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#64748B' }}>Active WhatsApp</span>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CheckCircleIcon size={16} color="#059669" />
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassCheckCircleIcon size={20} />
             </div>
           </div>
           <div>
@@ -406,8 +408,8 @@ export const NumberFilterBatch = () => {
         <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#64748B' }}>Non-WhatsApp</span>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <XCircleIcon size={16} color="#DC2626" />
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassCancelIcon size={20} />
             </div>
           </div>
           <div>
@@ -422,8 +424,8 @@ export const NumberFilterBatch = () => {
         <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#64748B' }}>Accuracy SLA</span>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CheckIcon size={16} color="#D97706" />
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassCheckCircleIcon size={20} />
             </div>
           </div>
           <div>
@@ -453,8 +455,8 @@ export const NumberFilterBatch = () => {
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {[
               { key: 'all', label: `All Numbers (${batch?.totalCount.toLocaleString()})`, icon: null },
-              { key: 'valid', label: `Active WhatsApp (${batch?.validCount.toLocaleString()})`, icon: <CheckCircleIcon size={13} color={statusFilter === 'valid' ? '#FFFFFF' : '#059669'} /> },
-              { key: 'invalid', label: `Non-WhatsApp (${batch?.invalidCount.toLocaleString()})`, icon: <XCircleIcon size={13} color={statusFilter === 'invalid' ? '#FFFFFF' : '#DC2626'} /> }
+              { key: 'valid', label: `Active WhatsApp (${batch?.validCount.toLocaleString()})`, icon: <GlassCheckCircleIcon size={16} /> },
+              { key: 'invalid', label: `Non-WhatsApp (${batch?.invalidCount.toLocaleString()})`, icon: <GlassCancelIcon size={16} /> }
             ].map(({ key, label, icon }) => (
               <button
                 key={key}
@@ -505,7 +507,7 @@ export const NumberFilterBatch = () => {
                     transition: 'all 0.2s'
                   }}
                 >
-                  {copiedValid ? <CheckIcon size={14} color="#15803D" /> : <CopyIcon size={14} color="#64748B" />}
+                  {copiedValid ? <CheckIcon size={14} color="#15803D" /> : <GlassCopyIcon size={16} />}
                   <span>{copiedValid ? 'Copied Valid List!' : 'Copy Active Numbers'}</span>
                 </button>
 
@@ -513,20 +515,21 @@ export const NumberFilterBatch = () => {
                   onClick={() => handleExport('valid')}
                   disabled={exporting}
                   style={{
-                    background: '#D1FAE5',
-                    border: '1px solid #A7F3D0',
+                    background: '#0F172A',
+                    border: 'none',
                     borderRadius: '10px',
                     padding: '8px 14px',
                     fontSize: '12.5px',
                     fontWeight: 700,
-                    color: '#065F46',
+                    color: '#FFFFFF',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px'
+                    gap: '6px',
+                    boxShadow: '0 2px 8px rgba(15,23,42,0.2)'
                   }}
                 >
-                  <DownloadIcon size={14} color="#065F46" />
+                  <GlassDownloadIcon size={16} />
                   <span>Export Active CSV</span>
                 </button>
               </>
@@ -537,20 +540,21 @@ export const NumberFilterBatch = () => {
                 onClick={() => handleExport('invalid')}
                 disabled={exporting}
                 style={{
-                  background: '#FEE2E2',
-                  border: '1px solid #FECACA',
+                  background: '#0F172A',
+                  border: 'none',
                   borderRadius: '10px',
                   padding: '8px 14px',
                   fontSize: '12.5px',
                   fontWeight: 700,
-                  color: '#991B1B',
+                  color: '#FFFFFF',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  gap: '6px',
+                  boxShadow: '0 2px 8px rgba(15,23,42,0.2)'
                 }}
               >
-                <DownloadIcon size={14} color="#991B1B" />
+                <GlassDownloadIcon size={16} />
                 <span>Export Inactive CSV</span>
               </button>
             )}
@@ -559,20 +563,21 @@ export const NumberFilterBatch = () => {
               onClick={() => handleExport('all')}
               disabled={exporting}
               style={{
-                background: '#EFF6FF',
-                border: '1px solid #DBEAFE',
+                background: '#0F172A',
+                border: 'none',
                 borderRadius: '10px',
                 padding: '8px 14px',
                 fontSize: '12.5px',
                 fontWeight: 700,
-                color: '#2563EB',
+                color: '#FFFFFF',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(15,23,42,0.2)'
               }}
             >
-              <DownloadIcon size={14} color="#2563EB" />
+              <GlassDownloadIcon size={16} />
               <span>Export Full CSV</span>
             </button>
           </div>
@@ -582,8 +587,8 @@ export const NumberFilterBatch = () => {
         {/* Search & Rows Per Page Controls */}
         <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
           <div style={{ position: 'relative', width: '300px' }}>
-            <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }}>
-              <SearchIcon size={15} />
+            <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+              <GlassSearchIcon size={16} />
             </div>
             <input
               type="text"
@@ -687,7 +692,7 @@ export const NumberFilterBatch = () => {
                               color: copiedNumberId === item.id ? '#059669' : '#64748B'
                             }}
                           >
-                            {copiedNumberId === item.id ? <CheckIcon size={12} color="#059669" /> : <CopyIcon size={12} />}
+                            {copiedNumberId === item.id ? <CheckIcon size={12} color="#059669" /> : <GlassCopyIcon size={14} />}
                           </button>
                         </div>
                       </td>
@@ -713,7 +718,7 @@ export const NumberFilterBatch = () => {
                                 color: copiedJidId === item.id ? '#059669' : '#64748B'
                               }}
                             >
-                              {copiedJidId === item.id ? <CheckIcon size={12} color="#059669" /> : <CopyIcon size={12} />}
+                              {copiedJidId === item.id ? <CheckIcon size={12} color="#059669" /> : <GlassCopyIcon size={14} />}
                             </button>
                           </div>
                         ) : (
@@ -729,12 +734,12 @@ export const NumberFilterBatch = () => {
                       {/* Status Badge */}
                       <td style={{ padding: '14px 24px', textAlign: 'right' }}>
                         {item.exists ? (
-                          <span className="badge badge-success" style={{ fontSize: '11.5px', padding: '5px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <CheckCircleIcon size={13} color="#15803D" /> Active WhatsApp
+                          <span className="badge badge-success" style={{ fontSize: '11.5px', padding: '5px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <GlassCheckCircleIcon size={14} /> Active WhatsApp
                           </span>
                         ) : (
-                          <span className="badge badge-danger" style={{ fontSize: '11.5px', padding: '5px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <XCircleIcon size={13} color="#DC2626" /> Non-WhatsApp
+                          <span className="badge badge-danger" style={{ fontSize: '11.5px', padding: '5px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <GlassCancelIcon size={14} /> Non-WhatsApp
                           </span>
                         )}
                       </td>

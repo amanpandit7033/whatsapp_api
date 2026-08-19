@@ -1007,6 +1007,66 @@ export const GlobeIcon: React.FC<IconProps> = ({ size = 20, color = 'currentColo
   </svg>
 );
 
+export interface ToggleIconProps extends IconProps {
+  checked?: boolean;
+  onColor?: string;
+  offColor?: string;
+}
+
+export const ToggleIcon: React.FC<ToggleIconProps> = ({
+  size = 40,
+  checked = false,
+  onColor = '#2563EB',
+  offColor = '#CBD5E1',
+  ...props
+}) => {
+  const gradId = React.useId().replace(/[^a-zA-Z0-9]/g, '');
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      width={size}
+      height={typeof size === 'number' ? Math.round(size * 0.65) : size}
+      fill="none"
+      style={{ cursor: 'pointer', display: 'inline-block', verticalAlign: 'middle', userSelect: 'none' }}
+      {...props}
+    >
+      <defs>
+        <linearGradient id={`grad-track-${gradId}`} x1="4" y1="7" x2="23" y2="17" gradientUnits="userSpaceOnUse">
+          <stop stopColor={checked ? onColor : offColor} />
+          <stop offset="1" stopColor={checked ? (onColor === '#2563EB' ? '#1D4ED8' : onColor) : '#94A3B8'} />
+        </linearGradient>
+        <linearGradient id={`grad-knob-${gradId}`} x1="0" y1="0" x2="0" y2="1">
+          <stop stopColor="#FFFFFF" />
+          <stop offset="1" stopColor="#F8FAFC" />
+        </linearGradient>
+        <filter id={`filter-shadow-${gradId}`} x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="1" stdDeviation="0.8" floodColor="#0F172A" floodOpacity="0.28" />
+        </filter>
+      </defs>
+
+      {/* Pill Track */}
+      <path
+        d="M18 7C20.7614 7 23 9.23858 23 12C23 14.7614 20.7614 17 18 17H9C6.23858 17 4 14.7614 4 12C4 9.23858 6.23858 7 9 7L18 7Z"
+        fill={`url(#grad-track-${gradId})`}
+        style={{ transition: 'fill 0.25s ease' }}
+      />
+
+      {/* Sliding Knob */}
+      <g
+        style={{
+          transform: checked ? 'translateX(7.8px)' : 'translateX(0px)',
+          transition: 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          filter: `url(#filter-shadow-${gradId})`
+        }}
+      >
+        <circle cx="8" cy="12" r="5.2" fill={`url(#grad-knob-${gradId})`} />
+        <circle cx="8" cy="12" r="5.2" stroke={checked ? onColor : 'rgba(0,0,0,0.06)'} strokeWidth="0.6" fill="none" opacity={0.6} />
+      </g>
+    </svg>
+  );
+};
+
 
 
 

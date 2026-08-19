@@ -2,20 +2,28 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
-  DownloadIcon,
-  EyeIcon,
   CaretLeftIcon,
   CaretRightIcon,
   XIcon,
-  FileIcon,
-  SparklesIcon,
   ChecksIcon,
-  TrashIcon,
-  SendIcon,
-  CheckCircleIcon,
-  WarningIcon,
   WarningCircleIcon
 } from '../components/Icons';
+import {
+  GlassDownloadIcon,
+  GlassEyeIcon,
+  GlassFileIcon,
+  GlassSparklesIcon,
+  GlassTrashIcon,
+  GlassSendIcon,
+  GlassCheckCircleIcon,
+  GlassWarningIcon,
+  GlassCancelIcon,
+  GlassSearchIcon,
+  GlassRefreshIcon,
+  GlassCalendarIcon,
+  GlassUserIcon,
+  GlassPhoneIcon
+} from '../components/GlassIcons';
 
 const S: Record<string, React.CSSProperties> = {
   label: { display: 'block', fontSize: '11px', fontWeight: 700, color: '#94a3b8', marginBottom: '7px', textTransform: 'uppercase' as const, letterSpacing: '0.05em' },
@@ -26,12 +34,12 @@ const parseMessageContent = (messageStr: string) => {
   
   try {
     const parsed = JSON.parse(text);
-    if (parsed && typeof parsed === 'object') {
+    if (parsed && typeof parsed === 'object' && parsed.type) {
       return {
         isJson: true,
-        type: parsed.type || 'text',
-        text: parsed.message || parsed.body || '',
-        mediaUrl: parsed.url || '',
+        type: parsed.type,
+        text: parsed.text || '',
+        mediaUrl: parsed.mediaUrl || '',
         filename: parsed.filename || '',
         headerType: parsed.headerType || 'none',
         headerText: parsed.headerText || '',
@@ -42,7 +50,7 @@ const parseMessageContent = (messageStr: string) => {
       };
     }
   } catch (e) {
-    // Treat as legacy plain text log
+    // not json, fallback to legacy parser below
   }
 
   let legacyText = text;
@@ -88,30 +96,106 @@ export const Reports = () => {
   const [reports, setReports] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  
+  // Draft Filter Inputs State
   const [searchNumber, setSearchNumber] = useState('');
   const [searchMessage, setSearchMessage] = useState('');
   const [searchUsername, setSearchUsername] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  // Active Applied Filters
+  const [appliedFilters, setAppliedFilters] = useState({
+    searchNumber: '',
+    searchMessage: '',
+    searchUsername: '',
+    startDate: '',
+    endDate: ''
+  });
+
   const [selectedReport, setSelectedReport] = useState<any | null>(null);
   const navigate = useNavigate();
   const isAdmin = localStorage.getItem('isAdmin') === 'true';
   const limit = 10;
 
-  useEffect(() => { fetchReports(); }, [page, searchNumber, searchMessage, searchUsername, startDate, endDate]);
+  useEffect(() => {
+    fetchReports();
+  }, [page, appliedFilters]);
 
   const fetchReports = async () => {
-    const query = new URLSearchParams({ page: page.toString(), limit: limit.toString(), searchNumber, searchMessage, searchUsername, startDate, endDate });
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reports?${query}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } });
-    if (res.status === 401) { navigate('/login'); return; }
-    const data = await res.json();
-    setReports(data.reports || []);
-    setTotalCount(data.totalCount || 0);
+    setLoading(true);
+    try {
+      const query = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        searchNumber: appliedFilters.searchNumber,
+        searchMessage: appliedFilters.searchMessage,
+        searchUsername: appliedFilters.searchUsername,
+        startDate: appliedFilters.startDate,
+        endDate: appliedFilters.endDate
+      });
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reports?${query}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.status === 401) { navigate('/login'); return; }
+      const data = await res.json();
+      setReports(data.reports || []);
+      setTotalCount(data.totalCount || 0);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const handleApplyFilter = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setPage(1);
+    setAppliedFilters({
+      searchNumber,
+      searchMessage,
+      searchUsername,
+      startDate,
+      endDate
+    });
+  };
+
+  const handleResetFilters = () => {
+    setSearchNumber('');
+    setSearchMessage('');
+    setSearchUsername('');
+    setStartDate('');
+    setEndDate('');
+    setPage(1);
+    setAppliedFilters({
+      searchNumber: '',
+      searchMessage: '',
+      searchUsername: '',
+      startDate: '',
+      endDate: ''
+    });
+  };
+
+  const hasActiveFilters = Boolean(
+    appliedFilters.searchNumber ||
+    appliedFilters.searchMessage ||
+    appliedFilters.searchUsername ||
+    appliedFilters.startDate ||
+    appliedFilters.endDate
+  );
+
   const handleExport = () => {
-    const query = new URLSearchParams({ searchNumber, searchMessage, searchUsername, startDate, endDate });
-    fetch(`${import.meta.env.VITE_API_URL}/api/reports/export?${query}`, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
+    const query = new URLSearchParams({
+      searchNumber: appliedFilters.searchNumber,
+      searchMessage: appliedFilters.searchMessage,
+      searchUsername: appliedFilters.searchUsername,
+      startDate: appliedFilters.startDate,
+      endDate: appliedFilters.endDate
+    });
+    fetch(`${import.meta.env.VITE_API_URL}/api/reports/export?${query}`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    })
       .then(r => r.blob()).then(blob => {
         const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'reports.xlsx' });
         document.body.appendChild(a); a.click(); a.remove();
@@ -119,15 +203,20 @@ export const Reports = () => {
   };
 
   const handleClearReports = async () => {
-    const isFiltered = searchNumber || searchMessage || searchUsername || startDate || endDate;
-    const confirmMsg = isFiltered 
+    const confirmMsg = hasActiveFilters 
       ? "Are you sure you want to permanently delete the reports MATCHING YOUR CURRENT FILTERS? This action cannot be undone."
       : "Are you sure you want to permanently delete ALL reports? This action cannot be undone.";
       
     if (!window.confirm(confirmMsg)) return;
     
     try {
-      const query = new URLSearchParams({ searchNumber, searchMessage, searchUsername, startDate, endDate });
+      const query = new URLSearchParams({
+        searchNumber: appliedFilters.searchNumber,
+        searchMessage: appliedFilters.searchMessage,
+        searchUsername: appliedFilters.searchUsername,
+        startDate: appliedFilters.startDate,
+        endDate: appliedFilters.endDate
+      });
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/reports/clear?${query}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
@@ -157,11 +246,28 @@ export const Reports = () => {
         <div style={{ display: 'flex', gap: '12px' }}>
           {isAdmin && (
             <button onClick={handleClearReports} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#FEE2E2', color: '#DC2626', border: '1px solid #FCA5A5', padding: '0 16px', borderRadius: '10px', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}>
-              <TrashIcon size={16} color="#DC2626" /> Delete All Reports
+              <GlassTrashIcon size={16} /> Delete All Reports
             </button>
           )}
-          <button onClick={handleExport} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            <DownloadIcon size={16} /> Export Excel
+          <button 
+            onClick={handleExport} 
+            style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              background: '#0F172A',
+              color: '#FFFFFF',
+              border: 'none',
+              padding: '10px 18px',
+              borderRadius: '12px',
+              fontWeight: 700,
+              fontSize: '13.5px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(15, 23, 42, 0.25)',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <GlassDownloadIcon size={16} /> Export Excel
           </button>
         </div>
       </div>
@@ -169,16 +275,16 @@ export const Reports = () => {
       {/* Stat strip (Shopeers Style) */}
       <div className="stats-grid">
         {[
-          { label: 'Total Messages', val: totalCount, sub: 'All time logs', badge: '+12.4%', bg: '#EFF6FF', color: '#2563EB', icon: SendIcon },
-          { label: 'On This Page', val: reports.length, sub: 'Filtered view', badge: 'Active', bg: '#EFF6FF', color: '#2563EB', icon: EyeIcon },
-          { label: 'Sent', val: sentCount, sub: 'Delivered', badge: 'Success', bg: '#D1FAE5', color: '#059669', icon: CheckCircleIcon },
-          { label: 'Failed', val: failedCount, sub: 'Undelivered', badge: 'Alert', bg: '#FEE2E2', color: '#DC2626', icon: WarningIcon },
-        ].map(({ label, val, sub, badge, bg, color, icon: IconComp }) => (
+          { label: 'Total Messages', val: totalCount, sub: 'All time logs', badge: '+12.4%', bg: '#EFF6FF', color: '#2563EB', icon: GlassSendIcon },
+          { label: 'On This Page', val: reports.length, sub: 'Filtered view', badge: 'Active', bg: '#EFF6FF', color: '#2563EB', icon: GlassEyeIcon },
+          { label: 'Sent', val: sentCount, sub: 'Delivered', badge: 'Success', bg: '#D1FAE5', color: '#059669', icon: GlassCheckCircleIcon },
+          { label: 'Failed', val: failedCount, sub: 'Undelivered', badge: 'Alert', bg: '#FEE2E2', color: '#DC2626', icon: GlassWarningIcon },
+        ].map(({ label, val, sub, badge, bg, icon: IconComp }) => (
           <div key={label} className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>{label}</span>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <IconComp size={16} color={color} />
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconComp size={20} />
               </div>
             </div>
             <div>
@@ -195,33 +301,264 @@ export const Reports = () => {
       {/* Filters & Table Card (Shopeers SaaS Redesigned Style) */}
       <div className="card" style={{ padding: '24px 0' }}>
         
-        {/* Sleek Filter Controls Bar */}
+        {/* Redesigned Sleek Filter Controls Bar */}
         <div style={{ padding: '0 28px 24px', marginBottom: '20px', borderBottom: '1px solid #F1F5F9' }}>
-          <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '18px 20px', border: '1px solid #E2E8F0' }}>
-            <div className="reports-filters-grid">
-              {[
-                { label: 'RECIPIENT NUMBER', ph: 'e.g. 911234567890', val: searchNumber, set: setSearchNumber },
-                ...(isAdmin ? [{ label: 'OWNER (ADMIN)', ph: 'Username...', val: searchUsername, set: setSearchUsername }] : []),
-                { label: 'MESSAGE CONTENT', ph: 'Keywords...', val: searchMessage, set: setSearchMessage },
-                { label: 'START DATE', ph: '', val: startDate, set: setStartDate, type: 'date' },
-                { label: 'END DATE', ph: '', val: endDate, set: setEndDate, type: 'date' },
-              ].map(({ label, ph, val, set, type = 'text' }) => (
-                <div key={label}>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', marginBottom: '6px' }}>
-                    {label}
-                  </label>
+          <form
+            onSubmit={handleApplyFilter}
+            style={{
+              background: '#F8FAFC',
+              borderRadius: '18px',
+              padding: '20px 22px',
+              border: '1px solid #E2E8F0',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            {/* Input Grid */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '14px'
+              }}
+            >
+              {/* Recipient Number */}
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                  RECIPIENT NUMBER
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                    <GlassPhoneIcon size={16} />
+                  </span>
                   <input 
-                    type={type} 
-                    placeholder={ph} 
-                    value={val} 
-                    onChange={e => { set(e.target.value); setPage(1); }} 
-                    className="rounded-input" 
-                    style={{ height: '38px', borderRadius: '10px', fontSize: '13px', background: '#FFFFFF', border: '1px solid #CBD5E1' }}
+                    type="text" 
+                    placeholder="e.g. 911234567890" 
+                    value={searchNumber} 
+                    onChange={e => setSearchNumber(e.target.value)} 
+                    style={{
+                      width: '100%',
+                      height: '42px',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      background: '#FFFFFF',
+                      border: '1.5px solid #E2E8F0',
+                      padding: '0 12px 0 38px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
                   />
                 </div>
-              ))}
+              </div>
+
+              {/* Owner (Admin only) */}
+              {isAdmin && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                    OWNER (ADMIN)
+                  </label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassUserIcon size={16} />
+                    </span>
+                    <input 
+                      type="text" 
+                      placeholder="Username..." 
+                      value={searchUsername} 
+                      onChange={e => setSearchUsername(e.target.value)} 
+                      style={{
+                        width: '100%',
+                        height: '42px',
+                        borderRadius: '12px',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Message Content */}
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                  MESSAGE CONTENT
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                    <GlassFileIcon size={16} />
+                  </span>
+                  <input 
+                    type="text" 
+                    placeholder="Keywords in message..." 
+                    value={searchMessage} 
+                    onChange={e => setSearchMessage(e.target.value)} 
+                    style={{
+                      width: '100%',
+                      height: '42px',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      background: '#FFFFFF',
+                      border: '1.5px solid #E2E8F0',
+                      padding: '0 12px 0 38px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                  />
+                </div>
+              </div>
+
+              {/* Start Date */}
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                  START DATE
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                    <GlassCalendarIcon size={16} />
+                  </span>
+                  <input 
+                    type="date" 
+                    value={startDate} 
+                    onChange={e => setStartDate(e.target.value)} 
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    style={{
+                      width: '100%',
+                      height: '42px',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      background: '#FFFFFF',
+                      border: '1.5px solid #E2E8F0',
+                      padding: '0 12px 0 38px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                  />
+                </div>
+              </div>
+
+              {/* End Date */}
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                  END DATE
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                    <GlassCalendarIcon size={16} />
+                  </span>
+                  <input 
+                    type="date" 
+                    value={endDate} 
+                    onChange={e => setEndDate(e.target.value)} 
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    style={{
+                      width: '100%',
+                      height: '42px',
+                      borderRadius: '12px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      background: '#FFFFFF',
+                      border: '1.5px solid #E2E8F0',
+                      padding: '0 12px 0 38px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+
+            {/* Action Buttons Row */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', borderTop: '1px solid #E2E8F0', paddingTop: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', color: '#64748B', fontWeight: 600 }}>
+                {hasActiveFilters && (
+                  <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '3px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800 }}>
+                    Filters Active
+                  </span>
+                )}
+                <span>Press Enter or click Show to filter records</span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {/* Reset Button */}
+                <button
+                  type="button"
+                  onClick={handleResetFilters}
+                  disabled={loading}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    background: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
+                    color: '#475569',
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = '#0F172A'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.color = '#475569'; }}
+                >
+                  <GlassRefreshIcon size={16} />
+                  <span>Reset</span>
+                </button>
+
+                {/* Show Report Filter Button */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '9px 22px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    fontSize: '13.5px',
+                    fontWeight: 800,
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.28)',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => { if (!loading) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={(e) => { if (!loading) e.currentTarget.style.transform = 'translateY(0)'; }}
+                >
+                  <GlassSearchIcon size={16} />
+                  <span>{loading ? 'Filtering...' : 'Show Report'}</span>
+                </button>
+              </div>
+            </div>
+          </form>
         </div>
 
         <div style={{ overflowX: 'auto' }} className="custom-scrollbar">
@@ -267,13 +604,14 @@ export const Reports = () => {
                     <button 
                       onClick={() => setSelectedReport(r)} 
                       style={{ 
-                        background: '#EFF6FF', border: 'none', color: '#2563EB', cursor: 'pointer', 
+                        background: '#EFF6FF', border: '1px solid #DBEAFE', cursor: 'pointer', 
                         width: '34px', height: '34px', borderRadius: '10px', display: 'inline-flex', 
-                        alignItems: 'center', justifyContent: 'center', margin: '0 auto', transition: 'all 0.2s ease'
+                        alignItems: 'center', justifyContent: 'center', margin: '0 auto', transition: 'all 0.2s ease',
+                        boxShadow: '0 2px 6px rgba(37, 99, 235, 0.08)'
                       }}
                       title="Preview Message Content"
                     >
-                      <EyeIcon size={16} color="#2563EB" />
+                      <GlassEyeIcon size={18} />
                     </button>
                   </td>
                   <td style={{ padding: '16px 28px', textAlign: 'right' }}>
@@ -321,8 +659,25 @@ export const Reports = () => {
             <div className="modal-card" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h3 className="modal-title">Message Details & Preview</h3>
-                <button className="modal-close-btn" onClick={() => setSelectedReport(null)}>
-                  <XIcon size={18} />
+                <button 
+                  onClick={() => setSelectedReport(null)}
+                  title="Close modal"
+                  style={{
+                    background: '#F1F5F9',
+                    border: 'none',
+                    borderRadius: '12px',
+                    width: '36px',
+                    height: '36px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#64748B',
+                    transition: 'all 0.2s ease',
+                    padding: 0
+                  }}
+                >
+                  <GlassCancelIcon size={18} />
                 </button>
               </div>
               <div className="modal-body">
@@ -354,7 +709,7 @@ export const Reports = () => {
                 {/* Delivery Warning if Not Sent */}
                 {selectedReport.status !== 'sent' && (
                   <div style={{ background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12.5px', color: '#B91C1C' }}>
-                    <WarningCircleIcon size={16} color="#DC2626" />
+                    <GlassWarningIcon size={18} />
                     <span><strong>Delivery Failed:</strong> The recipient number (+{selectedReport.toNumber}) is not registered on WhatsApp or could not receive this message.</span>
                   </div>
                 )}
@@ -385,7 +740,7 @@ export const Reports = () => {
                         {/* Media Box (if media message) */}
                         {parsed.type === 'media' && parsed.mediaUrl && (
                           <div className="wa-media-box" style={{ margin: '8px 8px 4px', background: '#f0f4f8' }}>
-                            <FileIcon size={20} color="#7C3AED" style={{ flexShrink: 0 }} />
+                            <GlassFileIcon size={20} style={{ flexShrink: 0 }} />
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <p style={{ margin: 0, fontSize: '12px', fontWeight: 600, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {parsed.filename || parsed.mediaUrl.split('/').pop()}
@@ -401,7 +756,7 @@ export const Reports = () => {
                         <div style={{ padding: '10px 12px' }}>
                           {parsed.type === 'interactive' && !parsed.isJson && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4B5563', fontSize: '12px', marginBottom: '6px', fontWeight: 600 }}>
-                              <SparklesIcon size={14} color="#7C3AED" />
+                              <GlassSparklesIcon size={16} />
                               <span>Interactive Payload Message</span>
                             </div>
                           )}

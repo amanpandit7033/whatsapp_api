@@ -117,10 +117,10 @@ export const createInstance = async (instanceId: string, retryCount = 0) => {
 
     sock.ev.on('connection.update', async (update: any) => {
         const { connection, lastDisconnect, qr } = update;
-        console.log(`[${instanceId}] Connection update:`, { connection, hasQr: !!qr, error: lastDisconnect?.error });
+        const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
 
         if (qr) {
-            console.log(`[${instanceId}] QR Code generated!`);
+            console.log(`[WA] 📸 [${instanceId}] QR code generated — waiting for scan...`);
             const qrUrl = await QRCode.toDataURL(qr);
             qrs.set(instanceId, qrUrl);
             socketIo.emit(`qr-${instanceId}`, qrUrl);
@@ -137,17 +137,25 @@ export const createInstance = async (instanceId: string, retryCount = 0) => {
             qrs.delete(instanceId);
 
             if (intendedClose.has(instanceId)) {
-                console.log(`[${instanceId}] Connection closed intentionally (Lazy Loading).`);
+                console.log(`[WA] 💤 [${instanceId}] Connection closed intentionally (Lazy Loading idle mode).`);
                 intendedClose.delete(instanceId);
                 instances.delete(instanceId);
                 return;
             }
 
-            const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
+            if (statusCode === 515) {
+                console.log(`[WA] 🔄 [${instanceId}] QR scanned! Finalizing secure multi-device session...`);
+            } else if (statusCode === DisconnectReason.loggedOut) {
+                console.log(`[WA] 🚪 [${instanceId}] Logged out from WhatsApp.`);
+            } else if (statusCode) {
+                console.log(`[WA] ⚠️ [${instanceId}] Connection interrupted (Status: ${statusCode}).`);
+            }
+
+            const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
             if (shouldReconnect) {
                 // Exponential backoff: 5s, 10s, 20s, 40s ... max 60s — prevents IP rate-limiting
                 const delay = Math.min(5000 * Math.pow(2, retryCount), 60000);
-                console.log(`[${instanceId}] Reconnecting in ${delay / 1000}s (attempt ${retryCount + 1})...`);
+                console.log(`[WA] ⏳ [${instanceId}] Reconnecting in ${delay / 1000}s (attempt ${retryCount + 1})...`);
                 setTimeout(() => createInstance(instanceId, retryCount + 1), delay);
             } else {
                 try {
@@ -163,6 +171,7 @@ export const createInstance = async (instanceId: string, retryCount = 0) => {
             qrs.delete(instanceId);
             lastPolled.delete(instanceId);
             const phoneNumber = sock.user?.id?.split(':')[0] || null;
+            console.log(`[WA] ✅ [${instanceId}] Successfully Connected! Phone: +${phoneNumber || 'Unknown'}`);
             try {
                 await prisma.instance.update({
                     where: { id: instanceId },
@@ -280,7 +289,24 @@ const enqueueMessage = (instanceId: string, payload: any): Promise<void> => {
 const doSend = async (sock: any, payload: any, instanceId: string) => {
     const formattedJid = payload.jid.includes('@') ? payload.jid : `${payload.jid}@s.whatsapp.net`;
 
-    if (!formattedJid.endsWith('@g.us')) {
+    // Determine if WhatsApp registration check should be performed
+    let shouldCheck = true;
+    if (payload.checkWhatsAppNumber !== undefined) {
+        shouldCheck = Boolean(payload.checkWhatsAppNumber);
+    } else {
+        try {
+            const instRecord = await prisma.instance.findUnique({
+                where: { id: instanceId },
+                select: { user: { select: { checkWhatsAppNumber: true } } }
+            });
+            if (instRecord?.user && instRecord.user.checkWhatsAppNumber === false) {
+                shouldCheck = false;
+            }
+        } catch (e) {}
+    }
+    payload.usedTurbo = !shouldCheck;
+
+    if (shouldCheck && !formattedJid.endsWith('@g.us')) {
         try {
             const [result] = await sock.onWhatsApp(formattedJid);
             if (!result || !result.exists) {
@@ -440,8 +466,14 @@ const drainQueue = async (instanceId: string) => {
         queue.shift();
 
         if (success) {
+            const recipient = payload.jid?.split('@')[0] || payload.jid;
+            const modeTag = payload.usedTurbo ? '⚡ [Turbo Direct]' : '✓ [Verified Send]';
+            console.log(`[MSG] ✉️ ${modeTag} [${instanceId}] Delivered message to +${recipient}`);
             payload.resolve(sendResult);
         } else {
+            const recipient = payload.jid?.split('@')[0] || payload.jid;
+            const modeTag = payload.usedTurbo ? '⚡ [Turbo Direct]' : '✓ [Verified Send]';
+            console.warn(`[MSG] ❌ ${modeTag} [${instanceId}] Failed to send to +${recipient}: ${lastError?.message || 'Unknown error'}`);
             payload.reject(lastError || new Error('Failed to send after 3 attempts'));
         }
 

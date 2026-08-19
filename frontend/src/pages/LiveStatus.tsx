@@ -2,18 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
-  UserIcon,
-  ShieldIcon,
-  UserPlusIcon,
-  SearchIcon,
-  CheckCircleIcon,
-  CalendarIcon,
-  XIcon,
-  RefreshIcon,
-  DeviceIcon,
-  SendIcon,
-  WarningCircleIcon
-} from '../components/Icons';
+  GlassShieldIcon,
+  GlassUserIcon,
+  GlassUsersIcon,
+  GlassUserPlusIcon,
+  GlassSearchIcon,
+  GlassRefreshIcon,
+  GlassDownloadIcon,
+  GlassCalendarIcon
+} from '../components/GlassIcons';
+import { SearchableSelect } from '../components/SearchableSelect';
 
 const getTodayStr = () => {
   const d = new Date();
@@ -31,7 +29,7 @@ export const LiveStatus = () => {
   // Date Filter States (Direct From and To dates)
   const [startDate, setStartDate] = useState<string>(getTodayStr());
   const [endDate, setEndDate] = useState<string>(getTodayStr());
-  
+
   // Filter States
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [resellerFilter, setResellerFilter] = useState<string>('all');
@@ -87,7 +85,8 @@ export const LiveStatus = () => {
     }
   };
 
-  const usersList = liveData?.users || liveData?.clients || [];
+  const rawUsers = liveData?.users || liveData?.clients || [];
+  const usersList = [...rawUsers].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   // Export Daily Statistics as CSV
   const handleExportCSV = () => {
@@ -132,7 +131,7 @@ export const LiveStatus = () => {
 
   return (
     <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      
+
       {/* Top Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div>
@@ -162,12 +161,12 @@ export const LiveStatus = () => {
               fontSize: '13px',
               fontWeight: 700,
               cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.03)'
             }}
           >
-            <RefreshIcon
-              size={15}
-              color="currentColor"
+            <GlassRefreshIcon
+              size={16}
               style={{ animation: loading ? 'spin 0.8s linear infinite' : 'none' }}
             />
             <span>{loading ? 'Refreshing...' : 'Refresh'}</span>
@@ -179,7 +178,7 @@ export const LiveStatus = () => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '8px',
               padding: '8px 16px',
               borderRadius: '10px',
               border: 'none',
@@ -187,224 +186,251 @@ export const LiveStatus = () => {
               color: '#FFFFFF',
               fontSize: '13px',
               fontWeight: 700,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(15,23,42,0.2)'
             }}
           >
-            <span>📥 Export CSV</span>
+            <GlassDownloadIcon size={16} />
+            <span>Export CSV</span>
           </button>
         </div>
       </div>
 
       {/* Date Filter & Toolbar Card */}
-      <div 
-        className="card" 
-        style={{ 
-          padding: '20px 24px', 
-          borderRadius: '16px', 
+      <div
+        className="card"
+        style={{
+          padding: '20px 24px',
+          borderRadius: '16px',
           border: '1px solid #E2E8F0',
           background: '#FFFFFF',
           boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
         }}
       >
-        <form 
+        <form
           onSubmit={(e) => {
             e.preventDefault();
             fetchLiveStats();
           }}
-          style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+          style={{
+            background: '#F8FAFC',
+            borderRadius: '18px',
+            padding: '20px 22px',
+            border: '1px solid #E2E8F0',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}
         >
-          {/* Row 1: Date Range & Action Buttons */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ flex: '1 1 180px', minWidth: '160px' }}>
-              <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
+          {/* Input Grid */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '14px',
+              alignItems: 'flex-end'
+            }}
+          >
+            {/* From Date */}
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', marginBottom: '6px', textTransform: 'uppercase' }}>
                 From Date
               </label>
-              <input 
-                type="date" 
-                value={startDate} 
-                onChange={e => setStartDate(e.target.value)} 
-                className="rounded-input"
-                style={{
-                  height: '42px',
-                  width: '100%',
-                  padding: '0 12px',
-                  borderRadius: '10px',
-                  border: '1.5px solid #CBD5E1',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  color: '#0F172A',
-                  background: '#F8FAFC'
-                }} 
-                required
-              />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                  <GlassCalendarIcon size={16} />
+                </span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    borderRadius: '12px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    background: '#FFFFFF',
+                    border: '1.5px solid #E2E8F0',
+                    padding: '0 12px 0 38px',
+                    color: '#0F172A',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                  required
+                />
+              </div>
             </div>
 
-            <div style={{ flex: '1 1 180px', minWidth: '160px' }}>
-              <label style={{ display: 'block', fontSize: '11.5px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
+            {/* To Date */}
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', marginBottom: '6px', textTransform: 'uppercase' }}>
                 To Date
               </label>
-              <input 
-                type="date" 
-                value={endDate} 
-                onChange={e => setEndDate(e.target.value)} 
-                className="rounded-input"
-                style={{
-                  height: '42px',
-                  width: '100%',
-                  padding: '0 12px',
-                  borderRadius: '10px',
-                  border: '1.5px solid #CBD5E1',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  color: '#0F172A',
-                  background: '#F8FAFC'
-                }} 
-                required
-              />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                  <GlassCalendarIcon size={16} />
+                </span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  onClick={(e) => e.currentTarget.showPicker?.()}
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    borderRadius: '12px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    background: '#FFFFFF',
+                    border: '1.5px solid #E2E8F0',
+                    padding: '0 12px 0 38px',
+                    color: '#0F172A',
+                    outline: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                  required
+                />
+              </div>
             </div>
 
-            {/* Quick Presets */}
-            <div style={{ display: 'flex', gap: '6px', alignSelf: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={handleSetToday}
-                style={{
-                  height: '42px',
-                  padding: '0 14px',
-                  borderRadius: '10px',
-                  border: '1.5px solid #CBD5E1',
-                  background: startDate === getTodayStr() && endDate === getTodayStr() ? '#EFF6FF' : '#FFFFFF',
-                  color: startDate === getTodayStr() && endDate === getTodayStr() ? '#2563EB' : '#475569',
-                  fontWeight: 800,
-                  fontSize: '12.5px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s'
-                }}
-              >
-                Today
-              </button>
-              <button
-                type="button"
-                onClick={handleSetYesterday}
-                style={{
-                  height: '42px',
-                  padding: '0 14px',
-                  borderRadius: '10px',
-                  border: '1.5px solid #CBD5E1',
-                  background: '#FFFFFF',
-                  color: '#475569',
-                  fontWeight: 800,
-                  fontSize: '12.5px',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s'
-                }}
-              >
-                Yesterday
-              </button>
-            </div>
-
-            {/* Main Action Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary"
-              style={{
-                height: '42px',
-                padding: '0 24px',
-                borderRadius: '10px',
-                fontSize: '13.5px',
-                fontWeight: 800,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
-              }}
-            >
-              <SearchIcon size={16} color="#FFFFFF" />
-              <span>{loading ? 'Generating Report...' : 'Show Report'}</span>
-            </button>
-          </div>
-
-          {/* Row 2: Category Filters & Search Bar */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', flexWrap: 'wrap', gap: '12px', borderTop: '1px solid #F1F5F9', paddingTop: '14px' }}>
+            {/* Role Filter (Admin Only) */}
             {isAdmin && (
-              <>
-                <div style={{ flex: '1 1 180px', minWidth: '150px' }}>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', marginBottom: '4px' }}>
-                    Role
-                  </label>
-                  <select
-                    value={roleFilter}
-                    onChange={e => setRoleFilter(e.target.value)}
-                    style={{
-                      height: '38px',
-                      width: '100%',
-                      padding: '0 12px',
-                      borderRadius: '8px',
-                      border: '1px solid #CBD5E1',
-                      background: '#F8FAFC',
-                      fontSize: '12.5px',
-                      fontWeight: 700,
-                      color: '#334155',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <option value="all">All Roles</option>
-                    <option value="user">Clients Only</option>
-                    <option value="reseller">Resellers Only</option>
-                    <option value="admin">Admins Only</option>
-                  </select>
-                </div>
-
-                <div style={{ flex: '1 1 220px', minWidth: '180px' }}>
-                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', marginBottom: '4px' }}>
-                    Belonging
-                  </label>
-                  <select
-                    value={resellerFilter}
-                    onChange={e => setResellerFilter(e.target.value)}
-                    style={{
-                      height: '38px',
-                      width: '100%',
-                      padding: '0 12px',
-                      borderRadius: '8px',
-                      border: '1px solid #CBD5E1',
-                      background: '#F8FAFC',
-                      fontSize: '12.5px',
-                      fontWeight: 700,
-                      color: '#334155',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <option value="all">All User Belongings</option>
-                    <option value="direct">Direct / Admin Accounts</option>
-                    {liveData?.resellers?.map((r: any) => (
-                      <option key={r.id} value={r.id}>Reseller: @{r.username}</option>
-                    ))}
-                  </select>
-                </div>
-              </>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', marginBottom: '6px', textTransform: 'uppercase' }}>
+                  Role
+                </label>
+                <SearchableSelect
+                  value={roleFilter}
+                  onChange={(val) => setRoleFilter(val)}
+                  placeholder="All Roles"
+                  searchPlaceholder="Filter role..."
+                  options={[
+                    { value: 'all', label: 'All Roles' },
+                    { value: 'user', label: 'Clients Only', badge: 'Client', badgeColor: { bg: '#EFF6FF', text: '#2563EB' } },
+                    { value: 'reseller', label: 'Resellers Only', badge: 'Reseller', badgeColor: { bg: '#FEF3C7', text: '#B45309' } },
+                    { value: 'admin', label: 'Admins Only', badge: 'Admin', badgeColor: { bg: '#F3E8FF', text: '#7C3AED' } },
+                  ]}
+                />
+              </div>
             )}
 
-            <div style={{ flex: '1 1 240px', minWidth: '200px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748B', marginBottom: '4px' }}>
+            {/* Belonging Filter (Admin Only) */}
+            {isAdmin && (
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', marginBottom: '6px', textTransform: 'uppercase' }}>
+                  Belonging
+                </label>
+                <SearchableSelect
+                  value={resellerFilter}
+                  onChange={(val) => setResellerFilter(val)}
+                  placeholder="All User Belongings"
+                  searchPlaceholder="Search belonging / reseller..."
+                  options={[
+                    { value: 'all', label: 'All User Belongings' },
+                    { value: 'direct', label: 'Direct / Admin Accounts', badge: 'Direct' },
+                    ...(liveData?.resellers?.map((r: any) => ({
+                      value: r.id,
+                      label: r.username,
+                      badge: 'Reseller',
+                      badgeColor: { bg: '#FEF3C7', text: '#B45309' }
+                    })) || [])
+                  ]}
+                />
+              </div>
+            )}
+
+            {/* Search Username */}
+            <div>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', marginBottom: '6px', textTransform: 'uppercase' }}>
                 Search Username
               </label>
-              <div style={{ position: 'relative' }}>
-                <SearchIcon size={14} color="#94A3B8" style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                  <GlassUserIcon size={16} />
+                </span>
                 <input
                   type="text"
                   placeholder="Filter username..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="rounded-input"
-                  style={{ height: '38px', width: '100%', borderRadius: '8px', fontSize: '12.5px', paddingRight: '32px' }}
+                  style={{
+                    width: '100%',
+                    height: '42px',
+                    borderRadius: '12px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    background: '#FFFFFF',
+                    border: '1.5px solid #E2E8F0',
+                    padding: '0 12px 0 38px',
+                    color: '#0F172A',
+                    outline: 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                  onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
                 />
               </div>
             </div>
+          </div>
 
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Action & Preset Row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', borderTop: '1px solid #E2E8F0', paddingTop: '14px' }}>
+            {/* Quick Date Presets & Status */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'inline-flex', background: '#FFFFFF', padding: '3px', borderRadius: '10px', border: '1px solid #CBD5E1', gap: '3px' }}>
+                <button
+                  type="button"
+                  onClick={handleSetToday}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: startDate === getTodayStr() && endDate === getTodayStr() ? '#EFF6FF' : 'transparent',
+                    color: startDate === getTodayStr() && endDate === getTodayStr() ? '#2563EB' : '#64748B',
+                    fontWeight: startDate === getTodayStr() && endDate === getTodayStr() ? 800 : 600,
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Today
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSetYesterday}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: '#FFFFFF',
+                    color: '#64748B',
+                    fontWeight: 600,
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#F8FAFC'; e.currentTarget.style.color = '#0F172A'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.color = '#64748B'; }}
+                >
+                  Yesterday
+                </button>
+              </div>
+
+              <span style={{ fontSize: '12px', color: '#64748B', fontWeight: 600 }}>
+                Press Enter or click Show Report to update stats
+              </span>
+            </div>
+
+            {/* Buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <button
                 type="button"
                 onClick={() => {
@@ -415,18 +441,49 @@ export const LiveStatus = () => {
                   setSearch('');
                 }}
                 style={{
-                  height: '38px',
-                  padding: '0 14px',
-                  borderRadius: '8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  borderRadius: '10px',
                   border: '1px solid #CBD5E1',
                   background: '#FFFFFF',
-                  color: '#64748B',
+                  color: '#475569',
                   fontWeight: 700,
-                  fontSize: '12px',
-                  cursor: 'pointer'
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#F1F5F9'; e.currentTarget.style.color = '#0F172A'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.color = '#475569'; }}
               >
-                Reset Filters
+                <GlassRefreshIcon size={16} />
+                <span>Reset</span>
+              </button>
+
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '9px 22px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  fontSize: '13.5px',
+                  fontWeight: 800,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  boxShadow: '0 4px 14px rgba(37, 99, 235, 0.28)',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => { if (!loading) e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                onMouseLeave={(e) => { if (!loading) e.currentTarget.style.transform = 'translateY(0)'; }}
+              >
+                <GlassSearchIcon size={16} />
+                <span>{loading ? 'Generating Report...' : 'Show Report'}</span>
               </button>
             </div>
           </div>
@@ -527,15 +584,15 @@ export const LiveStatus = () => {
                       <td style={{ padding: '14px 14px' }}>
                         {u.isAdmin ? (
                           <span style={{ background: '#F3E8FF', color: '#7C3AED', padding: '3px 9px', borderRadius: '6px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <ShieldIcon size={12} color="#7C3AED" /> Admin
+                            <GlassShieldIcon size={13} /> Admin
                           </span>
                         ) : isUserReseller ? (
                           <span style={{ background: '#FEF3C7', color: '#B45309', padding: '3px 9px', borderRadius: '6px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <UserPlusIcon size={12} color="#B45309" /> Reseller
+                            <GlassUserPlusIcon size={13} /> Reseller
                           </span>
                         ) : (
-                          <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '3px 9px', borderRadius: '6px', fontSize: '11px', fontWeight: 700 }}>
-                            Client
+                          <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '3px 9px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <GlassUserIcon size={13} /> Client
                           </span>
                         )}
                       </td>
@@ -551,7 +608,7 @@ export const LiveStatus = () => {
                         background: u.resellerId ? '#FEF3C7' : '#F1F5F9',
                         color: u.resellerId ? '#B45309' : '#475569'
                       }}>
-                        {u.resellerId ? `@${u.resellerName}` : (u.isAdmin ? 'System Admin' : 'Direct / Admin')}
+                        {u.resellerId ? `${u.resellerName}` : (u.isAdmin ? 'System Admin' : 'Direct / Admin')}
                       </span>
                     </td>
 

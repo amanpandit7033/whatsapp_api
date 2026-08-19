@@ -1,21 +1,26 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-  PaperclipIcon, 
-  SendIcon, 
-  SparklesIcon, 
   CheckIcon, 
-  WarningIcon, 
-  PlusIcon, 
-  CheckCircleIcon, 
-  SwapIcon, 
-  XCircleIcon,
-  EyeIcon,
-  PhoneIcon,
-  LinkIcon,
-  MessageSquareIcon,
-  XIcon,
+  XIcon
 } from '../components/Icons';
+import {
+  GlassSendIcon,
+  GlassSparklesIcon,
+  GlassInstanceIcon,
+  GlassEyeIcon,
+  GlassPaperclipIcon,
+  GlassLinkIcon,
+  GlassPhoneIcon,
+  GlassChatIcon,
+  GlassPlusIcon,
+  GlassAlertIcon,
+  GlassCheckCircleIcon,
+  GlassRefreshIcon,
+  GlassCancelIcon,
+  GlassGroupIcon,
+  GlassEditIcon
+} from '../components/GlassIcons';
 
 // ─── Types ───────────────────────────────────
 type MsgMode = 'text' | 'media' | 'interactive';
@@ -55,8 +60,8 @@ const BTN_COLORS: Record<BtnType, string> = {
 const Preview = ({ mode, message, mediaUrl, headerType, headerText, headerImageUrl, body, footer, buttons }:
   { mode: MsgMode; message: string; mediaUrl: string; headerType: string; headerText: string; headerImageUrl: string; body: string; footer: string; buttons: IButton[] }) => (
   <div style={{ background: '#e5ddd5', borderRadius: '16px', padding: '16px', minHeight: '200px', backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'50\' height=\'50\' viewBox=\'0 0 50 50\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23000000\' fill-opacity=\'0.03\'%3E%3Ccircle cx=\'25\' cy=\'25\' r=\'10\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}>
-    <p style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', marginBottom: '8px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-      <EyeIcon size={13} color="#6b7280" /> Live Preview
+    <p style={{ fontSize: '12px', fontWeight: 800, color: '#6b7280', marginBottom: '8px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+      <GlassEyeIcon size={16} /> Live WhatsApp Preview
     </p>
     <div style={{ maxWidth: '280px', marginLeft: 'auto' }}>
       <div style={{ background: 'white', borderRadius: '8px 2px 8px 8px', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', overflow: 'hidden' }}>
@@ -71,7 +76,7 @@ const Preview = ({ mode, message, mediaUrl, headerType, headerText, headerImageU
         )}
         {mode === 'media' && mediaUrl && (
           <div style={{ background: '#f0f4f8', padding: '10px 12px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <PaperclipIcon size={16} color="#94a3b8" />
+            <GlassPaperclipIcon size={16} />
             <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mediaUrl}</p>
           </div>
         )}
@@ -98,7 +103,7 @@ const Preview = ({ mode, message, mediaUrl, headerType, headerText, headerImageU
                 textAlign: 'center', color: BTN_COLORS[btn.type], fontWeight: 700, fontSize: '13px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
               }}>
-                {btn.type === 'cta_url' ? <LinkIcon size={14} color={BTN_COLORS[btn.type]} /> : btn.type === 'cta_call' ? <PhoneIcon size={14} color={BTN_COLORS[btn.type]} /> : <MessageSquareIcon size={14} color={BTN_COLORS[btn.type]} />} {btn.label || 'Button'}
+                {btn.type === 'cta_url' ? <GlassLinkIcon size={16} /> : btn.type === 'cta_call' ? <GlassPhoneIcon size={16} /> : <GlassChatIcon size={16} />} {btn.label || 'Button'}
               </div>
             ))}
           </div>
@@ -247,8 +252,8 @@ export const Broadcast = () => {
       {/* Mode Selector Tabs (Shopeers SaaS Style) */}
       <div className="mode-tabs-container" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
         {([
-          { key: 'text', icon: SendIcon, label: 'Text / Media Campaign' },
-          { key: 'interactive', icon: SparklesIcon, label: 'Interactive CTA Buttons' },
+          { key: 'text', icon: GlassSendIcon, label: 'Text / Media Campaign' },
+          { key: 'interactive', icon: GlassSparklesIcon, label: 'Interactive CTA Buttons' },
         ] as const).map(({ key, icon: IconComponent, label }) => {
           const isActive = mode === key;
           return (
@@ -265,7 +270,7 @@ export const Broadcast = () => {
                 boxShadow: isActive ? '0 4px 14px rgba(37, 99, 235, 0.3)' : '0 2px 6px rgba(0,0,0,0.02)',
               }}
             >
-              <IconComponent size={18} color={isActive ? '#FFFFFF' : '#64748B'} />
+              <IconComponent size={20} />
               {label}
               {key === 'interactive' && (
                 <span style={{ background: isActive ? '#FFFFFF' : '#EFF6FF', color: isActive ? '#2563EB' : '#2563EB', fontSize: '10px', padding: '2px 8px', borderRadius: '9999px', fontWeight: 800, letterSpacing: '0.04em' }}>
@@ -284,9 +289,9 @@ export const Broadcast = () => {
           {/* Step 1: Select Instances */}
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-              <span style={{ background: '#EFF6FF', color: '#2563EB', width: '28px', height: '28px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '13px', flexShrink: 0 }}>
-                1
-              </span>
+              <div style={{ background: '#EFF6FF', width: '32px', height: '32px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <GlassInstanceIcon size={18} />
+              </div>
               <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>Select Connected Numbers</h3>
             </div>
 
@@ -310,10 +315,8 @@ export const Broadcast = () => {
                         {sel && <CheckIcon size={12} color="white" />}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
-                        <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <svg viewBox="0 0 24 24" width="18" height="18" style={{ fill: '#059669' }}>
-                            <path d="M12.004 2C6.48 2 2 6.48 2 12.004c0 1.907.533 3.69 1.464 5.214L2 22l4.98-1.42A9.905 9.905 0 0 0 12.004 22C17.528 22 22 17.52 22 12.004 22 6.48 17.52 2 12.004 2zM12 20.363c-1.798 0-3.51-.482-4.992-1.393l-.358-.214-2.97.848.865-2.835-.243-.387a8.318 8.318 0 0 1-1.272-4.38c0-4.607 3.753-8.36 8.36-8.36 4.607 0 8.36 3.753 8.36 8.36.002 4.608-3.75 8.36-8.36 8.36zm4.58-6.25c-.25-.124-1.48-.73-1.71-.813-.23-.083-.4-.124-.567.125-.167.248-.646.812-.792.98-.146.165-.292.187-.542.062a6.837 6.837 0 0 1-2.012-1.24c-.787-.7-1.318-1.564-1.472-1.81-.154-.25-.017-.384.108-.508.113-.11.25-.29.375-.436.125-.145.166-.25.25-.415.083-.166.04-.312-.02-.437-.063-.125-.567-1.37-.777-1.875-.205-.5-.43-.43-.587-.438-.15-.008-.323-.008-.495-.008-.172 0-.453.064-.69.32a2.535 2.535 0 0 0-.792 1.886c0 1.112.81 2.185.922 2.338.113.153 1.59 2.43 3.85 3.407.537.23 1.025.39 1.378.502.54.17 1.03.146 1.417.088.433-.064 1.48-.604 1.687-1.188.208-.583.208-1.083.146-1.187-.063-.105-.23-.167-.48-.292z"/>
-                          </svg>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#D1FAE5', border: '1px solid #A7F3D0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <GlassInstanceIcon size={20} />
                         </div>
                         <div style={{ minWidth: 0 }}>
                           <p style={{ fontWeight: 800, fontSize: '14px', color: '#0F172A', margin: 0, fontFamily: 'var(--font-mono)' }}>{inst.id}</p>
@@ -334,9 +337,9 @@ export const Broadcast = () => {
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ background: '#EFF6FF', color: '#2563EB', width: '28px', height: '28px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '13px', flexShrink: 0 }}>
-                  2
-                </span>
+                <div style={{ background: '#EFF6FF', width: '32px', height: '32px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <GlassGroupIcon size={18} />
+                </div>
                 <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>Target Numbers List</h3>
               </div>
               {numberList.length > 0 && (
@@ -357,7 +360,7 @@ export const Broadcast = () => {
           {/* Step 3: Live Preview Mockup */}
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-              <EyeIcon size={18} color="#2563EB" />
+              <GlassEyeIcon size={20} />
               <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>Live Device Preview</h3>
             </div>
             <Preview mode={mode} message={message} mediaUrl={mediaUrl} headerType={headerType} headerText={headerText} headerImageUrl={headerImageUrl} body={body} footer={footer} buttons={buttons} />
@@ -370,9 +373,9 @@ export const Broadcast = () => {
           {/* Step 4: Message Composer */}
           <div className="card">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-              <span style={{ background: '#D1FAE5', color: '#059669', width: '28px', height: '28px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '13px', flexShrink: 0 }}>
-                3
-              </span>
+              <div style={{ background: '#D1FAE5', width: '32px', height: '32px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <GlassEditIcon size={18} />
+              </div>
               <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>
                 {mode === 'interactive' ? 'Interactive Message Composer' : 'Text / Media Message Composer'}
               </h3>
@@ -388,7 +391,8 @@ export const Broadcast = () => {
                   <label style={labelStyle}>Media Attachment URL <span style={{ color: '#94A3B8', fontWeight: 500, textTransform: 'none' }}>(Optional)</span></label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input type="text" placeholder="https://example.com/image.jpg" value={mediaUrl} onChange={e => { setMediaUrl(e.target.value); setMediaFile(null); }} style={{ ...inputStyle, flex: 1, opacity: mediaFile ? 0.5 : 1 }} disabled={!!mediaFile} />
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: mediaFile ? '#EFF6FF' : '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0 16px', cursor: 'pointer', position: 'relative', transition: 'all 0.2s', color: mediaFile ? '#2563EB' : '#475569' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: mediaFile ? '#EFF6FF' : '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0 16px', cursor: 'pointer', position: 'relative', transition: 'all 0.2s', color: mediaFile ? '#2563EB' : '#475569', gap: '6px' }}>
+                      <GlassPaperclipIcon size={16} />
                       <span style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{mediaFile ? mediaFile.name : 'Attach File'}</span>
                       <input type="file" onChange={e => { const f = e.target.files?.[0]; if (f) { setMediaFile(f); setMediaUrl(''); } }} style={{ position: 'absolute', opacity: 0, inset: 0, cursor: 'pointer' }} />
                       {mediaFile && (
@@ -403,8 +407,8 @@ export const Broadcast = () => {
             {mode === 'interactive' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 {/* Notice */}
-                <div style={{ background: '#FFFBEB', border: '1px solid #FEF3C7', borderRadius: '12px', padding: '12px 16px', display: 'flex', gap: '10px' }}>
-                  <WarningIcon size={18} color="#D97706" style={{ flexShrink: 0, marginTop: '1px' }} />
+                <div style={{ background: '#FFFBEB', border: '1px solid #FEF3C7', borderRadius: '12px', padding: '12px 16px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <GlassAlertIcon size={20} />
                   <p style={{ fontSize: '12px', color: '#B45309', fontWeight: 600, margin: 0, lineHeight: 1.5 }}>
                     If recipient WhatsApp version does not support interactive buttons, a clean formatted text fallback will be transmitted automatically.
                   </p>
@@ -431,7 +435,8 @@ export const Broadcast = () => {
                     <label style={labelStyle}>Header Banner Image URL</label>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input type="text" placeholder="https://example.com/banner.jpg" value={headerImageUrl} onChange={e => { setHeaderImageUrl(e.target.value); setHeaderImageFile(null); }} style={{ ...inputStyle, flex: 1, opacity: headerImageFile ? 0.5 : 1 }} disabled={!!headerImageFile} />
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: headerImageFile ? '#EFF6FF' : '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0 16px', cursor: 'pointer', position: 'relative', transition: 'all 0.2s', color: headerImageFile ? '#2563EB' : '#475569' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: headerImageFile ? '#EFF6FF' : '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0 16px', cursor: 'pointer', position: 'relative', transition: 'all 0.2s', color: headerImageFile ? '#2563EB' : '#475569', gap: '6px' }}>
+                        <GlassPaperclipIcon size={16} />
                         <span style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{headerImageFile ? headerImageFile.name : 'Upload Header'}</span>
                         <input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) { setHeaderImageFile(f); setHeaderImageUrl(''); } }} style={{ position: 'absolute', opacity: 0, inset: 0, cursor: 'pointer' }} />
                         {headerImageFile && (
@@ -460,7 +465,7 @@ export const Broadcast = () => {
                     <label style={{ ...labelStyle, margin: 0 }}>CTA Action Buttons ({buttons.length}/3)</label>
                     {buttons.length < 3 && (
                       <button onClick={addButton} style={{ background: '#EFF6FF', border: 'none', borderRadius: '8px', padding: '6px 14px', color: '#2563EB', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <PlusIcon size={14} color="#2563EB" /> Add Button
+                        <GlassPlusIcon size={16} /> Add Button
                       </button>
                     )}
                   </div>
@@ -543,7 +548,7 @@ export const Broadcast = () => {
               {isSending ? (
                 <><div style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div> Transmitting {results.length}/{numberList.length}…</>
               ) : (
-                <><SendIcon size={18} /> Dispatch Broadcast Campaign</>
+                <><GlassSendIcon size={20} /> Dispatch Broadcast Campaign</>
               )}
             </button>
           </div>
@@ -553,9 +558,9 @@ export const Broadcast = () => {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <h3 style={{ fontWeight: 800, fontSize: '15px', color: '#0F172A', margin: 0 }}>Campaign Delivery Report</h3>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {successCount > 0 && <span style={{ fontSize: '12px', fontWeight: 800, color: '#059669', background: '#D1FAE5', padding: '4px 10px', borderRadius: '9999px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><CheckCircleIcon size={14} /> {successCount} Sent</span>}
-                  {fallbackCount > 0 && <span style={{ fontSize: '12px', fontWeight: 800, color: '#D97706', background: '#FEF3C7', padding: '4px 10px', borderRadius: '9999px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><SwapIcon size={14} /> {fallbackCount} Fallback</span>}
-                  {failCount > 0 && <span style={{ fontSize: '12px', fontWeight: 800, color: '#DC2626', background: '#FEE2E2', padding: '4px 10px', borderRadius: '9999px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><XCircleIcon size={14} /> {failCount} Failed</span>}
+                  {successCount > 0 && <span style={{ fontSize: '12px', fontWeight: 800, color: '#059669', background: '#D1FAE5', padding: '4px 10px', borderRadius: '9999px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}><GlassCheckCircleIcon size={16} /> {successCount} Sent</span>}
+                  {fallbackCount > 0 && <span style={{ fontSize: '12px', fontWeight: 800, color: '#D97706', background: '#FEF3C7', padding: '4px 10px', borderRadius: '9999px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}><GlassRefreshIcon size={16} /> {fallbackCount} Fallback</span>}
+                  {failCount > 0 && <span style={{ fontSize: '12px', fontWeight: 800, color: '#DC2626', background: '#FEE2E2', padding: '4px 10px', borderRadius: '9999px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}><GlassCancelIcon size={16} /> {failCount} Failed</span>}
                 </div>
               </div>
 
@@ -573,8 +578,8 @@ export const Broadcast = () => {
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{r.number}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {r.fallback && <span style={{ fontSize: '11px', background: '#FEF3C7', color: '#D97706', padding: '2px 8px', borderRadius: '9999px', fontWeight: 800 }}>FALLBACK</span>}
-                      <span style={{ fontSize: '12px', fontWeight: 800, color: r.status === 'success' ? '#16A34A' : '#DC2626' }}>
-                        {r.status === 'success' ? 'Delivered' : r.error}
+                      <span style={{ fontSize: '12px', fontWeight: 800, color: r.status === 'success' ? '#16A34A' : '#DC2626', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {r.status === 'success' ? <><GlassCheckCircleIcon size={14} /> Delivered</> : <><GlassCancelIcon size={14} /> {r.error}</>}
                       </span>
                     </div>
                   </div>

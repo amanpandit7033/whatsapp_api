@@ -55,7 +55,8 @@ function App() {
         <Route path="/live-status" element={<ProtectedRoute><LiveStatus /></ProtectedRoute>} />
         <Route path="/reseller" element={<ProtectedRoute><ResellerPanel /></ProtectedRoute>} />
         <Route path="/whitelabel" element={<ProtectedRoute><AdminWhiteLabel /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
+        <Route path="/user-management" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
+        <Route path="/admin" element={<Navigate to="/user-management" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

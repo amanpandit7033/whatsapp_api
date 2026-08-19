@@ -20,6 +20,14 @@ import {
   LockIcon,
   KeyIcon
 } from '../components/Icons';
+import { 
+  GlassCancelIcon,
+  GlassUserIcon,
+  GlassLockIcon,
+  GlassInstanceIcon,
+  GlassSendIcon,
+  GlassCalendarIcon
+} from '../components/GlassIcons';
 
 interface ResellerStats {
   masterMaxInstances: number;
@@ -106,7 +114,8 @@ export const ResellerPanel = () => {
       }
       const data = await res.json();
       if (data.clients) {
-        setClients(data.clients);
+        const sortedClients = [...data.clients].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setClients(sortedClients);
         setTotalPages(data.totalPages || 1);
       }
     } catch (e) {
@@ -586,13 +595,30 @@ export const ResellerPanel = () => {
       {/* ADD CLIENT MODAL */}
       {isAddModalOpen && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '24px' }}>
-          <div className="card animate-in" style={{ width: '100%', maxWidth: '640px', position: 'relative', borderRadius: '24px', padding: '32px', boxShadow: '0 25px 50px -12px rgba(37, 99, 235, 0.25)', background: '#FFFFFF', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="card animate-in hide-scrollbar" style={{ width: '100%', maxWidth: '640px', position: 'relative', borderRadius: '24px', padding: '32px', boxShadow: '0 25px 50px -12px rgba(37, 99, 235, 0.25)', background: '#FFFFFF', maxHeight: '90vh', overflowY: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             
             <button
               onClick={() => setIsAddModalOpen(false)}
-              style={{ position: 'absolute', top: '24px', right: '24px', background: '#F1F5F9', border: 'none', borderRadius: '12px', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
+              title="Close modal"
+              style={{
+                position: 'absolute',
+                top: '24px',
+                right: '24px',
+                background: '#F1F5F9',
+                border: 'none',
+                borderRadius: '12px',
+                width: '36px',
+                height: '36px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#64748B',
+                transition: 'all 0.2s ease',
+                padding: 0
+              }}
             >
-              <XIcon size={18} color="currentColor" />
+              <GlassCancelIcon size={18} />
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
@@ -613,29 +639,161 @@ export const ResellerPanel = () => {
               <div className="admin-form-grid">
                 <div>
                   <label style={S.label}>Username</label>
-                  <input type="text" placeholder="e.g. client_name" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassUserIcon size={16} />
+                    </span>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. client_name" 
+                      value={newUsername} 
+                      onChange={(e) => setNewUsername(e.target.value)} 
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                      required 
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={S.label}>Password</label>
-                  <input type="password" placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassLockIcon size={16} />
+                    </span>
+                    <input 
+                      type="password" 
+                      placeholder="••••••••" 
+                      value={newPassword} 
+                      onChange={(e) => setNewPassword(e.target.value)} 
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                      required 
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={S.label}>
                     Max Instances <span style={{ color: '#2563EB', fontWeight: 800 }}>({stats?.remainingInstances ?? 0} available)</span>
                   </label>
-                  <input type="number" min="1" max={stats?.remainingInstances ?? 100} value={newMaxInstances} onChange={(e) => setNewMaxInstances(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassInstanceIcon size={16} />
+                    </span>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      max={stats?.remainingInstances ?? 100} 
+                      value={newMaxInstances} 
+                      onChange={(e) => setNewMaxInstances(e.target.value)} 
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                      required 
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={S.label}>
                     Monthly Message Limit <span style={{ color: '#059669', fontWeight: 800 }}>({(stats?.remainingMessages ?? 0).toLocaleString()} available)</span>
                   </label>
-                  <input type="number" min="100" max={stats?.remainingMessages ?? 100000} value={newMessageLimit} onChange={(e) => setNewMessageLimit(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassSendIcon size={16} />
+                    </span>
+                    <input 
+                      type="number" 
+                      min="100" 
+                      max={stats?.remainingMessages ?? 100000} 
+                      value={newMessageLimit} 
+                      onChange={(e) => setNewMessageLimit(e.target.value)} 
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                      required 
+                    />
+                  </div>
                 </div>
               </div>
 
               <div>
                 <label style={S.label}>Subscription Expiry Date (Optional)</label>
-                <input type="date" value={newExpiresAt} onChange={(e) => setNewExpiresAt(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                    <GlassCalendarIcon size={16} />
+                  </span>
+                  <input 
+                    type="date" 
+                    value={newExpiresAt} 
+                    onChange={(e) => setNewExpiresAt(e.target.value)} 
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    style={{
+                      width: '100%',
+                      height: '44px',
+                      borderRadius: '12px',
+                      fontSize: '13.5px',
+                      fontWeight: 600,
+                      background: '#FFFFFF',
+                      border: '1.5px solid #E2E8F0',
+                      padding: '0 12px 0 38px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                  />
+                </div>
               </div>
 
               {/* Menu Permissions */}
@@ -700,13 +858,30 @@ export const ResellerPanel = () => {
       {/* EDIT CLIENT MODAL */}
       {editingClient && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '24px' }}>
-          <div className="card animate-in" style={{ width: '100%', maxWidth: '640px', position: 'relative', borderRadius: '24px', padding: '32px', boxShadow: '0 25px 50px -12px rgba(37, 99, 235, 0.25)', background: '#FFFFFF', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="card animate-in hide-scrollbar" style={{ width: '100%', maxWidth: '640px', position: 'relative', borderRadius: '24px', padding: '32px', boxShadow: '0 25px 50px -12px rgba(37, 99, 235, 0.25)', background: '#FFFFFF', maxHeight: '90vh', overflowY: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             
             <button
               onClick={() => setEditingClient(null)}
-              style={{ position: 'absolute', top: '24px', right: '24px', background: '#F1F5F9', border: 'none', borderRadius: '12px', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}
+              title="Close modal"
+              style={{
+                position: 'absolute',
+                top: '24px',
+                right: '24px',
+                background: '#F1F5F9',
+                border: 'none',
+                borderRadius: '12px',
+                width: '36px',
+                height: '36px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#64748B',
+                transition: 'all 0.2s ease',
+                padding: 0
+              }}
             >
-              <XIcon size={18} color="currentColor" />
+              <GlassCancelIcon size={18} />
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
@@ -729,19 +904,122 @@ export const ResellerPanel = () => {
               <div className="admin-form-grid">
                 <div>
                   <label style={S.label}>New Password (leave blank to keep)</label>
-                  <input type="password" placeholder="••••••••" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassLockIcon size={16} />
+                    </span>
+                    <input 
+                      type="password" 
+                      placeholder="••••••••" 
+                      value={editPassword} 
+                      onChange={(e) => setEditPassword(e.target.value)} 
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={S.label}>Subscription Expiry Date</label>
-                  <input type="date" value={editingClient.expiresAt ? new Date(editingClient.expiresAt).toISOString().split('T')[0] : ''} onChange={(e) => setEditingClient({ ...editingClient, expiresAt: e.target.value })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassCalendarIcon size={16} />
+                    </span>
+                    <input 
+                      type="date" 
+                      value={editingClient.expiresAt ? new Date(editingClient.expiresAt).toISOString().split('T')[0] : ''} 
+                      onChange={(e) => setEditingClient({ ...editingClient, expiresAt: e.target.value })} 
+                      onClick={(e) => e.currentTarget.showPicker?.()}
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={S.label}>Max Instances</label>
-                  <input type="number" min="1" value={editingClient.maxInstances} onChange={(e) => setEditingClient({ ...editingClient, maxInstances: parseInt(e.target.value) || 1 })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassInstanceIcon size={16} />
+                    </span>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      value={editingClient.maxInstances} 
+                      onChange={(e) => setEditingClient({ ...editingClient, maxInstances: parseInt(e.target.value) || 1 })} 
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                      required 
+                    />
+                  </div>
                 </div>
                 <div>
                   <label style={S.label}>Monthly Message Limit</label>
-                  <input type="number" min="100" value={editingClient.messageLimit} onChange={(e) => setEditingClient({ ...editingClient, messageLimit: parseInt(e.target.value) || 1000 })} className="rounded-input" style={{ height: '44px', borderRadius: '10px' }} required />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassSendIcon size={16} />
+                    </span>
+                    <input 
+                      type="number" 
+                      min="100" 
+                      value={editingClient.messageLimit} 
+                      onChange={(e) => setEditingClient({ ...editingClient, messageLimit: parseInt(e.target.value) || 1000 })} 
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#FFFFFF',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#0F172A',
+                        outline: 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                      required 
+                    />
+                  </div>
                 </div>
               </div>
 

@@ -2,20 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
-  UsersGroupIcon,
-  SendIcon,
-  DownloadIcon,
-  CopyIcon,
-  CheckIcon,
-  SearchIcon,
-  RefreshIcon,
   XIcon,
-  WarningIcon,
-  CheckCircleIcon,
-  PaperclipIcon,
-  ShieldIcon,
-  FilterIcon
+  CheckIcon
 } from '../components/Icons';
+import {
+  GlassUsersGroupIcon,
+  GlassSendIcon,
+  GlassDownloadIcon,
+  GlassCopyIcon,
+  GlassCheckIcon,
+  GlassSearchIcon,
+  GlassRefreshIcon,
+  GlassWarningIcon,
+  GlassCheckCircleIcon,
+  GlassPaperclipIcon,
+  GlassShieldIcon,
+  GlassFilterIcon,
+  GlassCancelIcon,
+  GlassInstanceIcon,
+  GlassTouchHandIcon,
+  GlassAdminIcon,
+  GlassGlobeIcon
+} from '../components/GlassIcons';
+import { SearchableSelect } from '../components/SearchableSelect';
 import { copyToClipboard } from '../utils/clipboard';
 
 interface GroupItem {
@@ -255,31 +264,22 @@ export const Groups = () => {
         </div>
 
         {/* Instance Selector Dropdown */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '280px' }}>
           {instances.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#FFFFFF', padding: '6px 12px', borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748B' }}>Instance:</span>
-              <select
-                value={selectedInstance}
-                onChange={(e) => setSelectedInstance(e.target.value)}
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  fontWeight: 800,
-                  color: selectedInstance ? '#0F172A' : '#64748B',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  outline: 'none'
-                }}
-              >
-                <option value="" disabled>-- Select WhatsApp Instance --</option>
-                {instances.map((inst) => (
-                  <option key={inst.id} value={inst.id}>
-                    {inst.id} {inst.phoneNumber ? `(+${inst.phoneNumber})` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SearchableSelect
+              placeholder="-- Select WhatsApp Instance --"
+              searchPlaceholder="Search instance or phone..."
+              value={selectedInstance}
+              onChange={(val) => setSelectedInstance(val)}
+              options={instances.map((inst) => ({
+                value: inst.id,
+                label: inst.id,
+                sublabel: inst.phoneNumber ? `+${inst.phoneNumber}` : undefined,
+                badge: 'Connected',
+                badgeColor: { bg: '#D1FAE5', text: '#059669' },
+                icon: <GlassInstanceIcon size={16} />
+              }))}
+            />
           )}
 
           {selectedInstance && (
@@ -296,11 +296,11 @@ export const Groups = () => {
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '8px',
                 boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
               }}
             >
-              <RefreshIcon size={14} color="#0F172A" /> Refresh
+              <GlassRefreshIcon size={16} /> Refresh
             </button>
           )}
         </div>
@@ -310,8 +310,8 @@ export const Groups = () => {
       {!selectedInstance ? (
         <div className="card animate-in" style={{ padding: '64px 32px', textAlign: 'center' }}>
           <div style={{ maxWidth: '460px', margin: '0 auto' }}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 8px 24px rgba(37, 99, 235, 0.15)' }}>
-              <UsersGroupIcon size={32} color="#2563EB" />
+            <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+              <GlassUsersGroupIcon size={38} />
             </div>
             <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', margin: '0 0 8px', letterSpacing: '-0.01em' }}>
               {instances.length === 0 ? 'No Connected WhatsApp Instances' : 'Select a WhatsApp Instance'}
@@ -331,7 +331,8 @@ export const Groups = () => {
               </button>
             ) : (
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px', background: '#F8FAFC', border: '1px solid #E2E8F0', color: '#2563EB', fontSize: '13px', fontWeight: 700 }}>
-                <span>👆 Select an instance above to view groups</span>
+                <GlassTouchHandIcon size={18} />
+                <span>Select an instance above to view groups</span>
               </div>
             )}
           </div>
@@ -344,8 +345,8 @@ export const Groups = () => {
         <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Total Groups</span>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <UsersGroupIcon size={16} color="#2563EB" />
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassUsersGroupIcon size={20} />
             </div>
           </div>
           <div>
@@ -360,8 +361,8 @@ export const Groups = () => {
         <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Admin Access</span>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ShieldIcon size={16} color="#D97706" />
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassShieldIcon size={20} />
             </div>
           </div>
           <div>
@@ -376,8 +377,8 @@ export const Groups = () => {
         <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Total Audience Reach</span>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CheckCircleIcon size={16} color="#059669" />
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassCheckCircleIcon size={20} />
             </div>
           </div>
           <div>
@@ -395,37 +396,90 @@ export const Groups = () => {
         {/* Search & Filter Strip */}
         <div style={{ padding: '0 24px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           
-          {/* Tabs */}
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {/* Segmented Filter Tabs */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', background: '#F1F5F9', padding: '4px', borderRadius: '14px', gap: '4px', flexWrap: 'wrap' }}>
             {[
-              { key: 'all', label: `All Groups (${totalGroups})` },
-              { key: 'admin', label: `⭐ Admin Groups (${adminGroups})` },
-              { key: 'public', label: `🔓 Open Posting (${groups.filter((g) => !g.isAnnounce).length})` }
-            ].map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setFilterTab(key as any)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '10px',
-                  border: filterTab === key ? 'none' : '1px solid #E2E8F0',
-                  background: filterTab === key ? '#2563EB' : '#FFFFFF',
-                  color: filterTab === key ? '#FFFFFF' : '#64748B',
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {label}
-              </button>
-            ))}
+              { 
+                key: 'all', 
+                label: 'All Groups', 
+                count: totalGroups, 
+                icon: <GlassUsersGroupIcon size={16} /> 
+              },
+              { 
+                key: 'admin', 
+                label: 'Admin Groups', 
+                count: adminGroups, 
+                icon: <GlassAdminIcon size={16} /> 
+              },
+              { 
+                key: 'public', 
+                label: 'Open Posting', 
+                count: groups.filter((g) => !g.isAnnounce).length, 
+                icon: <GlassGlobeIcon size={16} /> 
+              }
+            ].map(({ key, label, count, icon }) => {
+              const isActive = filterTab === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setFilterTab(key as any)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: isActive ? '#FFFFFF' : 'transparent',
+                    color: isActive ? '#0F172A' : '#64748B',
+                    fontSize: '13px',
+                    fontWeight: isActive ? 800 : 600,
+                    cursor: 'pointer',
+                    boxShadow: isActive ? '0 2px 8px rgba(0, 0, 0, 0.06)' : 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.6)';
+                      e.currentTarget.style.color = '#0F172A';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = '#64748B';
+                    }
+                  }}
+                >
+                  <span style={{ display: 'inline-flex', flexShrink: 0 }}>{icon}</span>
+                  <span>{label}</span>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: '20px',
+                      height: '20px',
+                      padding: '0 6px',
+                      borderRadius: '999px',
+                      fontSize: '11px',
+                      fontWeight: 800,
+                      background: isActive ? '#EFF6FF' : '#E2E8F0',
+                      color: isActive ? '#2563EB' : '#64748B'
+                    }}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Search Box */}
           <div style={{ position: 'relative', width: '280px' }}>
-            <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }}>
-              <SearchIcon size={15} />
+            <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }}>
+              <GlassSearchIcon size={16} />
             </div>
             <input
               type="text"
@@ -470,7 +524,7 @@ export const Groups = () => {
                 <tr>
                   <td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#DC2626', fontSize: '13px', fontWeight: 600 }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                      <WarningIcon size={16} color="#DC2626" />
+                      <GlassWarningIcon size={16} />
                       <span>No connected WhatsApp instances found. Please connect an instance first.</span>
                     </div>
                   </td>
@@ -500,7 +554,8 @@ export const Groups = () => {
                             justifyContent: 'center',
                             fontWeight: 800,
                             fontSize: '15px',
-                            flexShrink: 0
+                            flexShrink: 0,
+                            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
                           }}
                         >
                           {g.subject.charAt(0).toUpperCase() || 'G'}
@@ -516,9 +571,9 @@ export const Groups = () => {
                             <button
                               onClick={() => handleCopyJid(g.id)}
                               title="Copy Group JID"
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: copiedGroupJid === g.id ? '#059669' : '#94A3B8' }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center' }}
                             >
-                              {copiedGroupJid === g.id ? <CheckIcon size={12} color="#059669" /> : <CopyIcon size={12} />}
+                              {copiedGroupJid === g.id ? <GlassCheckCircleIcon size={14} /> : <GlassCopyIcon size={14} />}
                             </button>
                           </div>
                         </div>
@@ -570,11 +625,11 @@ export const Groups = () => {
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px',
+                            gap: '6px',
                             boxShadow: '0 2px 8px rgba(37, 99, 235, 0.2)'
                           }}
                         >
-                          <SendIcon size={13} color="#FFFFFF" /> Send Message
+                          <GlassSendIcon size={14} /> Send Message
                         </button>
 
                         {/* View & Export Members Button */}
@@ -591,10 +646,10 @@ export const Groups = () => {
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px'
+                            gap: '6px'
                           }}
                         >
-                          <UsersGroupIcon size={13} color="#2563EB" /> Members
+                          <GlassUsersGroupIcon size={14} /> Members
                         </button>
 
                       </div>
@@ -694,8 +749,8 @@ export const Groups = () => {
           >
             {/* Close Button */}
             <button
-              onClick={() => !isSending && setSendingGroup(null)}
-              disabled={isSending}
+              onClick={() => setSendingGroup(null)}
+              title="Close modal"
               style={{
                 position: 'absolute',
                 top: '24px',
@@ -709,16 +764,18 @@ export const Groups = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#64748B'
+                color: '#64748B',
+                transition: 'all 0.2s ease',
+                padding: 0
               }}
             >
-              <XIcon size={18} color="currentColor" />
+              <GlassCancelIcon size={18} />
             </button>
 
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <SendIcon size={22} color="#2563EB" />
+              <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <GlassSendIcon size={26} />
               </div>
               <div>
                 <h3 style={{ fontWeight: 800, fontSize: '18px', color: '#0F172A', margin: 0 }}>
@@ -779,8 +836,8 @@ export const Groups = () => {
                     Media Direct URL (Image, Video, Document)
                   </label>
                   <div style={{ position: 'relative' }}>
-                    <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }}>
-                      <PaperclipIcon size={16} />
+                    <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}>
+                      <GlassPaperclipIcon size={16} />
                     </div>
                     <input
                       type="url"
@@ -823,13 +880,13 @@ export const Groups = () => {
 
               {sendError && (
                 <div style={{ background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '10px', padding: '10px 14px', color: '#DC2626', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <WarningIcon size={14} color="#DC2626" /> {sendError}
+                  <GlassWarningIcon size={16} /> {sendError}
                 </div>
               )}
 
               {sendSuccess && (
                 <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '10px', padding: '10px 14px', color: '#16A34A', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircleIcon size={16} color="#16A34A" /> Message sent to group successfully!
+                  <GlassCheckCircleIcon size={16} /> Message sent to group successfully!
                 </div>
               )}
 
@@ -877,7 +934,7 @@ export const Groups = () => {
                     </>
                   ) : (
                     <>
-                      <SendIcon size={15} color="#FFFFFF" /> Send to {sendingGroup.participantsCount} Members
+                      <GlassSendIcon size={16} /> Send to {sendingGroup.participantsCount} Members
                     </>
                   )}
                 </button>
@@ -924,6 +981,7 @@ export const Groups = () => {
             {/* Close Button */}
             <button
               onClick={() => setViewingMembersGroup(null)}
+              title="Close modal"
               style={{
                 position: 'absolute',
                 top: '24px',
@@ -937,10 +995,12 @@ export const Groups = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#64748B'
+                color: '#64748B',
+                transition: 'all 0.2s ease',
+                padding: 0
               }}
             >
-              <XIcon size={18} color="currentColor" />
+              <GlassCancelIcon size={18} />
             </button>
 
             {/* Header */}
@@ -956,8 +1016,8 @@ export const Groups = () => {
             {/* Action Bar: Search & Exports */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '14px' }}>
               <div style={{ position: 'relative', width: '220px' }}>
-                <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }}>
-                  <SearchIcon size={14} />
+                <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }}>
+                  <GlassSearchIcon size={14} />
                 </div>
                 <input
                   type="text"
@@ -980,20 +1040,21 @@ export const Groups = () => {
                   onClick={handleExportMembersCsv}
                   disabled={members.length === 0}
                   style={{
-                    background: '#D1FAE5',
-                    border: '1px solid #A7F3D0',
+                    background: '#0F172A',
+                    border: 'none',
                     borderRadius: '8px',
                     padding: '6px 12px',
                     fontSize: '12px',
                     fontWeight: 700,
-                    color: '#065F46',
+                    color: '#FFFFFF',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '6px',
+                    boxShadow: '0 2px 6px rgba(15,23,42,0.2)'
                   }}
                 >
-                  <DownloadIcon size={13} color="#065F46" /> Export CSV
+                  <GlassDownloadIcon size={14} /> Export CSV
                 </button>
 
                 <button
@@ -1010,10 +1071,10 @@ export const Groups = () => {
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '4px'
+                    gap: '6px'
                   }}
                 >
-                  <SendIcon size={13} color="#2563EB" /> Broadcast to Members
+                  <GlassSendIcon size={14} /> Broadcast to Members
                 </button>
               </div>
             </div>

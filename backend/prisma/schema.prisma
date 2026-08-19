@@ -21,6 +21,7 @@ model User {
   maxInstances  Int          @default(3)
   messageLimit  Int          @default(1000)
   permissions   String       @default("instances,broadcast,filter,groups,reports,docs")
+  checkWhatsAppNumber Boolean  @default(true)
   expiresAt     DateTime?
   instances     Instance[]
   messageLogs   MessageLog[]

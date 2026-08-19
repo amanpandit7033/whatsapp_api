@@ -2,28 +2,24 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { 
-  PlusIcon, 
-  SearchIcon, 
-  ExportIcon, 
-  TrashIcon, 
   CaretLeftIcon, 
   CaretRightIcon,
-  EyeIcon,
-  LogoutIcon,
-  XIcon,
-  RefreshIcon,
-  DeviceIcon,
-  CheckCircleIcon,
-  ChartIcon,
-  WarningIcon,
-  WarningCircleIcon
+  XIcon
 } from '../components/Icons';
 import {
-  Glass3DDeviceIcon,
-  Glass3DShieldIcon,
-  Glass3DChartIcon,
-  Glass3DCalendarIcon,
-} from '../components/Glass3DIcons';
+  GlassInstanceIcon,
+  GlassCheckCircleIcon,
+  GlassActivityIcon,
+  GlassAlertIcon,
+  GlassSearchIcon,
+  GlassDownloadIcon,
+  GlassPlusIcon,
+  GlassEyeIcon,
+  GlassRefreshIcon,
+  GlassLogoutIcon,
+  GlassTrashIcon,
+  GlassCancelIcon
+} from '../components/GlassIcons';
 
 export const Instances = () => {
   const [instances, setInstances] = useState<any[]>([]);
@@ -68,7 +64,9 @@ export const Instances = () => {
       return;
     }
     const data = await res.json();
-    setInstances((data.instances || []).filter((inst: any) => inst.status !== 'initializing'));
+    const list = (data.instances || []).filter((inst: any) => inst.status !== 'initializing');
+    list.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+    setInstances(list);
   };
 
   const handleLogout = async (id: string) => {
@@ -187,23 +185,23 @@ export const Instances = () => {
           <p style={{ color: '#64748B', fontSize: '14px', margin: 0, fontWeight: 500 }}>Create and link multiple WhatsApp numbers to use via API.</p>
         </div>
         <button onClick={() => navigate('/scan')} className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-          <PlusIcon size={16} /> Add Instance
+          <GlassPlusIcon size={18} /> Add Instance
         </button>
       </div>
       
-      {/* Stat Cards Row (Shopeers Style) */}
+      {/* Stat Cards Row (Glass Icon SaaS Style) */}
       <div className="stats-grid">
         {[
-          { label: 'Total Instances', val: instances.length, sub: 'Registered', badge: 'Active', bg: '#EFF6FF', color: '#2563EB', icon: DeviceIcon },
-          { label: 'Active Connections', val: activeCount, sub: 'Connected', badge: 'Online', bg: '#D1FAE5', color: '#059669', icon: CheckCircleIcon },
-          { label: 'Connection Rate', val: `${connectionRate}%`, sub: 'Overall', badge: 'High SLA', bg: '#EFF6FF', color: '#2563EB', icon: ChartIcon },
-          { label: 'Offline Instances', val: instances.length - activeCount, sub: 'Disconnected', badge: 'Attention', bg: '#FEE2E2', color: '#DC2626', icon: WarningIcon },
+          { label: 'Total Instances', val: instances.length, sub: 'Registered', badge: 'Active', bg: '#EFF6FF', color: '#2563EB', icon: GlassInstanceIcon },
+          { label: 'Active Connections', val: activeCount, sub: 'Connected', badge: 'Online', bg: '#ECFDF5', color: '#059669', icon: GlassCheckCircleIcon },
+          { label: 'Connection Rate', val: `${connectionRate}%`, sub: 'Overall', badge: 'High SLA', bg: '#EFF6FF', color: '#2563EB', icon: GlassActivityIcon },
+          { label: 'Offline Instances', val: instances.length - activeCount, sub: 'Disconnected', badge: 'Attention', bg: '#FEF2F2', color: '#DC2626', icon: GlassAlertIcon },
         ].map(({ label, val, sub, badge, bg, color, icon: IconComp }) => (
-          <div key={label} className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div key={label} className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRadius: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>{label}</span>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <IconComp size={16} color={color} />
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconComp size={22} />
               </div>
             </div>
             <div>
@@ -215,8 +213,10 @@ export const Instances = () => {
             </div>
           </div>
         ))}
-      </div>      {/* Instances Table Card (Shopeers Redesigned SaaS Style) */}
-      <div className="card" style={{ padding: '24px 0' }}>
+      </div>
+
+      {/* Instances Table Card */}
+      <div className="card" style={{ padding: '24px 0', borderRadius: '16px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', padding: '0 28px', marginBottom: '20px', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em' }}>Instances Directory</h3>
@@ -225,23 +225,25 @@ export const Instances = () => {
             </span>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
-            <div style={{ position: 'relative', width: '220px' }}>
+            <div style={{ position: 'relative', width: '240px' }}>
               <input
                 type="text"
                 placeholder="Search phone or ID..."
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 className="rounded-input"
-                style={{ height: '38px', paddingLeft: '38px', paddingRight: '16px', fontSize: '13px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0' }}
+                style={{ height: '40px', paddingLeft: '40px', paddingRight: '16px', fontSize: '13px', borderRadius: '10px', background: '#F8FAFC', border: '1px solid #E2E8F0' }}
               />
-              <SearchIcon size={16} color="#94A3B8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', display: 'flex', pointerEvents: 'none' }}>
+                <GlassSearchIcon size={18} />
+              </span>
             </div>
             <button onClick={handleExportCSV} style={{ 
-              background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0 16px', height: '38px', 
-              fontSize: '13px', fontWeight: 700, color: '#0F172A', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.02)', transition: 'all 0.2s ease'
+              background: '#0F172A', border: 'none', borderRadius: '10px', padding: '0 16px', height: '40px', 
+              fontSize: '13px', fontWeight: 700, color: '#FFFFFF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+              boxShadow: '0 2px 8px rgba(15,23,42,0.2)', transition: 'all 0.2s ease'
             }}>
-              <ExportIcon size={14} color="#2563EB" /> Export CSV
+              <GlassDownloadIcon size={18} /> Export CSV
             </button>
           </div>
         </div>
@@ -291,11 +293,11 @@ export const Instances = () => {
                           onClick={() => navigate(`/scan?id=${inst.id}`)}
                           style={{
                             background: '#EFF6FF',
-                            border: 'none',
+                            border: '1px solid #DBEAFE',
                             color: '#2563EB',
                             cursor: 'pointer',
-                            width: '34px',
-                            height: '34px',
+                            width: '36px',
+                            height: '36px',
                             borderRadius: '10px',
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -305,7 +307,7 @@ export const Instances = () => {
                           }}
                           title="View / Scan QR Code"
                         >
-                          <EyeIcon size={16} color="#2563EB" />
+                          <GlassEyeIcon size={20} />
                         </button>
                       )}
                       <button
@@ -313,11 +315,11 @@ export const Instances = () => {
                         disabled={syncingId === inst.id}
                         style={{
                           background: '#EFF6FF',
-                          border: 'none',
+                          border: '1px solid #DBEAFE',
                           color: '#2563EB',
                           cursor: syncingId === inst.id ? 'not-allowed' : 'pointer',
-                          width: '34px',
-                          height: '34px',
+                          width: '36px',
+                          height: '36px',
                           borderRadius: '10px',
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -328,18 +330,18 @@ export const Instances = () => {
                         }}
                         title="Sync Instance Status"
                       >
-                        <RefreshIcon size={16} color="#2563EB" />
+                        <GlassRefreshIcon size={20} />
                       </button>
                       {inst.status === 'connected' && (
                         <button
                           onClick={() => handleLogout(inst.id)}
                           style={{
-                            background: '#FEE2E2',
-                            border: 'none',
+                            background: '#FEF2F2',
+                            border: '1px solid #FEE2E2',
                             color: '#DC2626',
                             cursor: 'pointer',
-                            width: '34px',
-                            height: '34px',
+                            width: '36px',
+                            height: '36px',
                             borderRadius: '10px',
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -349,7 +351,7 @@ export const Instances = () => {
                           }}
                           title="Logout Session"
                         >
-                          <LogoutIcon size={16} color="#DC2626" />
+                          <GlassLogoutIcon size={20} />
                         </button>
                       )}
                     </div>
@@ -358,13 +360,13 @@ export const Instances = () => {
                     <button 
                       onClick={() => handleDelete(inst.id)}
                       style={{ 
-                        background: '#FEF2F2', border: 'none', color: '#EF4444', cursor: 'pointer', 
-                        width: '34px', height: '34px', borderRadius: '10px', display: 'inline-flex', 
+                        background: '#FEF2F2', border: '1px solid #FEE2E2', color: '#EF4444', cursor: 'pointer', 
+                        width: '36px', height: '36px', borderRadius: '10px', display: 'inline-flex', 
                         alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s ease' 
                       }}
                       title="Delete Instance"
                     >
-                      <TrashIcon size={16} color="#EF4444" />
+                      <GlassTrashIcon size={20} />
                     </button>
                   </td>
                 </tr>
@@ -398,27 +400,39 @@ export const Instances = () => {
             <div className="modal-header" style={{ padding: '16px 20px', background: '#FFFFFF', borderBottom: 'none' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
-                  background: '#FEE2E2',
-                  width: '36px',
-                  height: '36px',
+                  background: '#FEF2F2',
+                  width: '38px',
+                  height: '38px',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: 'var(--danger-color)'
                 }}>
-                  <WarningCircleIcon size={20} />
+                  <GlassAlertIcon size={22} />
                 </div>
                 <h3 className="modal-title" style={{ fontSize: '16px', fontWeight: 700 }}>
                   {confirmModal.title}
                 </h3>
               </div>
               <button 
-                className="modal-close-btn" 
                 onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
-                style={{ width: '28px', height: '28px' }}
+                title="Close modal"
+                style={{
+                  background: '#F1F5F9',
+                  border: 'none',
+                  borderRadius: '12px',
+                  width: '36px',
+                  height: '36px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#64748B',
+                  transition: 'all 0.2s ease',
+                  padding: 0
+                }}
               >
-                <XIcon size={16} />
+                <GlassCancelIcon size={18} />
               </button>
             </div>
             

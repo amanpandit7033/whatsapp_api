@@ -189,7 +189,10 @@ router.post('/instances/create', authenticate, async (req: any, res: any) => {
 });
 
 router.get('/instances', authenticate, async (req: any, res: any) => {
-    const instances = await prisma.instance.findMany({ where: { userId: req.user.userId } });
+    const instances = await prisma.instance.findMany({ 
+        where: { userId: req.user.userId },
+        orderBy: { createdAt: 'desc' }
+    });
     res.json({ instances });
 });
 
@@ -1183,6 +1186,7 @@ router.post('/admin/users', adminAuthenticate, async (req: any, res: any) => {
         if (permissions) {
             data.permissions = permissions;
         }
+        data.checkWhatsAppNumber = req.body.checkWhatsAppNumber !== undefined ? Boolean(req.body.checkWhatsAppNumber) : true;
         const user = await prisma.user.create({ data });
         res.json({ message: 'User created successfully', user: { id: user.id, username: user.username } });
     } catch (e: any) {
@@ -1192,7 +1196,7 @@ router.post('/admin/users', adminAuthenticate, async (req: any, res: any) => {
 
 router.put('/admin/users/:id', adminAuthenticate, async (req: any, res: any) => {
     try {
-        const { username, password, maxInstances, isAdmin, isReseller, role, messageLimit, expiresAt, permissions } = req.body;
+        const { username, password, maxInstances, isAdmin, isReseller, role, messageLimit, expiresAt, permissions, checkWhatsAppNumber } = req.body;
         const data: any = {};
         if (username) data.username = username.trim();
         if (password) data.passwordHash = await bcrypt.hash(password, 10);
@@ -1210,6 +1214,7 @@ router.put('/admin/users/:id', adminAuthenticate, async (req: any, res: any) => 
             data.expiresAt = expiresAt ? new Date(expiresAt) : null;
         }
         if (permissions !== undefined) data.permissions = permissions;
+        if (checkWhatsAppNumber !== undefined) data.checkWhatsAppNumber = Boolean(checkWhatsAppNumber);
 
         const user = await prisma.user.update({
             where: { id: req.params.id },
@@ -1245,7 +1250,8 @@ router.get('/admin/users', adminAuthenticate, async (req: any, res: any) => {
                 maxInstances: true, 
                 messageLimit: true, 
                 expiresAt: true, 
-                permissions: true, 
+                permissions: true,
+                checkWhatsAppNumber: true, 
                 createdAt: true, 
                 _count: { select: { instances: true, clients: true } } 
             },
@@ -2074,10 +2080,7 @@ router.get('/admin/domains', adminAuthenticate, async (req: any, res: any) => {
                 createdAt: true,
                 _count: { select: { instances: true } }
             },
-            orderBy: [
-                { customDomain: 'desc' },
-                { createdAt: 'desc' }
-            ]
+            orderBy: { createdAt: 'desc' }
         });
 
         const serverIp = await getPublicServerIp();

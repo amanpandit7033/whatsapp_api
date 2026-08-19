@@ -2,17 +2,20 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
 import {
-  DeviceIcon,
-  DotsHorizontalIcon,
-  QrCodeIcon,
-  CheckCircleIcon,
   CheckIcon,
-  RefreshIcon,
-  WarningIcon,
-  ShieldIcon,
-  WhatsAppIcon,
-  ArrowRightIcon
+  WhatsAppIcon
 } from '../components/Icons';
+import {
+  GlassInstanceIcon,
+  GlassQrCodeIcon,
+  GlassCheckCircleIcon,
+  GlassRefreshIcon,
+  GlassAlertIcon,
+  GlassShieldIcon,
+  GlassDotsIcon,
+  GlassTapToLinkIcon,
+  GlassChatIcon
+} from '../components/GlassIcons';
 
 export const Scan = () => {
   const [searchParams] = useSearchParams();
@@ -209,8 +212,8 @@ export const Scan = () => {
               </h1>
 
               {isConnected ? (
-                <span className="badge badge-success" style={{ fontSize: '11.5px', fontWeight: 800, padding: '4px 12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                  <CheckCircleIcon size={14} color="#15803D" />
+                <span className="badge badge-success" style={{ fontSize: '11.5px', fontWeight: 800, padding: '4px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <GlassCheckCircleIcon size={16} />
                   <span>Connected & Ready</span>
                 </span>
               ) : isAwaiting ? (
@@ -219,21 +222,23 @@ export const Scan = () => {
                   <span>Waiting for WhatsApp Scan</span>
                 </span>
               ) : status === 'error' ? (
-                <span className="badge badge-danger" style={{ fontSize: '11.5px', fontWeight: 800, padding: '4px 12px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                  <WarningIcon size={14} color="#DC2626" />
+                <span className="badge badge-danger" style={{ fontSize: '11.5px', fontWeight: 800, padding: '4px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <GlassAlertIcon size={16} />
                   <span>Connection Error</span>
                 </span>
               ) : (
                 <span className="badge badge-neutral" style={{ fontSize: '11.5px', fontWeight: 700, padding: '4px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <RefreshIcon size={12} color="#64748B" style={{ animation: 'spin 1.2s linear infinite' }} />
+                  <span style={{ display: 'inline-flex', animation: 'spin 1.2s linear infinite' }}>
+                    <GlassRefreshIcon size={14} />
+                  </span>
                   <span>Initializing Secure Channel...</span>
                 </span>
               )}
             </div>
 
             {instanceId && (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#475569', background: '#FFFFFF', padding: '4px 10px', borderRadius: '8px', border: '1px solid #CBD5E1', marginTop: '10px' }}>
-                <DeviceIcon size={14} color="#2563EB" />
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#475569', background: '#FFFFFF', padding: '4px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', marginTop: '10px' }}>
+                <GlassInstanceIcon size={16} />
                 <span>Session Instance ID: <strong style={{ color: '#0F172A', fontFamily: 'var(--font-mono)' }}>{instanceId}</strong></span>
               </div>
             )}
@@ -254,11 +259,13 @@ export const Scan = () => {
                 cursor: (refreshing || isConnected) ? 'not-allowed' : 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
+                gap: '8px',
                 boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
               }}
             >
-              <RefreshIcon size={14} color="#475569" style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
+              <span style={{ display: 'inline-flex', animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }}>
+                <GlassRefreshIcon size={16} />
+              </span>
               <span>{refreshing ? 'Refreshing...' : 'Regenerate QR'}</span>
             </button>
 
@@ -320,7 +327,9 @@ export const Scan = () => {
               </p>
               {countdown !== null && (
                 <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '10px 16px', borderRadius: '12px', color: '#166534', fontSize: '13px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                  <RefreshIcon size={14} color="#166534" style={{ animation: 'spin 1.2s linear infinite' }} />
+                  <span style={{ display: 'inline-flex', animation: 'spin 1.2s linear infinite' }}>
+                    <GlassRefreshIcon size={14} />
+                  </span>
                   <span>Redirecting to Dashboard in {countdown}s...</span>
                 </div>
               )}
@@ -328,7 +337,7 @@ export const Scan = () => {
           ) : error ? (
             <div style={{ padding: '32px 16px', textAlign: 'center', maxWidth: '300px' }}>
               <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                <WarningIcon size={28} color="#DC2626" />
+                <GlassAlertIcon size={32} />
               </div>
               <h4 style={{ margin: '0 0 8px', color: '#991B1B', fontSize: '16px', fontWeight: 800 }}>Connection Error</h4>
               <p style={{ margin: '0 0 20px', color: '#DC2626', fontSize: '13px', fontWeight: 500, lineHeight: 1.5 }}>
@@ -421,7 +430,7 @@ export const Scan = () => {
           <div style={{ background: 'linear-gradient(135deg, #1E40AF 0%, #2563EB 100%)', borderRadius: '20px', padding: '24px 28px', color: '#FFFFFF', boxShadow: '0 8px 24px rgba(37, 99, 235, 0.25)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
               <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <WhatsAppIcon size={24} color="#FFFFFF" />
+                <GlassChatIcon size={26} />
               </div>
               <div>
                 <h3 style={{ fontWeight: 800, fontSize: '17px', margin: 0, letterSpacing: '-0.01em', color: '#FFFFFF' }}>How to Connect Your Device</h3>
@@ -437,25 +446,25 @@ export const Scan = () => {
           {[
             {
               step: '01',
-              icon: DeviceIcon,
+              icon: GlassInstanceIcon,
               title: 'Open WhatsApp on your Phone',
               desc: 'Launch the WhatsApp or WhatsApp Business mobile application.'
             },
             {
               step: '02',
-              icon: DotsHorizontalIcon,
+              icon: GlassDotsIcon,
               title: 'Navigate to Linked Devices',
               desc: 'Tap Menu (3 vertical dots on Android) or Settings (gear icon on iOS) → Linked Devices.'
             },
             {
               step: '03',
-              icon: QrCodeIcon,
+              icon: GlassTapToLinkIcon,
               title: 'Tap "Link a Device"',
               desc: 'Point your camera viewfinder directly at the QR code displayed on the left.'
             },
             {
               step: '04',
-              icon: CheckCircleIcon,
+              icon: GlassCheckCircleIcon,
               title: 'Instant Synchronization',
               desc: 'Once scanned, your instance automatically goes Live and begins dispatching messages.'
             }
@@ -470,13 +479,14 @@ export const Scan = () => {
                 padding: '16px 20px',
                 background: '#FFFFFF',
                 border: '1px solid #E2E8F0',
+                borderRadius: '14px',
                 transition: 'transform 0.15s ease, box-shadow 0.15s ease'
               }}
             >
               <div style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '10px',
+                width: '40px',
+                height: '40px',
+                borderRadius: '12px',
                 flexShrink: 0,
                 background: '#EFF6FF',
                 display: 'flex',
@@ -484,7 +494,7 @@ export const Scan = () => {
                 justifyContent: 'center',
                 border: '1px solid #DBEAFE'
               }}>
-                <IconComponent size={18} color="#2563EB" />
+                <IconComponent size={22} />
               </div>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
@@ -511,9 +521,9 @@ export const Scan = () => {
           ))}
 
           {/* Security & Privacy Banner */}
-          <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '16px 20px', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#D1FAE5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <ShieldIcon size={18} color="#059669" />
+          <div style={{ background: '#F8FAFC', borderRadius: '16px', padding: '16px 20px', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#ECFDF5', border: '1px solid #A7F3D0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(16, 185, 129, 0.12)' }}>
+              <GlassShieldIcon size={24} />
             </div>
             <div>
               <span style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', display: 'block' }}>End-to-End Encrypted Session</span>

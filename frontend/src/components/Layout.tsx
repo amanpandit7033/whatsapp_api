@@ -3,21 +3,27 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   ListIcon,
   XIcon,
-  DashboardIcon,
-  DeviceIcon,
-  SendIcon,
-  ChartIcon,
-  ReportIcon,
-  ActivityIcon,
-  BookIcon,
-  ShieldIcon,
-  LogoutIcon,
-  FilterIcon,
-  UsersGroupIcon,
-  UserPlusIcon,
-  GlobeIcon,
   ArrowLeftIcon
 } from './Icons';
+import {
+  GlassDashboardIcon,
+  GlassInstanceIcon,
+  GlassBroadcastIcon,
+  GlassFilterIcon,
+  GlassGroupIcon,
+  GlassReportIcon,
+  GlassActivityIcon,
+  GlassDocsIcon,
+  GlassShieldIcon,
+  GlassResellerIcon,
+  GlassGlobeIcon,
+  GlassLogoutIcon,
+  GlassSidebarShowIcon,
+  GlassSidebarHideIcon,
+  GlassWhatsAppIcon,
+  GlassAdminIcon,
+  GlassUserIcon
+} from './GlassIcons';
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
@@ -50,7 +56,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem('impersonatedUsername');
     localStorage.removeItem('originalSession');
 
-    window.location.href = originalSession.returnUrl || '/admin';
+    window.location.href = originalSession.returnUrl || '/user-management';
   };
 
   useEffect(() => {
@@ -87,30 +93,62 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
   const permissionsStr = localStorage.getItem('permissions') || 'instances,broadcast,filter,groups,reports,docs';
   const permissions = permissionsStr.split(',');
 
-  const allNavItems = [
-    { to: '/', icon: DashboardIcon, label: 'Dashboard', id: 'dashboard' },
-    { to: '/instances', icon: DeviceIcon, label: 'Instances', id: 'instances', badge: 'Active' },
-    { to: '/broadcast', icon: SendIcon, label: 'Broadcast', id: 'broadcast' },
-    { to: '/filter', icon: FilterIcon, label: 'Number Filter', id: 'filter' },
-    { to: '/groups', icon: UsersGroupIcon, label: 'Groups Hub', id: 'groups' },
-    { to: '/reports', icon: ReportIcon, label: 'Reports', id: 'reports' },
-    { to: '/docs', icon: BookIcon, label: 'API Docs', id: 'docs' },
+  // Grouped Navigation Sections according to usage & ergonomics
+  const rawSections = [
+    {
+      title: 'Overview',
+      items: [
+        { to: '/', icon: GlassDashboardIcon, label: 'Dashboard', id: 'dashboard' },
+        { to: '/instances', icon: GlassInstanceIcon, label: 'Instances', id: 'instances', badge: 'Active' },
+        { to: '/profile', icon: GlassUserIcon, label: 'Profile', id: 'profile' },
+      ]
+    },
+    {
+      title: 'Campaigns & Tools',
+      items: [
+        { to: '/broadcast', icon: GlassBroadcastIcon, label: 'Broadcast', id: 'broadcast' },
+        { to: '/filter', icon: GlassFilterIcon, label: 'Number Filter', id: 'filter' },
+        { to: '/groups', icon: GlassGroupIcon, label: 'Groups Hub', id: 'groups' },
+      ]
+    },
+    {
+      title: 'Analytics & Status',
+      items: [
+        { to: '/reports', icon: GlassReportIcon, label: 'Reports', id: 'reports' },
+        ...(isAdmin || (isReseller && !isAdmin) ? [
+          { to: '/live-status', icon: GlassActivityIcon, label: 'Live Status', id: 'live-status' }
+        ] : []),
+      ]
+    },
+    {
+      title: 'Developer',
+      items: [
+        { to: '/docs', icon: GlassDocsIcon, label: 'API Docs', id: 'docs' },
+      ]
+    },
+    ...((isAdmin || isReseller) ? [{
+      title: 'Management',
+      items: [
+        ...(isReseller && !isAdmin ? [
+          { to: '/reseller', icon: GlassResellerIcon, label: 'Reseller Hub', id: 'reseller' }
+        ] : []),
+        ...(isAdmin ? [
+          { to: '/whitelabel', icon: GlassGlobeIcon, label: 'White-Label', id: 'whitelabel' },
+          { to: '/user-management', icon: GlassAdminIcon, label: 'User Management', id: 'user-management' }
+        ] : [])
+      ]
+    }] : [])
   ];
 
-  const navItems = allNavItems.filter(item => 
-    isAdmin || item.id === 'dashboard' || permissions.includes(item.id)
-  );
-
-  if (isReseller && !isAdmin) {
-    navItems.push({ to: '/live-status', icon: ActivityIcon, label: 'Live Status', id: 'live-status' });
-    navItems.push({ to: '/reseller', icon: UserPlusIcon, label: 'Reseller Hub', id: 'reseller' });
-  }
-
-  if (isAdmin) {
-    navItems.push({ to: '/live-status', icon: ActivityIcon, label: 'Live Status', id: 'live-status' });
-    navItems.push({ to: '/whitelabel', icon: GlobeIcon, label: 'White-Label', id: 'whitelabel' });
-    navItems.push({ to: '/admin', icon: ShieldIcon, label: 'Admin Panel', id: 'admin' });
-  }
+  // Filter sections and items based on permissions
+  const navSections = rawSections
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item => 
+        isAdmin || item.id === 'dashboard' || item.id === 'profile' || permissions.includes(item.id)
+      )
+    }))
+    .filter(section => section.items.length > 0);
 
   return (
     <div className="app-container">
@@ -123,43 +161,72 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       {/* Shopeers Style Clean Sidebar */}
       <aside className={`app-sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
         {/* Brand Logo */}
-        <div className="sidebar-brand-container" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px', padding: '0 4px', color: '#0F172A', fontWeight: 800, fontSize: '18px', letterSpacing: '-0.03em' }}>
+        <div className="sidebar-brand-container" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px', padding: '0 4px', color: '#0F172A', fontWeight: 800, fontSize: '18px', letterSpacing: '-0.03em' }}>
           {branding.brandLogoUrl ? (
             <img src={branding.brandLogoUrl} alt={branding.brandName} style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'contain' }} />
           ) : (
-            <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 900, fontSize: '16px', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)', flexShrink: 0 }}>
-              {branding.brandName.charAt(0).toUpperCase()}
+            <div style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <GlassWhatsAppIcon size={36} />
             </div>
           )}
           <span className="sidebar-brand-text" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{branding.brandName}</span>
         </div>
 
-        <span className="sidebar-nav-heading" style={{ fontSize: '11px', fontWeight: 700, color: '#94A3B8', marginBottom: '12px', paddingLeft: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          Navigation
-        </span>
-
-        {/* Navigation items */}
-        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.to;
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={`sidebar-item ${isActive ? 'active' : ''}`}
-                title={item.label}
+        {/* Navigation Sections */}
+        <nav className="sidebar-nav-scroll custom-scrollbar" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', width: '100%', overflowY: 'auto', paddingRight: '2px' }}>
+          {navSections.map((section, idx) => (
+            <div key={section.title} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <span
+                className="sidebar-nav-heading"
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  color: '#94A3B8',
+                  marginBottom: '4px',
+                  paddingLeft: '12px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.07em'
+                }}
               >
-                <Icon size={18} color={isActive ? '#2563EB' : '#64748B'} />
-                <span className="sidebar-item-label" style={{ flex: 1 }}>{item.label}</span>
-                {item.badge && (
-                  <span className="sidebar-item-badge badge badge-success" style={{ fontSize: '10px', padding: '2px 8px' }}>
-                    {item.badge}
-                  </span>
-                )}
-              </NavLink>
-            );
-          })}
+                {section.title}
+              </span>
+
+              {section.items.map((item) => {
+                const isActive = location.pathname === item.to;
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={`sidebar-item ${isActive ? 'active' : ''}`}
+                    title={item.label}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '9px 12px',
+                      borderRadius: '12px',
+                      textDecoration: 'none',
+                      transition: 'all 0.2s ease',
+                      background: isActive ? '#EFF6FF' : 'transparent',
+                      color: isActive ? '#1D4ED8' : '#475569',
+                      fontWeight: isActive ? 800 : 600
+                    }}
+                  >
+                    <div style={{ transform: isActive ? 'scale(1.08)' : 'scale(1)', transition: 'transform 0.2s ease', flexShrink: 0 }}>
+                      <Icon size={20} />
+                    </div>
+                    <span className="sidebar-item-label" style={{ flex: 1, fontSize: '13.5px' }}>{item.label}</span>
+                    {item.badge && (
+                      <span className="sidebar-item-badge badge badge-success" style={{ fontSize: '10px', padding: '2px 8px' }}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </NavLink>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Logout */}
@@ -174,9 +241,17 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
               textAlign: 'left',
               width: '100%',
               color: '#EF4444',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '10px 14px',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '14px'
             }}
           >
-            <LogoutIcon size={18} color="#EF4444" />
+            <GlassLogoutIcon size={20} />
             <span className="sidebar-item-label">Log out</span>
           </button>
         </div>
@@ -201,31 +276,30 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             zIndex: 10,
           }}
         >
-          {/* Left Side: Hamburger Toggle + Page Title Indicator */}
+          {/* Left Side: Glass Sidebar Toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <button 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
               className="top-header-hamburger"
               aria-label="Toggle Navigation"
-              title="Toggle Menu"
+              title={isSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(255, 255, 255, 0.15)',
+                backdropFilter: 'blur(8px)',
+                border: 'none',
+                borderRadius: '10px',
+                width: '38px',
+                height: '38px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                padding: 0
+              }}
             >
-              <ListIcon size={22} color="#FFFFFF" />
+              {isSidebarOpen ? <GlassSidebarHideIcon size={22} /> : <GlassSidebarShowIcon size={22} />}
             </button>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
-                {location.pathname === '/' ? 'Dashboard' :
-                 location.pathname.startsWith('/profile') ? 'Profile & Security' :
-                 location.pathname.startsWith('/instances') ? 'Instances' :
-                 location.pathname.startsWith('/broadcast') ? 'Broadcast' :
-                 location.pathname.startsWith('/filter') ? 'Number Filter & Validator' :
-                 location.pathname.startsWith('/groups') ? 'Groups Hub' :
-                 location.pathname.startsWith('/reports') ? 'Reports' :
-                 location.pathname.startsWith('/docs') ? 'API Documentation' :
-                 location.pathname.startsWith('/reseller') ? 'Reseller Hub' :
-                 location.pathname.startsWith('/admin') ? 'Admin Panel' : 'Overview'}
-              </h3>
-              <span style={{ fontSize: '12px', color: '#DBEAFE', fontWeight: 600 }}>WhatsApp API Gateway</span>
-            </div>
           </div>
 
           {/* Right Side: Return Impersonation Button (if Pre-Login Active) + Profile Card */}
@@ -233,7 +307,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
             {isImpersonating && (
               <button
                 onClick={handleReturnSession}
-                title={`Exit Pre-Login and return to ${originalSession?.returnRoleTitle || 'Admin Panel'}`}
+                title={`Exit Pre-Login and return to ${originalSession?.returnRoleTitle || 'User Management'}`}
                 style={{
                   background: '#FEF3C7',
                   color: '#92400E',
@@ -252,51 +326,54 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
                 }}
               >
                 <ArrowLeftIcon size={14} color="#92400E" />
-                <span>Return to {originalSession?.returnRoleTitle || 'Admin Panel'}</span>
+                <span>Return to {originalSession?.returnRoleTitle || 'User Management'}</span>
               </button>
             )}
 
             {/* Profile Card (Clickable to /profile) */}
             <div 
               onClick={() => navigate('/profile')}
+              title="View Profile & Settings"
               style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                gap: '12px', 
-                padding: '6px 16px 6px 8px', 
-                borderRadius: '12px', 
-                background: 'rgba(255, 255, 255, 0.15)', 
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+                gap: '10px', 
+                padding: '4px 14px 4px 6px', 
+                borderRadius: '30px', 
+                background: 'rgba(255, 255, 255, 0.16)', 
+                backdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255, 255, 255, 0.28)',
+                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.08)',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
               }}
             >
-              {/* Profile Avatar */}
+              {/* Profile Avatar with 3D Glass Icon */}
               <div
                 style={{
                   width: 32,
                   height: 32,
-                  borderRadius: '8px',
-                  background: '#FFFFFF',
-                  color: '#2563EB',
+                  borderRadius: '50%',
+                  background: 'rgba(255, 255, 255, 0.22)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontWeight: 900,
-                  fontSize: '14px',
                   boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
                   flexShrink: 0,
                 }}
               >
-                {avatarLetter}
+                <GlassUserIcon size={20} />
               </div>
 
-              {/* Profile Username Only */}
-              <span style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
-                {username}
-              </span>
+              {/* Profile Username */}
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
+                  {username}
+                </span>
+                <span style={{ fontSize: '10.5px', fontWeight: 600, color: '#BFDBFE', textTransform: 'capitalize' }}>
+                  {isAdmin ? 'Administrator' : isReseller ? 'Reseller' : 'Member'}
+                </span>
+              </div>
             </div>
           </div>
         </header>
