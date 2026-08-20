@@ -12,8 +12,15 @@ import {
 } from '../components/GlassIcons';
 
 export const Profile = () => {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(() => {
+    try {
+      const cached = localStorage.getItem('cached_profile');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState(!user);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -27,14 +34,19 @@ export const Profile = () => {
   }, []);
 
   const fetchProfile = async () => {
-    setLoading(true);
+    if (!user) setLoading(true);
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/profile`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (res.status === 401) { navigate('/login'); return; }
       const data = await res.json();
-      setUser(data.user);
+      if (data.user) {
+        setUser(data.user);
+        try {
+          localStorage.setItem('cached_profile', JSON.stringify(data.user));
+        } catch {}
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -82,10 +94,12 @@ export const Profile = () => {
     }
   };
 
-  if (loading) {
+  if (!user && loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px' }}>
-        <div style={{ width: '28px', height: '28px', border: '3px solid #E2E8F0', borderTopColor: '#2563EB', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '900px', margin: '0 auto', padding: '20px 0' }}>
+        <div style={{ height: '32px', width: '220px', background: '#F1F5F9', borderRadius: '8px', animation: 'pulse 1.5s infinite' }} />
+        <div style={{ height: '180px', background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', animation: 'pulse 1.5s infinite' }} />
+        <div style={{ height: '240px', background: '#FFFFFF', borderRadius: '16px', border: '1px solid #E2E8F0', animation: 'pulse 1.5s infinite' }} />
       </div>
     );
   }
