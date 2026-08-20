@@ -22,7 +22,8 @@ import {
   GlassRefreshIcon,
   GlassCalendarIcon,
   GlassUserIcon,
-  GlassPhoneIcon
+  GlassPhoneIcon,
+  GlassStarSparkleIcon
 } from '../components/GlassIcons';
 
 const S: Record<string, React.CSSProperties> = {

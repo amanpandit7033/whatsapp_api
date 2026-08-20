@@ -19,7 +19,8 @@ import {
   GlassLogoutIcon,
   GlassTrashIcon,
   GlassCancelIcon,
-  GlassTagIcon
+  GlassTagIcon,
+  GlassUsersIcon
 } from '../components/GlassIcons';
 
 export const Instances = () => {
