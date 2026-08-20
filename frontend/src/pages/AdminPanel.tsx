@@ -41,6 +41,10 @@ export const AdminPanel = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [globalTotalUsers, setGlobalTotalUsers] = useState(0);
+  const [globalAdminCount, setGlobalAdminCount] = useState(0);
+  const [globalResellerCount, setGlobalResellerCount] = useState(0);
+  const [globalActiveCount, setGlobalActiveCount] = useState(0);
   const [search, setSearch] = useState('');
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -97,6 +101,10 @@ export const AdminPanel = () => {
       const sortedUsers = [...data.users].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setUsers(sortedUsers);
       setTotalPages(data.totalPages);
+      setGlobalTotalUsers(data.totalUsers || data.total || 0);
+      setGlobalAdminCount(data.adminCount || 0);
+      setGlobalResellerCount(data.resellerCount || 0);
+      setGlobalActiveCount(data.activeCount || 0);
     }
   };
 
@@ -200,11 +208,10 @@ export const AdminPanel = () => {
     }
   };
 
-  const totalUsers = users.length;
-  const adminCount = users.filter(u => u.isAdmin).length;
-  const resellerCount = users.filter(u => u.isReseller || u.role === 'reseller').length;
-  const expiredCount = users.filter(u => u.expiresAt && new Date(u.expiresAt) < new Date()).length;
-  const activeCount = users.filter(u => !u.isAdmin && (!u.expiresAt || new Date(u.expiresAt) >= new Date())).length;
+  const totalUsers = globalTotalUsers;
+  const adminCount = globalAdminCount;
+  const resellerCount = globalResellerCount;
+  const activeCount = globalActiveCount;
 
   return (
     <div className="animate-in">
@@ -235,10 +242,10 @@ export const AdminPanel = () => {
       {/* Stat strip (Shopeers Style) */}
       <div className="stats-grid">
         {[
-          { label: 'Total Users', val: totalUsers, sub: 'Registered accounts', badge: 'Total', bg: '#EFF6FF', icon: GlassUserIcon },
-          { label: 'Admins', val: adminCount, sub: 'System Managers', badge: 'Admin', bg: '#F3E8FF', icon: GlassAdminIcon },
-          { label: 'Resellers', val: resellerCount, sub: 'Master Accounts', badge: 'Reseller', bg: '#FEF3C7', icon: GlassResellerIcon },
-          { label: 'Active Users', val: activeCount, sub: 'Valid Subscriptions', badge: 'Active', bg: '#D1FAE5', icon: GlassCheckCircleIcon },
+          { label: 'Total Users', val: totalUsers.toLocaleString(), sub: 'Registered accounts', badge: 'Total', bg: '#EFF6FF', icon: GlassUserIcon },
+          { label: 'Admins', val: adminCount.toLocaleString(), sub: 'System Managers', badge: 'Admin', bg: '#F3E8FF', icon: GlassAdminIcon },
+          { label: 'Resellers', val: resellerCount.toLocaleString(), sub: 'Master Accounts', badge: 'Reseller', bg: '#FEF3C7', icon: GlassResellerIcon },
+          { label: 'Active Users', val: activeCount.toLocaleString(), sub: 'Valid Subscriptions', badge: 'Active', bg: '#D1FAE5', icon: GlassCheckCircleIcon },
         ].map(({ label, val, sub, badge, bg, icon: IconComp }) => (
           <div key={label} className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRadius: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>

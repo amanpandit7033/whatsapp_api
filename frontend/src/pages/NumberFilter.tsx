@@ -49,6 +49,9 @@ export const NumberFilter = () => {
   const [batchPage, setBatchPage] = useState(1);
   const [batchTotalPages, setBatchTotalPages] = useState(1);
   const [batchTotalCount, setBatchTotalCount] = useState(0);
+  const [globalTotalVerified, setGlobalTotalVerified] = useState(0);
+  const [globalTotalValid, setGlobalTotalValid] = useState(0);
+  const [globalTotalInvalid, setGlobalTotalInvalid] = useState(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -90,6 +93,9 @@ export const NumberFilter = () => {
         setBatches(data.batches);
         setBatchTotalPages(data.totalPages || 1);
         setBatchTotalCount(data.totalCount || 0);
+        setGlobalTotalVerified(data.totalVerified || 0);
+        setGlobalTotalValid(data.totalValid || 0);
+        setGlobalTotalInvalid(data.totalInvalid || 0);
       }
     } catch (e) {
       console.error('Failed to load batches', e);
@@ -310,9 +316,9 @@ export const NumberFilter = () => {
           </div>
           <div>
             <span style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
-              {totalVerifiedAcrossBatches.toLocaleString()}
+              {globalTotalVerified.toLocaleString()}
             </span>
-            <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>Current page volume</span>
+            <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>Total scanned volume</span>
           </div>
         </div>
 
@@ -326,7 +332,7 @@ export const NumberFilter = () => {
           </div>
           <div>
             <span style={{ fontSize: '24px', fontWeight: 800, color: '#059669', letterSpacing: '-0.02em' }}>
-              {totalValidAcrossBatches.toLocaleString()}
+              {globalTotalValid.toLocaleString()}
             </span>
             <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>Registered accounts</span>
           </div>
@@ -342,7 +348,7 @@ export const NumberFilter = () => {
           </div>
           <div>
             <span style={{ fontSize: '24px', fontWeight: 800, color: '#DC2626', letterSpacing: '-0.02em' }}>
-              {totalInvalidAcrossBatches.toLocaleString()}
+              {globalTotalInvalid.toLocaleString()}
             </span>
             <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>Inactive numbers</span>
           </div>

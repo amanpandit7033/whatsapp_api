@@ -1175,16 +1175,20 @@ router.get('/reports', authenticate, async (req: any, res: any) => {
             }
         }
 
-        const totalCount = await prisma.messageLog.count({ where });
-        const logs = await prisma.messageLog.findMany({
-            where,
-            include: { instance: true, user: { select: { username: true } } },
-            orderBy: { createdAt: 'desc' },
-            skip: (page - 1) * limit,
-            take: limit
-        });
+        const [totalCount, sentCount, failedCount, logs] = await Promise.all([
+            prisma.messageLog.count({ where }),
+            prisma.messageLog.count({ where: { ...where, status: 'sent' } }),
+            prisma.messageLog.count({ where: { ...where, status: { in: ['failed', 'Non-Whatsapp'] } } }),
+            prisma.messageLog.findMany({
+                where,
+                include: { instance: true, user: { select: { username: true } } },
+                orderBy: { createdAt: 'desc' },
+                skip: (page - 1) * limit,
+                take: limit
+            })
+        ]);
 
-        res.json({ reports: logs, totalCount, page, limit });
+        res.json({ reports: logs, totalCount, sentCount, failedCount, page, limit });
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch reports' });
     }
@@ -1499,7 +1503,7 @@ router.get('/admin/users', adminAuthenticate, async (req: any, res: any) => {
 
     const where = search ? { username: { contains: search } } : {};
     
-    const [users, total] = await Promise.all([
+    const [users, total, adminCount, resellerCount, activeCount] = await Promise.all([
         prisma.user.findMany({
             where,
             skip,
@@ -1522,10 +1526,13 @@ router.get('/admin/users', adminAuthenticate, async (req: any, res: any) => {
             },
             orderBy: { createdAt: 'desc' }
         }),
-        prisma.user.count({ where })
+        prisma.user.count({ where }),
+        prisma.user.count({ where: { ...where, isAdmin: true } }),
+        prisma.user.count({ where: { ...where, OR: [{ isReseller: true }, { role: 'reseller' }] } }),
+        prisma.user.count({ where: { ...where, isAdmin: false, OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }] } })
     ]);
 
-    res.json({ users, total, page, totalPages: Math.ceil(total / limit) });
+    res.json({ users, total, totalUsers: total, adminCount, resellerCount, activeCount, page, totalPages: Math.ceil(total / limit) });
 });
 
 // POST /api/admin/impersonate/:userId (Admin Pre-Login)
@@ -3398,19 +3405,30 @@ router.get('/filter/batches', authenticate, async (req: any, res: any) => {
 
         const where = { userId: req.user.userId };
 
-        const [batches, totalCount] = await Promise.all([
+        const [batches, totalCount, aggregateStats] = await Promise.all([
             prisma.filterBatch.findMany({
                 where,
                 orderBy: { createdAt: 'desc' },
                 skip,
                 take: limit
             }),
-            prisma.filterBatch.count({ where })
+            prisma.filterBatch.count({ where }),
+            prisma.filterBatch.aggregate({
+                where,
+                _sum: {
+                    totalCount: true,
+                    validCount: true,
+                    invalidCount: true
+                }
+            })
         ]);
 
         res.json({
             batches,
             totalCount,
+            totalVerified: aggregateStats._sum.totalCount || 0,
+            totalValid: aggregateStats._sum.validCount || 0,
+            totalInvalid: aggregateStats._sum.invalidCount || 0,
             page,
             limit,
             totalPages: Math.ceil(totalCount / limit) || 1
@@ -4203,19 +4221,30 @@ router.get('/broadcast/campaigns', authenticate, async (req: any, res: any) => {
             where.name = { contains: search };
         }
 
-        const [campaigns, totalCount] = await Promise.all([
+        const [campaigns, totalCount, aggregateStats] = await Promise.all([
             (prisma as any).broadcastCampaign.findMany({
                 where,
                 orderBy: { createdAt: 'desc' },
                 skip,
                 take: limit
             }),
-            (prisma as any).broadcastCampaign.count({ where })
+            (prisma as any).broadcastCampaign.count({ where }),
+            (prisma as any).broadcastCampaign.aggregate({
+                where: { userId: req.user.userId },
+                _sum: {
+                    totalCount: true,
+                    sentCount: true,
+                    failedCount: true
+                }
+            })
         ]);
 
         res.json({
             campaigns,
             totalCount,
+            totalRecipients: aggregateStats._sum.totalCount || 0,
+            totalSent: aggregateStats._sum.sentCount || 0,
+            totalFailed: aggregateStats._sum.failedCount || 0,
             page,
             limit,
             totalPages: Math.ceil(totalCount / limit) || 1

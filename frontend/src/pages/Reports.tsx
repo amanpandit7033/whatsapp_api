@@ -95,6 +95,8 @@ const parseMessageContent = (messageStr: string) => {
 export const Reports = () => {
   const [reports, setReports] = useState<any[]>([]);
   const [totalCount, setTotalCount] = useState(0);
+  const [globalSentCount, setGlobalSentCount] = useState(0);
+  const [globalFailedCount, setGlobalFailedCount] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   
@@ -142,6 +144,8 @@ export const Reports = () => {
       const data = await res.json();
       setReports(data.reports || []);
       setTotalCount(data.totalCount || 0);
+      setGlobalSentCount(data.sentCount || 0);
+      setGlobalFailedCount(data.failedCount || 0);
     } catch (err) {
       console.error(err);
     } finally {
@@ -192,23 +196,29 @@ export const Reports = () => {
       searchUsername: appliedFilters.searchUsername,
       startDate: appliedFilters.startDate,
       endDate: appliedFilters.endDate
-    });
+    }).toString();
+
     fetch(`${import.meta.env.VITE_API_URL}/api/reports/export?${query}`, {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     })
-      .then(r => r.blob()).then(blob => {
-        const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'reports.xlsx' });
-        document.body.appendChild(a); a.click(); a.remove();
-      }).catch(() => alert('Failed to export'));
+      .then(res => {
+        if (!res.ok) throw new Error('Export failed');
+        return res.blob();
+      })
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `whatsapp_reports_${Date.now()}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      })
+      .catch(err => alert('Failed to export reports: ' + err.message));
   };
 
   const handleClearReports = async () => {
-    const confirmMsg = hasActiveFilters 
-      ? "Are you sure you want to permanently delete the reports MATCHING YOUR CURRENT FILTERS? This action cannot be undone."
-      : "Are you sure you want to permanently delete ALL reports? This action cannot be undone.";
-      
-    if (!window.confirm(confirmMsg)) return;
-    
+    if (!window.confirm('Are you sure you want to delete all reports matching your current filter? This cannot be undone.')) return;
     try {
       const query = new URLSearchParams({
         searchNumber: appliedFilters.searchNumber,
@@ -216,7 +226,7 @@ export const Reports = () => {
         searchUsername: appliedFilters.searchUsername,
         startDate: appliedFilters.startDate,
         endDate: appliedFilters.endDate
-      });
+      }).toString();
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/reports/clear?${query}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
@@ -233,8 +243,8 @@ export const Reports = () => {
   };
 
   const totalPages = Math.ceil(totalCount / limit) || 1;
-  const sentCount = reports.filter(r => r.status === 'sent').length;
-  const failedCount = reports.filter(r => r.status === 'failed' || r.status === 'Non-Whatsapp').length;
+  const deliverySla = totalCount > 0 ? ((globalSentCount / totalCount) * 100).toFixed(1) + '%' : '100.0%';
+
   return (
     <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header */}
@@ -275,10 +285,10 @@ export const Reports = () => {
       {/* Stat strip (Shopeers Style) */}
       <div className="stats-grid">
         {[
-          { label: 'Total Messages', val: totalCount, sub: 'All time logs', badge: '+12.4%', bg: '#EFF6FF', color: '#2563EB', icon: GlassSendIcon },
-          { label: 'On This Page', val: reports.length, sub: 'Filtered view', badge: 'Active', bg: '#EFF6FF', color: '#2563EB', icon: GlassEyeIcon },
-          { label: 'Sent', val: sentCount, sub: 'Delivered', badge: 'Success', bg: '#D1FAE5', color: '#059669', icon: GlassCheckCircleIcon },
-          { label: 'Failed', val: failedCount, sub: 'Undelivered', badge: 'Alert', bg: '#FEE2E2', color: '#DC2626', icon: GlassWarningIcon },
+          { label: 'Total Messages', val: totalCount.toLocaleString(), sub: 'All filtered logs', badge: 'Total', bg: '#EFF6FF', color: '#2563EB', icon: GlassSendIcon },
+          { label: 'Delivered SLA', val: deliverySla, sub: 'Success rate', badge: 'High SLA', bg: '#EFF6FF', color: '#2563EB', icon: GlassStarSparkleIcon },
+          { label: 'Sent', val: globalSentCount.toLocaleString(), sub: 'Successfully delivered', badge: 'Success', bg: '#D1FAE5', color: '#059669', icon: GlassCheckCircleIcon },
+          { label: 'Failed', val: globalFailedCount.toLocaleString(), sub: 'Undelivered / Non-WA', badge: 'Alert', bg: '#FEE2E2', color: '#DC2626', icon: GlassWarningIcon },
         ].map(({ label, val, sub, badge, bg, icon: IconComp }) => (
           <div key={label} className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>

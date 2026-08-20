@@ -34,6 +34,9 @@ export const Broadcast = () => {
 
   const [campaigns, setCampaigns] = useState<IBroadcastCampaign[]>([]);
   const [campaignTotal, setCampaignTotal] = useState(0);
+  const [globalRecipients, setGlobalRecipients] = useState(0);
+  const [globalSent, setGlobalSent] = useState(0);
+  const [globalFailed, setGlobalFailed] = useState(0);
   const [campaignPage, setCampaignPage] = useState(1);
   const [campaignSearch, setCampaignSearch] = useState('');
   const [campaignLoading, setCampaignLoading] = useState(false);
@@ -62,6 +65,9 @@ export const Broadcast = () => {
         const data = await res.json();
         setCampaigns(data.campaigns || []);
         setCampaignTotal(data.totalCount || 0);
+        setGlobalRecipients(data.totalRecipients || 0);
+        setGlobalSent(data.totalSent || 0);
+        setGlobalFailed(data.totalFailed || 0);
       }
     } catch (err) {
       console.error('Failed to fetch campaigns:', err);
@@ -86,9 +92,9 @@ export const Broadcast = () => {
   };
 
   const totalBatches = campaignTotal;
-  const totalBroadcastSent = campaigns.reduce((acc, c) => acc + c.sentCount, 0);
-  const totalBroadcastFailed = campaigns.reduce((acc, c) => acc + c.failedCount, 0);
-  const totalBroadcastRecipients = campaigns.reduce((acc, c) => acc + c.totalCount, 0);
+  const totalBroadcastSent = globalSent;
+  const totalBroadcastFailed = globalFailed;
+  const totalBroadcastRecipients = globalRecipients;
   const overallSuccessRate = totalBroadcastRecipients > 0 
     ? ((totalBroadcastSent / totalBroadcastRecipients) * 100).toFixed(1) 
     : '100.0';
