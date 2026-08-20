@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { ToggleIcon } from '../components/Icons';
 import {
   GlassUsersIcon,
   GlassInstanceIcon,
@@ -16,7 +17,11 @@ import {
   GlassCalendarIcon,
   GlassCheckCircleIcon,
   GlassWarningIcon,
-  GlassActivityIcon
+  GlassActivityIcon,
+  GlassTurboIcon,
+  GlassBoltIcon,
+  GlassLiveStatusIcon,
+  GlassTrashIcon
 } from '../components/GlassIcons';
 
 interface ResellerStats {
@@ -38,6 +43,7 @@ interface ClientUser {
   messageLimit: number;
   expiresAt: string | null;
   permissions: string;
+  checkWhatsAppNumber?: boolean;
   createdAt: string;
   _count: { instances: number };
 }
@@ -62,11 +68,14 @@ export const ResellerPanel = () => {
   const [newMaxInstances, setNewMaxInstances] = useState('1');
   const [newMessageLimit, setNewMessageLimit] = useState('1000');
   const [newExpiresAt, setNewExpiresAt] = useState('');
+  const [newCheckWhatsAppNumber, setNewCheckWhatsAppNumber] = useState(true);
   const [newPermissions, setNewPermissions] = useState<string[]>(['instances', 'broadcast', 'filter', 'groups', 'reports', 'docs']);
   
   // Edit Client Modal State
   const [editingClient, setEditingClient] = useState<ClientUser | null>(null);
   const [editPassword, setEditPassword] = useState('');
+  const [editCheckWhatsAppNumber, setEditCheckWhatsAppNumber] = useState(true);
+  const [editPermissions, setEditPermissions] = useState<string[]>([]);
 
   // Delete Confirm Modal State
   const [deletingClient, setDeletingClient] = useState<ClientUser | null>(null);
@@ -141,6 +150,7 @@ export const ResellerPanel = () => {
           maxInstances: parseInt(newMaxInstances) || 1,
           messageLimit: parseInt(newMessageLimit) || 1000,
           expiresAt: newExpiresAt || undefined,
+          checkWhatsAppNumber: newCheckWhatsAppNumber,
           permissions: newPermissions.join(',')
         })
       });
@@ -156,12 +166,22 @@ export const ResellerPanel = () => {
         setNewMaxInstances('1');
         setNewMessageLimit('1000');
         setNewExpiresAt('');
+        setNewCheckWhatsAppNumber(true);
         fetchStats();
         fetchClients();
       }
     } catch (e: any) {
       setError(e.message || 'Error creating client account.');
     }
+  };
+
+  const handleOpenEdit = (client: ClientUser) => {
+    setError('');
+    setSuccess('');
+    setEditingClient({ ...client });
+    setEditPassword('');
+    setEditCheckWhatsAppNumber(client.checkWhatsAppNumber !== false);
+    setEditPermissions(client.permissions ? client.permissions.split(',').map(s => s.trim()) : ['instances', 'broadcast', 'filter', 'groups', 'reports', 'docs']);
   };
 
   const handleUpdateClient = async (e: React.FormEvent) => {
@@ -182,7 +202,8 @@ export const ResellerPanel = () => {
           maxInstances: editingClient.maxInstances,
           messageLimit: editingClient.messageLimit,
           expiresAt: editingClient.expiresAt || null,
-          permissions: editingClient.permissions
+          checkWhatsAppNumber: editCheckWhatsAppNumber,
+          permissions: editPermissions.join(',')
         })
       });
 
@@ -270,329 +291,264 @@ export const ResellerPanel = () => {
     ? Math.min(100, Math.round((stats.allocatedMessages / stats.masterMessageLimit) * 100))
     : 0;
 
+  const permissionList = [
+    { id: 'instances', name: 'Instances' },
+    { id: 'broadcast', name: 'Broadcast' },
+    { id: 'filter', name: 'Number Filter' },
+    { id: 'groups', name: 'Groups Hub' },
+    { id: 'reports', name: 'Reports' },
+    { id: 'docs', name: 'API Docs' },
+  ];
+
   return (
-    <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="animate-in">
       
-      {/* Standard Clean Page Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+      {/* Header matching Admin Panel */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
-            User Management
-          </h2>
-          <p style={{ color: '#64748B', fontSize: '14px', margin: '4px 0 0', fontWeight: 500 }}>
-            Create sub-client accounts, allocate instance & message quotas from your master pool, and manage client access.
+          <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#0F172A', margin: '0 0 4px' }}>User Management</h2>
+          <p style={{ color: '#64748B', fontSize: '14px', margin: 0, fontWeight: 500 }}>
+            Manage client user accounts, quotas, subscriptions, and role access.
           </p>
         </div>
-
-        <button
-          onClick={() => {
-            setError('');
-            setSuccess('');
-            setIsAddModalOpen(true);
-          }}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            background: 'linear-gradient(135deg, #1E40AF 0%, #2563EB 100%)',
-            boxShadow: '0 4px 15px rgba(37, 99, 235, 0.3)',
-            borderRadius: '12px',
-            padding: '10px 18px',
-            fontWeight: 800,
-            color: 'white',
-            border: 'none',
-            cursor: 'pointer'
-          }}
-        >
-          <GlassPlusIcon size={18} />
-          <span>Create New Client</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button 
+            onClick={() => navigate('/live-status')} 
+            className="btn-outline" 
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 700 }}
+          >
+            <GlassLiveStatusIcon size={18} /> View Live Status
+          </button>
+          <button 
+            onClick={() => { setIsAddModalOpen(true); setError(''); setSuccess(''); }} 
+            className="btn-primary" 
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '12px', fontSize: '13px', fontWeight: 800 }}
+          >
+            <GlassPlusIcon size={16} /> Add User
+          </button>
+        </div>
       </div>
 
+      {/* Stat strip (Shopeers Style) */}
       <div className="stats-grid">
-        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRadius: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Sub-Clients</span>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <GlassUsersIcon size={22} />
+        {[
+          {
+            label: 'Total Clients',
+            val: (stats?.totalClients ?? 0).toLocaleString(),
+            sub: 'Direct client accounts',
+            badge: 'Total',
+            bg: '#EFF6FF',
+            icon: GlassUsersIcon,
+            progress: null
+          },
+          {
+            label: 'Active Clients',
+            val: (stats?.activeClients ?? 0).toLocaleString(),
+            sub: 'Valid Subscriptions',
+            badge: 'Active',
+            bg: '#D1FAE5',
+            icon: GlassCheckCircleIcon,
+            progress: null
+          },
+          {
+            label: 'Instance Pool',
+            val: `${stats?.allocatedInstances ?? 0} / ${stats?.masterMaxInstances ?? 0}`,
+            sub: `${stats?.remainingInstances ?? 0} available in pool`,
+            badge: `${instanceUsagePercent}% Pool`,
+            bg: '#EFF6FF',
+            icon: GlassInstanceIcon,
+            progress: { pct: instanceUsagePercent, color: instanceUsagePercent > 90 ? '#EF4444' : '#2563EB' }
+          },
+          {
+            label: 'Message Quota',
+            val: `${(stats?.allocatedMessages ?? 0).toLocaleString()}`,
+            sub: `of ${(stats?.masterMessageLimit ?? 0).toLocaleString()} limit`,
+            badge: `${messageUsagePercent}% Quota`,
+            bg: '#FAF5FF',
+            icon: GlassSendIcon,
+            progress: { pct: messageUsagePercent, color: messageUsagePercent > 90 ? '#EF4444' : '#9333EA' }
+          }
+        ].map(({ label, val, sub, badge, bg, icon: IconComp, progress }) => (
+          <div key={label} className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRadius: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>{label}</span>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IconComp size={24} />
+              </div>
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
+                <span style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>{val}</span>
+                <span className={`badge ${badge === 'Expired' ? 'badge-danger' : 'badge-success'}`}>{badge}</span>
+              </div>
+              {progress && (
+                <div style={{ width: '100%', height: '5px', background: '#F1F5F9', borderRadius: '9999px', margin: '8px 0 4px', overflow: 'hidden' }}>
+                  <div style={{ width: `${progress.pct}%`, height: '100%', background: progress.color, borderRadius: '9999px', transition: 'width 0.4s ease' }} />
+                </div>
+              )}
+              <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>{sub}</span>
             </div>
           </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-              <span style={{ fontSize: '26px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
-                {stats?.totalClients ?? 0}
-              </span>
-              <span style={{ background: '#ECFDF5', color: '#059669', fontSize: '11px', fontWeight: 800, padding: '3px 8px', borderRadius: '6px' }}>
-                {stats?.activeClients ?? 0} Active
-              </span>
-            </div>
-            <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block', fontWeight: 600 }}>
-              Direct client accounts managed
-            </span>
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRadius: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Instance Pool Allocation</span>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <GlassInstanceIcon size={22} />
-            </div>
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-              <span style={{ fontSize: '26px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
-                {stats?.allocatedInstances ?? 0}
-              </span>
-              <span style={{ fontSize: '14px', color: '#64748B', fontWeight: 700 }}>
-                / {stats?.masterMaxInstances ?? 0}
-              </span>
-            </div>
-            
-            <div style={{ width: '100%', height: '6px', background: '#F1F5F9', borderRadius: '999px', margin: '8px 0', overflow: 'hidden' }}>
-              <div style={{ width: `${instanceUsagePercent}%`, height: '100%', background: instanceUsagePercent > 90 ? '#EF4444' : '#16A34A', borderRadius: '999px', transition: 'width 0.3s ease' }} />
-            </div>
-            <span style={{ fontSize: '11.5px', color: '#94A3B8', fontWeight: 600 }}>
-              {stats?.remainingInstances ?? 0} instance(s) remaining in pool
-            </span>
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRadius: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Monthly Message Pool</span>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: '#FAF5FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <GlassSendIcon size={22} />
-            </div>
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-              <span style={{ fontSize: '26px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
-                {(stats?.allocatedMessages ?? 0).toLocaleString()}
-              </span>
-              <span style={{ fontSize: '14px', color: '#64748B', fontWeight: 700 }}>
-                / {(stats?.masterMessageLimit ?? 0).toLocaleString()}
-              </span>
-            </div>
-            
-            <div style={{ width: '100%', height: '6px', background: '#F1F5F9', borderRadius: '999px', margin: '8px 0', overflow: 'hidden' }}>
-              <div style={{ width: `${messageUsagePercent}%`, height: '100%', background: messageUsagePercent > 90 ? '#EF4444' : '#9333EA', borderRadius: '999px', transition: 'width 0.3s ease' }} />
-            </div>
-            <span style={{ fontSize: '11.5px', color: '#94A3B8', fontWeight: 600 }}>
-              {(stats?.remainingMessages ?? 0).toLocaleString()} quota remaining
-            </span>
-          </div>
-        </div>
+        ))}
       </div>
 
-      <div className="card" style={{ padding: '24px 0', borderRadius: '16px' }}>
+      {/* Main Table Card */}
+      <div className="card" style={{ padding: '24px 0', marginTop: '24px' }}>
         
-        <div style={{ padding: '0 24px 20px', borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+        {/* Table Header & Search */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px 20px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <h3 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: 800, color: '#0F172A' }}>
-              Direct Client Accounts ({stats?.totalClients ?? 0})
-            </h3>
-            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: 500 }}>
-              Manage credentials, allocate instance limits, and login as any client account.
-            </span>
+            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', margin: '0 0 4px', letterSpacing: '-0.01em' }}>All Accounts & Sub-Clients</h3>
+            <p style={{ color: '#64748B', fontSize: '13px', margin: 0, fontWeight: 500 }}>Active registered clients and instance quotas.</p>
           </div>
-
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div style={{ position: 'relative', width: '260px' }}>
-              <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                <GlassSearchIcon size={16} />
-              </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ position: 'relative', width: '280px' }}>
+              <GlassSearchIcon size={18} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
               <input
                 type="text"
-                placeholder="Search client username..."
+                placeholder="Search by username..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '9px 12px 9px 38px',
-                  borderRadius: '10px',
-                  border: '1px solid #CBD5E1',
-                  fontSize: '13px',
-                  background: '#FFFFFF',
-                  outline: 'none',
-                  fontWeight: 500
-                }}
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
+                className="rounded-input"
+                style={{ paddingRight: '38px', height: '40px', borderRadius: '10px' }}
               />
             </div>
-
             <button
-              onClick={() => {
-                fetchStats();
-                fetchClients();
-              }}
-              title="Refresh Client Accounts"
-              style={{
-                background: '#F8FAFC',
-                border: '1px solid #E2E8F0',
-                borderRadius: '10px',
-                padding: '9px 12px',
-                fontSize: '12px',
-                fontWeight: 700,
-                color: '#475569',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
+              onClick={() => { fetchStats(); fetchClients(); }}
+              title="Refresh Accounts"
+              className="btn-outline"
+              style={{ padding: '8px 12px', borderRadius: '10px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <GlassRefreshIcon size={16} />
             </button>
           </div>
         </div>
 
+        {/* Users Table */}
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                <th style={{ padding: '12px 24px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.04em' }}>CLIENT USER</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'center', letterSpacing: '0.04em' }}>INSTANCES ALLOCATED</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'center', letterSpacing: '0.04em' }}>MONTHLY MSG LIMIT</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'center', letterSpacing: '0.04em' }}>STATUS / EXPIRY</th>
-                <th style={{ padding: '12px 24px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'right', letterSpacing: '0.04em' }}>ACTIONS</th>
+              <tr style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
+                <th style={{ padding: '14px 28px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>USER ACCOUNT</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>ROLE</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>INSTANCES</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>MONTHLY LIMIT</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>EXPIRY</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>JOINED</th>
+                <th style={{ padding: '14px 28px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase', textAlign: 'right' }}>ACTION</th>
               </tr>
             </thead>
             <tbody>
-              {loading ? (
+              {clients.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: '#64748B', fontSize: '13px' }}>
-                    Loading client accounts...
-                  </td>
-                </tr>
-              ) : clients.length === 0 ? (
-                <tr>
-                  <td colSpan={5} style={{ padding: '48px', textAlign: 'center', color: '#94A3B8', fontSize: '13px' }}>
-                    No clients found. Click "+ Create New Client" above to get started.
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '48px 20px', color: '#94A3B8', fontSize: '14px', fontWeight: 600 }}>
+                    {loading ? 'Loading client accounts...' : 'No client accounts found. Click "Add User" to create one.'}
                   </td>
                 </tr>
               ) : (
                 clients.map((c) => {
                   const isExpired = c.expiresAt && new Date(c.expiresAt) < new Date();
+                  const usagePct = Math.min(100, ((c._count?.instances || 0) / c.maxInstances) * 100);
                   return (
                     <tr key={c.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.15s ease' }}>
-                      <td style={{ padding: '14px 24px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#2563EB', fontSize: '14px', flexShrink: 0 }}>
-                            {c.username.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <span style={{ fontWeight: 700, color: '#0F172A', fontSize: '14px', display: 'block' }}>
-                              {c.username}
-                            </span>
-                            <span style={{ fontSize: '11px', color: '#94A3B8' }}>
-                              Created {new Date(c.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
+                      <td style={{ padding: '16px 28px' }}>
+                        <div>
+                          <p style={{ fontWeight: 800, fontSize: '14px', color: '#0F172A', margin: 0, lineHeight: 1.2 }}>{c.username}</p>
+                          {c.checkWhatsAppNumber === false && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
+                              <span title="Turbo Mode Active: Sends directly without pre-checking WhatsApp numbers" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#FEF3C7', color: '#B45309', border: '1px solid #FDE68A', padding: '2px 7px', borderRadius: '6px', fontSize: '10px', fontWeight: 800 }}>
+                                <GlassTurboIcon size={12} /> Turbo Direct Send
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </td>
-
-                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A' }}>
-                          {c.maxInstances}
-                        </span>
-                        <span style={{ fontSize: '11px', color: '#64748B', display: 'block', fontWeight: 600 }}>
-                          ({c._count?.instances || 0} active)
+                      <td style={{ padding: '16px 16px' }}>
+                        <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
+                          Client
                         </span>
                       </td>
-
-                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A' }}>
-                          {c.messageLimit.toLocaleString()}
-                        </span>
-                        <span style={{ fontSize: '11px', color: '#94A3B8', display: 'block' }}>
-                          per month
-                        </span>
+                      <td style={{ padding: '16px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontWeight: 800, color: '#0F172A', fontSize: '14px' }}>{c._count?.instances || 0}</span>
+                          <span style={{ color: '#94A3B8', fontSize: '13px', fontWeight: 600 }}>/ {c.maxInstances}</span>
+                        </div>
+                        <div style={{ height: '5px', background: '#F1F5F9', borderRadius: '9999px', marginTop: '6px', width: '70px', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', borderRadius: '9999px', background: usagePct >= 100 ? '#EF4444' : '#2563EB', width: `${usagePct}%`, transition: 'width 0.5s' }} />
+                        </div>
                       </td>
-
-                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                        {isExpired ? (
-                          <span style={{ background: '#FEF2F2', color: '#DC2626', fontSize: '11.5px', fontWeight: 800, padding: '3px 10px', borderRadius: '6px', display: 'inline-block' }}>
-                            Expired ({new Date(c.expiresAt!).toLocaleDateString()})
-                          </span>
-                        ) : c.expiresAt ? (
-                          <span style={{ background: '#F0FDF4', color: '#16A34A', fontSize: '11.5px', fontWeight: 700, padding: '3px 10px', borderRadius: '6px', display: 'inline-block' }}>
-                            Expires {new Date(c.expiresAt).toLocaleDateString()}
-                          </span>
-                        ) : (
-                          <span style={{ background: '#EFF6FF', color: '#2563EB', fontSize: '11.5px', fontWeight: 700, padding: '3px 10px', borderRadius: '6px', display: 'inline-block' }}>
-                            Lifetime Active
-                          </span>
-                        )}
+                      <td style={{ padding: '16px 16px' }}>
+                        <span style={{ fontWeight: 800, color: '#0F172A', fontSize: '14px', fontFamily: 'var(--font-mono)' }}>{c.messageLimit.toLocaleString()}</span>
                       </td>
-
-                      <td style={{ padding: '14px 24px', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
+                      <td style={{ padding: '16px 16px' }}>
+                        {c.expiresAt ? (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', background: isExpired ? '#FEE2E2' : '#EFF6FF', padding: '4px 10px', borderRadius: '8px' }}>
+                            <span style={{ fontSize: '12px', fontWeight: 800, color: isExpired ? '#DC2626' : '#2563EB' }}>
+                              {new Date(c.expiresAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        ) : <span style={{ fontSize: '12px', color: '#94A3B8', fontStyle: 'italic', fontWeight: 600 }}>Lifetime</span>}
+                      </td>
+                      <td style={{ padding: '16px 16px', fontSize: '13px', color: '#64748B', fontWeight: 600 }}>
+                        {new Date(c.createdAt).toLocaleDateString()}
+                      </td>
+                      <td style={{ padding: '16px 28px', textAlign: 'right' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
                           <button
                             onClick={() => handleImpersonate(c)}
-                            title="Log in as this client"
+                            title={`Pre-Login as ${c.username}`}
                             style={{
-                              background: '#EFF6FF',
-                              border: '1px solid #BFDBFE',
-                              color: '#1D4ED8',
-                              padding: '6px 12px',
-                              borderRadius: '8px',
-                              fontSize: '12px',
-                              fontWeight: 800,
-                              cursor: 'pointer',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '6px',
-                              transition: 'all 0.2s ease'
+                              padding: '6px 12px',
+                              borderRadius: '8px',
+                              background: '#EFF6FF',
+                              border: '1px solid #BFDBFE',
+                              color: '#2563EB',
+                              fontSize: '12px',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
                             }}
                           >
-                            <GlassAstronautIcon size={14} />
-                            <span>Impersonate</span>
+                            <GlassAstronautIcon size={14} /> Impersonate
                           </button>
-
                           <button
-                            onClick={() => {
-                              setError('');
-                              setSuccess('');
-                              setEditingClient({ ...c });
-                              setEditPassword('');
-                            }}
-                            title="Edit client quotas and credentials"
+                            onClick={() => handleOpenEdit(c)}
+                            title="Edit User"
                             style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '8px',
                               background: '#F8FAFC',
                               border: '1px solid #E2E8F0',
-                              color: '#334155',
-                              padding: '6px 10px',
-                              borderRadius: '8px',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
+                              display: 'flex',
                               alignItems: 'center',
-                              gap: '4px'
+                              justifyContent: 'center',
+                              color: '#64748B',
+                              cursor: 'pointer'
                             }}
                           >
-                            <GlassEditIcon size={14} />
-                            <span>Edit</span>
+                            <GlassEditIcon size={15} /> 
                           </button>
-
                           <button
                             onClick={() => setDeletingClient(c)}
-                            title="Delete client account"
+                            title="Delete User"
                             style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '8px',
                               background: '#FEF2F2',
                               border: '1px solid #FEE2E2',
-                              color: '#DC2626',
-                              padding: '6px 10px',
-                              borderRadius: '8px',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
+                              display: 'flex',
                               alignItems: 'center',
-                              gap: '4px'
+                              justifyContent: 'center',
+                              color: '#DC2626',
+                              cursor: 'pointer'
                             }}
                           >
-                            <GlassCancelIcon size={14} />
-                            <span>Delete</span>
+                            <GlassCancelIcon size={15} />
                           </button>
                         </div>
                       </td>
@@ -604,47 +560,37 @@ export const ResellerPanel = () => {
           </table>
         </div>
 
+        {/* Pagination matching Admin Panel */}
         {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '20px', padding: '0 24px' }}>
-            <button
-              disabled={page <= 1}
-              onClick={() => setPage(p => p - 1)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: '1px solid #E2E8F0',
-                background: page <= 1 ? '#F8FAFC' : '#FFFFFF',
-                color: page <= 1 ? '#94A3B8' : '#334155',
-                cursor: page <= 1 ? 'not-allowed' : 'pointer',
-                fontWeight: 700,
-                fontSize: '12px'
-              }}
-            >
-              Previous
-            </button>
-            <span style={{ fontSize: '12px', color: '#64748B', fontWeight: 600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 28px 0', borderTop: '1px solid #F1F5F9' }}>
+            <span style={{ fontSize: '13px', color: '#64748B', fontWeight: 600 }}>
               Page {page} of {totalPages}
             </span>
-            <button
-              disabled={page >= totalPages}
-              onClick={() => setPage(p => p + 1)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: '1px solid #E2E8F0',
-                background: page >= totalPages ? '#F8FAFC' : '#FFFFFF',
-                color: page >= totalPages ? '#94A3B8' : '#334155',
-                cursor: page >= totalPages ? 'not-allowed' : 'pointer',
-                fontWeight: 700,
-                fontSize: '12px'
-              }}
-            >
-              Next
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                className="btn-outline"
+                style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 700, borderRadius: '8px' }}
+              >
+                Previous
+              </button>
+              <button
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                className="btn-outline"
+                style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 700, borderRadius: '8px' }}
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
       </div>
 
+      {/* ─────────────────────────────────────────────────────────────────
+          MODAL: ADD CLIENT (Exact Admin Panel Styling & Pill Permissions)
+          ───────────────────────────────────────────────────────────────── */}
       {isAddModalOpen && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '24px' }}>
           <div className="card animate-in hide-scrollbar" style={{ width: '100%', maxWidth: '640px', position: 'relative', borderRadius: '24px', padding: '32px', boxShadow: '0 25px 50px -12px rgba(37, 99, 235, 0.25)', background: '#FFFFFF', maxHeight: '90vh', overflowY: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -796,7 +742,7 @@ export const ResellerPanel = () => {
                     </span>
                     <input 
                       type="number" 
-                      min="100" 
+                      min="1" 
                       max={stats?.remainingMessages ?? 100000} 
                       value={newMessageLimit} 
                       onChange={(e) => setNewMessageLimit(e.target.value)} 
@@ -852,44 +798,89 @@ export const ResellerPanel = () => {
                 </div>
               </div>
 
+              {/* WhatsApp Number Verification Mode Toggle */}
+              <div 
+                onClick={() => setNewCheckWhatsAppNumber(!newCheckWhatsAppNumber)}
+                style={{ 
+                  background: '#F8FAFC', 
+                  padding: '16px', 
+                  borderRadius: '16px', 
+                  border: newCheckWhatsAppNumber ? '1px solid #E2E8F0' : '1px solid #FDE68A', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  gap: '16px',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                      <GlassBoltIcon size={15} /> WhatsApp Number Verification Mode
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#64748B', margin: '3px 0 0', fontWeight: 500 }}>
+                    {newCheckWhatsAppNumber 
+                      ? 'Default ON: Checks if numbers are registered on WhatsApp before dispatch.' 
+                      : 'OFF (Turbo Mode): Sends directly without checking WhatsApp existence for 2x faster delivery speed.'}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: newCheckWhatsAppNumber ? '#15803D' : '#B45309', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {newCheckWhatsAppNumber ? 'Verification ON' : <><GlassBoltIcon size={13} /> Turbo Mode</>}
+                  </span>
+                  <ToggleIcon
+                    size={38}
+                    checked={newCheckWhatsAppNumber}
+                    onColor="#16A34A"
+                    offColor="#F59E0B"
+                  />
+                </div>
+              </div>
+
+              {/* Menu Permissions with Exact Purple / Green Badge Pill Design */}
               <div>
-                <label style={S.label}>Client Menu Permissions</label>
+                <label style={S.label}>Menu Permissions</label>
                 <div className="admin-perms-grid">
-                  {[
-                    { id: 'instances', name: 'Instances' },
-                    { id: 'broadcast', name: 'Broadcast' },
-                    { id: 'filter', name: 'Number Filter' },
-                    { id: 'groups', name: 'Groups Hub' },
-                    { id: 'reports', name: 'Reports' },
-                    { id: 'docs', name: 'API Docs' },
-                  ].map((perm) => {
+                  {permissionList.map((perm) => {
                     const isChecked = newPermissions.includes(perm.id);
                     return (
                       <div
                         key={perm.id}
                         onClick={() => {
-                          if (isChecked) setNewPermissions(newPermissions.filter((p) => p !== perm.id));
-                          else setNewPermissions([...newPermissions, perm.id]);
+                          setNewPermissions(prev =>
+                            isChecked ? prev.filter(p => p !== perm.id) : [...prev, perm.id]
+                          );
                         }}
                         style={{
-                          padding: '10px 12px',
-                          borderRadius: '12px',
-                          border: isChecked ? '1.5px solid #2563EB' : '1.5px solid #E2E8F0',
-                          background: isChecked ? '#EFF6FF' : '#F8FAFC',
-                          color: isChecked ? '#2563EB' : '#64748B',
-                          fontSize: '13px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          userSelect: 'none',
-                          transition: 'all 0.15s ease'
+                          gap: '10px',
+                          padding: '10px 14px',
+                          borderRadius: '10px',
+                          border: isChecked ? '1.5px solid #7C3AED' : '1px solid #E2E8F0',
+                          background: isChecked ? '#F3E8FF' : '#FFFFFF',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          userSelect: 'none'
                         }}
                       >
-                        <input type="checkbox" checked={isChecked} onChange={() => {}} style={{ accentColor: '#2563EB', width: '15px', height: '15px', cursor: 'pointer' }} />
-                        <span>{perm.name}</span>
+                        {isChecked ? (
+                          <GlassCheckCircleIcon size={18} />
+                        ) : (
+                          <div style={{
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '50%',
+                            border: '2px solid #CBD5E1',
+                            flexShrink: 0
+                          }} />
+                        )}
+                        <span style={{ fontSize: '13px', fontWeight: isChecked ? 700 : 500, color: isChecked ? '#7C3AED' : '#475569' }}>
+                          {perm.name}
+                        </span>
                       </div>
                     );
                   })}
@@ -900,8 +891,8 @@ export const ResellerPanel = () => {
                 <button type="button" onClick={() => setIsAddModalOpen(false)} className="btn-outline" style={{ flex: 1, height: '46px', borderRadius: '12px', fontWeight: 700 }}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" style={{ flex: 2, height: '46px', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <GlassPlusIcon size={18} /> <span>Create Client Account</span>
+                <button type="submit" className="btn-primary" style={{ flex: 2, height: '46px', borderRadius: '12px', fontWeight: 800, fontSize: '14px' }}>
+                  Create Account
                 </button>
               </div>
             </form>
@@ -910,6 +901,9 @@ export const ResellerPanel = () => {
         document.body
       )}
 
+      {/* ─────────────────────────────────────────────────────────────────
+          MODAL: EDIT CLIENT
+          ───────────────────────────────────────────────────────────────── */}
       {editingClient && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '24px' }}>
           <div className="card animate-in hide-scrollbar" style={{ width: '100%', maxWidth: '640px', position: 'relative', borderRadius: '24px', padding: '32px', boxShadow: '0 25px 50px -12px rgba(37, 99, 235, 0.25)', background: '#FFFFFF', maxHeight: '90vh', overflowY: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
@@ -943,11 +937,9 @@ export const ResellerPanel = () => {
                 <GlassEditIcon size={24} />
               </div>
               <div>
-                <h3 style={{ fontWeight: 800, fontSize: '20px', color: '#0F172A', margin: 0 }}>
-                  Edit Client: {editingClient.username}
-                </h3>
+                <h3 style={{ fontWeight: 800, fontSize: '20px', color: '#0F172A', margin: 0 }}>Edit Client Account</h3>
                 <p style={{ fontSize: '13px', color: '#64748B', margin: '3px 0 0', fontWeight: 500 }}>
-                  Update quotas, extend expiry date, or reset password.
+                  Editing account: <span style={{ color: '#2563EB', fontWeight: 700 }}>{editingClient.username}</span>
                 </p>
               </div>
             </div>
@@ -960,6 +952,32 @@ export const ResellerPanel = () => {
 
             <form onSubmit={handleUpdateClient} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div className="admin-form-grid">
+                <div>
+                  <label style={S.label}>Username</label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                      <GlassUserIcon size={16} />
+                    </span>
+                    <input 
+                      type="text" 
+                      value={editingClient.username} 
+                      disabled
+                      style={{
+                        width: '100%',
+                        height: '44px',
+                        borderRadius: '12px',
+                        fontSize: '13.5px',
+                        fontWeight: 600,
+                        background: '#F8FAFC',
+                        border: '1.5px solid #E2E8F0',
+                        padding: '0 12px 0 38px',
+                        color: '#64748B',
+                        outline: 'none',
+                        cursor: 'not-allowed'
+                      }}
+                    />
+                  </div>
+                </div>
                 <div>
                   <label style={S.label}>New Password (leave blank to keep)</label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -990,37 +1008,9 @@ export const ResellerPanel = () => {
                   </div>
                 </div>
                 <div>
-                  <label style={S.label}>Subscription Expiry Date</label>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
-                      <GlassCalendarIcon size={16} />
-                    </span>
-                    <input 
-                      type="date" 
-                      value={editingClient.expiresAt ? new Date(editingClient.expiresAt).toISOString().split('T')[0] : ''} 
-                      onChange={(e) => setEditingClient({ ...editingClient, expiresAt: e.target.value })} 
-                      onClick={(e) => e.currentTarget.showPicker?.()}
-                      style={{
-                        width: '100%',
-                        height: '44px',
-                        borderRadius: '12px',
-                        fontSize: '13.5px',
-                        fontWeight: 600,
-                        background: '#FFFFFF',
-                        border: '1.5px solid #E2E8F0',
-                        padding: '0 12px 0 38px',
-                        color: '#0F172A',
-                        outline: 'none',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
-                      onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label style={S.label}>Max Instances</label>
+                  <label style={S.label}>
+                    Max Instances <span style={{ color: '#2563EB', fontWeight: 800 }}>({stats?.remainingInstances ?? 0} available)</span>
+                  </label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
                       <GlassInstanceIcon size={16} />
@@ -1050,14 +1040,16 @@ export const ResellerPanel = () => {
                   </div>
                 </div>
                 <div>
-                  <label style={S.label}>Monthly Message Limit</label>
+                  <label style={S.label}>
+                    Monthly Message Limit <span style={{ color: '#059669', fontWeight: 800 }}>({(stats?.remainingMessages ?? 0).toLocaleString()} available)</span>
+                  </label>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
                       <GlassSendIcon size={16} />
                     </span>
                     <input 
                       type="number" 
-                      min="100" 
+                      min="1" 
                       value={editingClient.messageLimit} 
                       onChange={(e) => setEditingClient({ ...editingClient, messageLimit: parseInt(e.target.value) || 1000 })} 
                       style={{
@@ -1082,44 +1074,119 @@ export const ResellerPanel = () => {
               </div>
 
               <div>
-                <label style={S.label}>Client Menu Permissions</label>
+                <label style={S.label}>Subscription Expiry Date</label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ position: 'absolute', left: '12px', display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>
+                    <GlassCalendarIcon size={16} />
+                  </span>
+                  <input 
+                    type="date" 
+                    value={editingClient.expiresAt ? new Date(editingClient.expiresAt).toISOString().split('T')[0] : ''} 
+                    onChange={(e) => setEditingClient({ ...editingClient, expiresAt: e.target.value ? new Date(e.target.value).toISOString() : null })} 
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    style={{
+                      width: '100%',
+                      height: '44px',
+                      borderRadius: '12px',
+                      fontSize: '13.5px',
+                      fontWeight: 600,
+                      background: '#FFFFFF',
+                      border: '1.5px solid #E2E8F0',
+                      padding: '0 12px 0 38px',
+                      color: '#0F172A',
+                      outline: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onFocus={(e) => { e.currentTarget.style.borderColor = '#2563EB'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)'; }}
+                    onBlur={(e) => { e.currentTarget.style.borderColor = '#E2E8F0'; e.currentTarget.style.boxShadow = 'none'; }}
+                  />
+                </div>
+              </div>
+
+              {/* WhatsApp Number Verification Mode Toggle */}
+              <div 
+                onClick={() => setEditCheckWhatsAppNumber(!editCheckWhatsAppNumber)}
+                style={{ 
+                  background: '#F8FAFC', 
+                  padding: '16px', 
+                  borderRadius: '16px', 
+                  border: editCheckWhatsAppNumber ? '1px solid #E2E8F0' : '1px solid #FDE68A', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  gap: '16px',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                      <GlassBoltIcon size={15} /> WhatsApp Number Verification Mode
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#64748B', margin: '3px 0 0', fontWeight: 500 }}>
+                    {editCheckWhatsAppNumber 
+                      ? 'Default ON: Checks if numbers are registered on WhatsApp before dispatch.' 
+                      : 'OFF (Turbo Mode): Sends directly without checking WhatsApp existence for 2x faster delivery speed.'}
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: editCheckWhatsAppNumber ? '#15803D' : '#B45309', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {editCheckWhatsAppNumber ? 'Verification ON' : <><GlassBoltIcon size={13} /> Turbo Mode</>}
+                  </span>
+                  <ToggleIcon
+                    size={38}
+                    checked={editCheckWhatsAppNumber}
+                    onColor="#16A34A"
+                    offColor="#F59E0B"
+                  />
+                </div>
+              </div>
+
+              {/* Menu Permissions with Exact Purple / Green Badge Pill Design */}
+              <div>
+                <label style={S.label}>Menu Permissions</label>
                 <div className="admin-perms-grid">
-                  {[
-                    { id: 'instances', name: 'Instances' },
-                    { id: 'broadcast', name: 'Broadcast' },
-                    { id: 'filter', name: 'Number Filter' },
-                    { id: 'groups', name: 'Groups Hub' },
-                    { id: 'reports', name: 'Reports' },
-                    { id: 'docs', name: 'API Docs' },
-                  ].map((perm) => {
-                    const perms = (editingClient.permissions || '').split(',');
-                    const isChecked = perms.includes(perm.id);
+                  {permissionList.map((perm) => {
+                    const isChecked = editPermissions.includes(perm.id);
                     return (
                       <div
                         key={perm.id}
                         onClick={() => {
-                          const newPerms = isChecked ? perms.filter((p) => p !== perm.id && p !== '') : [...perms, perm.id];
-                          setEditingClient({ ...editingClient, permissions: newPerms.join(',') });
+                          setEditPermissions(prev =>
+                            isChecked ? prev.filter(p => p !== perm.id) : [...prev, perm.id]
+                          );
                         }}
                         style={{
-                          padding: '10px 12px',
-                          borderRadius: '12px',
-                          border: isChecked ? '1.5px solid #2563EB' : '1.5px solid #E2E8F0',
-                          background: isChecked ? '#EFF6FF' : '#F8FAFC',
-                          color: isChecked ? '#2563EB' : '#64748B',
-                          fontSize: '13px',
-                          fontWeight: 700,
-                          cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '6px',
-                          userSelect: 'none',
-                          transition: 'all 0.15s ease'
+                          gap: '10px',
+                          padding: '10px 14px',
+                          borderRadius: '10px',
+                          border: isChecked ? '1.5px solid #7C3AED' : '1px solid #E2E8F0',
+                          background: isChecked ? '#F3E8FF' : '#FFFFFF',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          userSelect: 'none'
                         }}
                       >
-                        <input type="checkbox" checked={isChecked} onChange={() => {}} style={{ accentColor: '#2563EB', width: '15px', height: '15px', cursor: 'pointer' }} />
-                        <span>{perm.name}</span>
+                        {isChecked ? (
+                          <GlassCheckCircleIcon size={18} />
+                        ) : (
+                          <div style={{
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '50%',
+                            border: '2px solid #CBD5E1',
+                            flexShrink: 0
+                          }} />
+                        )}
+                        <span style={{ fontSize: '13px', fontWeight: isChecked ? 700 : 500, color: isChecked ? '#7C3AED' : '#475569' }}>
+                          {perm.name}
+                        </span>
                       </div>
                     );
                   })}
@@ -1130,7 +1197,7 @@ export const ResellerPanel = () => {
                 <button type="button" onClick={() => setEditingClient(null)} className="btn-outline" style={{ flex: 1, height: '46px', borderRadius: '12px', fontWeight: 700 }}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" style={{ flex: 2, height: '46px', borderRadius: '12px', fontWeight: 800 }}>
+                <button type="submit" className="btn-primary" style={{ flex: 2, height: '46px', borderRadius: '12px', fontWeight: 800, fontSize: '14px' }}>
                   Save Changes
                 </button>
               </div>
@@ -1140,40 +1207,48 @@ export const ResellerPanel = () => {
         document.body
       )}
 
+      {/* ─────────────────────────────────────────────────────────────────
+          MODAL: DELETE CLIENT CONFIRMATION
+          ───────────────────────────────────────────────────────────────── */}
       {deletingClient && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '24px' }}>
-          <div className="card animate-in" style={{ width: '100%', maxWidth: '440px', borderRadius: '24px', padding: '28px', background: '#FFFFFF', boxShadow: '0 25px 50px -12px rgba(220, 38, 38, 0.25)' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-              <GlassWarningIcon size={24} />
+          <div className="card animate-in" style={{ width: '100%', maxWidth: '440px', position: 'relative', borderRadius: '24px', padding: '32px', textAlign: 'center', background: '#FFFFFF', boxShadow: '0 25px 50px -12px rgba(220, 38, 38, 0.25)' }}>
+            
+            <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#FEF2F2', border: '1px solid #FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+              <GlassWarningIcon size={28} />
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', margin: '0 0 8px' }}>
-              Delete Client Account?
-            </h3>
-            <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 20px', lineHeight: 1.5 }}>
-              Are you sure you want to permanently delete <strong style={{ color: '#0F172A' }}>@{deletingClient.username}</strong>? All connected instances, messages, and configurations will be permanently removed.
+
+            <h3 style={{ fontSize: '19px', fontWeight: 800, color: '#0F172A', margin: '0 0 8px' }}>Delete Client Account?</h3>
+            <p style={{ fontSize: '13.5px', color: '#64748B', lineHeight: 1.5, margin: '0 0 24px', fontWeight: 500 }}>
+              Are you sure you want to delete <strong style={{ color: '#0F172A' }}>{deletingClient.username}</strong>? All connected instances, message logs, and quotas will be revoked and returned to your reseller pool.
             </p>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={() => setDeletingClient(null)}
-                className="btn-outline"
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                type="button" 
+                onClick={() => setDeletingClient(null)} 
+                className="btn-outline" 
                 style={{ flex: 1, height: '44px', borderRadius: '12px', fontWeight: 700 }}
               >
                 Cancel
               </button>
-              <button
-                onClick={() => handleDeleteClient(deletingClient.id)}
-                style={{
-                  flex: 1,
-                  height: '44px',
-                  borderRadius: '12px',
-                  fontWeight: 800,
-                  background: '#DC2626',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  cursor: 'pointer'
+              <button 
+                type="button" 
+                onClick={() => handleDeleteClient(deletingClient.id)} 
+                style={{ 
+                  flex: 1, 
+                  height: '44px', 
+                  borderRadius: '12px', 
+                  background: '#DC2626', 
+                  color: '#FFFFFF', 
+                  border: 'none', 
+                  fontWeight: 800, 
+                  fontSize: '13.5px', 
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(220, 38, 38, 0.25)'
                 }}
               >
-                Delete Client
+                Delete Account
               </button>
             </div>
           </div>

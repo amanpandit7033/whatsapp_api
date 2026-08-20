@@ -1875,6 +1875,7 @@ router.get('/reseller/clients', resellerAuthenticate, async (req: any, res: any)
                     messageLimit: true,
                     expiresAt: true,
                     permissions: true,
+                    checkWhatsAppNumber: true,
                     createdAt: true,
                     _count: { select: { instances: true } }
                 },
@@ -2067,7 +2068,7 @@ router.get('/reseller/live-usage', resellerAuthenticate, async (req: any, res: a
 // Create Client under Reseller
 router.post('/reseller/clients', resellerAuthenticate, async (req: any, res: any) => {
     try {
-        const { username, password, maxInstances, messageLimit, expiresAt, permissions } = req.body;
+        const { username, password, maxInstances, messageLimit, expiresAt, permissions, checkWhatsAppNumber } = req.body;
         if (!username || !password) return res.status(400).json({ error: 'Username and password are required' });
 
         const reqInstances = Number(maxInstances) || 1;
@@ -2107,6 +2108,7 @@ router.post('/reseller/clients', resellerAuthenticate, async (req: any, res: any
             maxInstances: reqInstances,
             messageLimit: reqMessages,
             permissions: permissions || 'instances,broadcast,filter,groups,reports,docs',
+            checkWhatsAppNumber: checkWhatsAppNumber !== undefined ? Boolean(checkWhatsAppNumber) : true,
             apiKey: require('crypto').randomBytes(7).toString('hex').substring(0, 13)
         };
 
@@ -2131,7 +2133,7 @@ router.post('/reseller/clients', resellerAuthenticate, async (req: any, res: any
 router.put('/reseller/clients/:id', resellerAuthenticate, async (req: any, res: any) => {
     try {
         const { id } = req.params;
-        const { username, password, maxInstances, messageLimit, expiresAt, permissions } = req.body;
+        const { username, password, maxInstances, messageLimit, expiresAt, permissions, checkWhatsAppNumber } = req.body;
 
         const targetClient = await prisma.user.findFirst({
             where: { id, ...(req.user.isAdmin ? {} : { resellerId: req.user.userId }) }
@@ -2146,6 +2148,7 @@ router.put('/reseller/clients/:id', resellerAuthenticate, async (req: any, res: 
         if (password) data.passwordHash = await bcrypt.hash(password, 10);
         if (expiresAt !== undefined) data.expiresAt = expiresAt ? new Date(expiresAt) : null;
         if (permissions !== undefined) data.permissions = permissions;
+        if (checkWhatsAppNumber !== undefined) data.checkWhatsAppNumber = Boolean(checkWhatsAppNumber);
 
         const reseller = await prisma.user.findUnique({
             where: { id: req.user.userId },
