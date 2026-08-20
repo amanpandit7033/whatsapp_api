@@ -66,6 +66,10 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         if (data && data.brandName) {
           setBranding(data);
           document.title = `${data.brandName} - Portal`;
+          const favicon = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+          if (favicon) {
+            favicon.href = data.brandLogoUrl || '/favicon.svg';
+          }
         }
       })
       .catch(() => {});
