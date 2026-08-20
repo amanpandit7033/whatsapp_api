@@ -5,6 +5,8 @@ import { Instances } from './pages/Instances';
 import { Login } from './pages/Login';
 import { Scan } from './pages/Scan';
 import { Broadcast } from './pages/Broadcast';
+import { BroadcastCampaign } from './pages/BroadcastCampaign';
+import { BroadcastBatch } from './pages/BroadcastBatch';
 import { NumberFilter } from './pages/NumberFilter';
 import { NumberFilterBatch } from './pages/NumberFilterBatch';
 import { Groups } from './pages/Groups';
@@ -47,6 +49,8 @@ function App() {
         <Route path="/instances" element={<ProtectedRoute requiredPermission="instances"><Instances /></ProtectedRoute>} />
         <Route path="/scan" element={<ProtectedRoute requiredPermission="instances"><Scan /></ProtectedRoute>} />
         <Route path="/broadcast" element={<ProtectedRoute requiredPermission="broadcast"><Broadcast /></ProtectedRoute>} />
+        <Route path="/broadcast/new" element={<ProtectedRoute requiredPermission="broadcast"><BroadcastCampaign /></ProtectedRoute>} />
+        <Route path="/broadcast/batch/:id" element={<ProtectedRoute requiredPermission="broadcast"><BroadcastBatch /></ProtectedRoute>} />
         <Route path="/filter" element={<ProtectedRoute requiredPermission="filter"><NumberFilter /></ProtectedRoute>} />
         <Route path="/filter/batch/:id" element={<ProtectedRoute requiredPermission="filter"><NumberFilterBatch /></ProtectedRoute>} />
         <Route path="/groups" element={<ProtectedRoute requiredPermission="groups"><Groups /></ProtectedRoute>} />

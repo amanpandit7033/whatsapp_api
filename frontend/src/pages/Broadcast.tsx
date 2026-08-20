@@ -1,685 +1,375 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  CheckIcon, 
-  XIcon
-} from '../components/Icons';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   GlassSendIcon,
-  GlassSparklesIcon,
-  GlassInstanceIcon,
-  GlassEyeIcon,
-  GlassPaperclipIcon,
-  GlassLinkIcon,
-  GlassPhoneIcon,
-  GlassChatIcon,
   GlassPlusIcon,
-  GlassAlertIcon,
-  GlassCheckCircleIcon,
+  GlassEyeIcon,
   GlassRefreshIcon,
   GlassCancelIcon,
-  GlassGroupIcon,
-  GlassEditIcon,
-  GlassTagIcon
+  GlassTagIcon,
+  GlassSearchIcon,
+  GlassBatchIcon,
+  GlassCallIcon,
+  GlassStarSparkleIcon,
+  GlassCheckCircleIcon
 } from '../components/GlassIcons';
 
-// ─── Types ───────────────────────────────────
-type MsgMode = 'text' | 'media' | 'interactive';
-type BtnType = 'quick_reply' | 'cta_url' | 'cta_call';
-interface IButton { type: BtnType; label: string; url?: string; phone?: string; id?: string; }
+interface IBroadcastCampaign {
+  id: string;
+  name: string;
+  instanceId?: string;
+  poolName?: string;
+  messageType: string;
+  messageText?: string;
+  mediaUrl?: string;
+  totalCount: number;
+  sentCount: number;
+  failedCount: number;
+  status: string;
+  createdAt: string;
+}
 
-const cardStyle: React.CSSProperties = {
-  background: 'white', borderRadius: '18px', padding: '24px',
-  border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
-};
-const labelStyle: React.CSSProperties = {
-  display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '8px',
-  letterSpacing: '0.05em', textTransform: 'uppercase',
-};
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '12px 16px', background: '#F8FAFC',
-  border: '1px solid #E2E8F0', borderRadius: '10px', fontSize: '14px',
-  fontWeight: 500, color: '#0F172A', fontFamily: 'inherit',
-  outline: 'none', boxSizing: 'border-box' as const, transition: 'all 0.2s ease',
-};
-const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer' };
-const taStyle: React.CSSProperties = { ...inputStyle, resize: 'vertical' as const, lineHeight: 1.6 };
-
-// ─── Button-type label map ───────────────────
-const BTN_LABELS: Record<BtnType, string> = {
-  quick_reply: 'Quick Reply',
-  cta_url: 'URL Button',
-  cta_call: 'Call Button',
-};
-const BTN_COLORS: Record<BtnType, string> = {
-  quick_reply: '#4F46E5',
-  cta_url: '#0EA5E9',
-  cta_call: '#10B981',
-};
-
-// ─── Live WhatsApp-style preview ─────────────
-const Preview = ({ mode, message, mediaUrl, headerType, headerText, headerImageUrl, body, footer, buttons }:
-  { mode: MsgMode; message: string; mediaUrl: string; headerType: string; headerText: string; headerImageUrl: string; body: string; footer: string; buttons: IButton[] }) => (
-  <div style={{ background: '#e5ddd5', borderRadius: '16px', padding: '16px', minHeight: '200px', backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'50\' height=\'50\' viewBox=\'0 0 50 50\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23000000\' fill-opacity=\'0.03\'%3E%3Ccircle cx=\'25\' cy=\'25\' r=\'10\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}>
-    <p style={{ fontSize: '12px', fontWeight: 800, color: '#6b7280', marginBottom: '8px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-      <GlassEyeIcon size={16} /> Live WhatsApp Preview
-    </p>
-    <div style={{ maxWidth: '280px', marginLeft: 'auto' }}>
-      <div style={{ background: 'white', borderRadius: '8px 2px 8px 8px', boxShadow: '0 1px 3px rgba(0,0,0,0.15)', overflow: 'hidden' }}>
-        {/* Header */}
-        {mode === 'interactive' && headerType === 'image' && headerImageUrl && (
-          <img src={headerImageUrl} alt="header" style={{ width: '100%', height: '120px', objectFit: 'cover', display: 'block' }} onError={e => (e.currentTarget.style.display = 'none')} />
-        )}
-        {mode === 'interactive' && headerType === 'text' && headerText && (
-          <div style={{ background: '#f0f4f8', padding: '10px 12px', borderBottom: '1px solid #e2e8f0' }}>
-            <p style={{ fontWeight: 800, fontSize: '14px', color: '#0f172a', margin: 0 }}>{headerText}</p>
-          </div>
-        )}
-        {mode === 'media' && mediaUrl && (
-          <div style={{ background: '#f0f4f8', padding: '10px 12px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <GlassPaperclipIcon size={16} />
-            <p style={{ fontSize: '12px', color: '#94a3b8', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mediaUrl}</p>
-          </div>
-        )}
-
-        {/* Body */}
-        <div style={{ padding: '10px 12px' }}>
-          <p style={{ fontSize: '14px', color: '#1a1a1a', margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-            {mode === 'text' ? (message || <span style={{ color: '#94a3b8' }}>Your message…</span>)
-              : mode === 'interactive' ? (body || <span style={{ color: '#94a3b8' }}>Message body…</span>)
-              : (message || <span style={{ color: '#94a3b8' }}>Caption…</span>)}
-          </p>
-          {mode === 'interactive' && footer && (
-            <p style={{ fontSize: '12px', color: '#94a3b8', margin: '6px 0 0', fontStyle: 'italic' }}>{footer}</p>
-          )}
-          <p style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'right', margin: '4px 0 0' }}>12:00 ✓✓</p>
-        </div>
-
-        {/* Buttons */}
-        {mode === 'interactive' && buttons.filter(b => b.label).length > 0 && (
-          <div style={{ borderTop: '1px solid #e2e8f0' }}>
-            {buttons.filter(b => b.label).map((btn, i) => (
-              <div key={i} style={{
-                padding: '10px 12px', borderBottom: i < buttons.length - 1 ? '1px solid #f1f5f9' : 'none',
-                textAlign: 'center', color: BTN_COLORS[btn.type], fontWeight: 700, fontSize: '13px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-              }}>
-                {btn.type === 'cta_url' ? <GlassLinkIcon size={16} /> : btn.type === 'cta_call' ? <GlassPhoneIcon size={16} /> : <GlassChatIcon size={16} />} {btn.label || 'Button'}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  </div>
-);
-
-// ─── Main Component ───────────────────────────
 export const Broadcast = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [instances, setInstances] = useState<any[]>([]);
-  const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
-  const [numbers, setNumbers] = useState(() => (location.state as any)?.prefilledNumbers || '');
-  const [isSending, setIsSending] = useState(false);
-  const [results, setResults] = useState<{ number: string; status: string; error?: string; fallback?: boolean }[]>([]);
 
+  const [campaigns, setCampaigns] = useState<IBroadcastCampaign[]>([]);
+  const [campaignTotal, setCampaignTotal] = useState(0);
+  const [campaignPage, setCampaignPage] = useState(1);
+  const [campaignSearch, setCampaignSearch] = useState('');
+  const [campaignLoading, setCampaignLoading] = useState(false);
 
-  // Mode
-  const [mode, setMode] = useState<MsgMode>('text');
+  useEffect(() => {
+    fetchCampaigns(true);
+  }, [campaignPage, campaignSearch]);
 
-  // Text/Media fields
-  const [message, setMessage] = useState('');
-  const [mediaUrl, setMediaUrl] = useState('');
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  // Auto-refresh when any batch is currently dispatching
+  useEffect(() => {
+    const hasRunning = campaigns.some(c => c.status === 'running');
+    if (!hasRunning) return;
+    const timer = setInterval(() => {
+      fetchCampaigns(false);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [campaigns, campaignPage, campaignSearch]);
 
-  // Interactive fields
-  const [headerType, setHeaderType] = useState<'none' | 'text' | 'image'>('none');
-  const [headerText, setHeaderText] = useState('');
-  const [headerImageUrl, setHeaderImageUrl] = useState('');
-  const [headerImageFile, setHeaderImageFile] = useState<File | null>(null);
-  const [body, setBody] = useState('');
-  const [footer, setFooter] = useState('');
-  const [buttons, setButtons] = useState<IButton[]>([{ type: 'quick_reply', label: '', id: 'btn_1' }]);
-  const [pools, setPools] = useState<any[]>([]);
-
-  useEffect(() => { 
-    fetchInstances(); 
-    fetchPools();
-  }, []);
-
-  const fetchInstances = async () => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/instances`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-    });
-    if (res.status === 401) { navigate('/login'); return; }
-    const data = await res.json();
-    setInstances((data.instances || []).filter((i: any) => i.status === 'connected'));
-  };
-
-  const fetchPools = async () => {
+  const fetchCampaigns = async (showLoading = true) => {
+    if (showLoading) setCampaignLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/pools`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/broadcast/campaigns?page=${campaignPage}&limit=10&search=${encodeURIComponent(campaignSearch)}`, {
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
       });
       if (res.ok) {
         const data = await res.json();
-        setPools(data.pools || []);
+        setCampaigns(data.campaigns || []);
+        setCampaignTotal(data.totalCount || 0);
       }
-    } catch (e) {}
-  };
-
-  const selectPool = (pool: any) => {
-    const ids = pool.instanceIds || [];
-    setSelectedInstances(ids.filter((id: string) => instances.some(inst => inst.id === id)));
-  };
-
-  const toggleInstance = (id: string) => {
-    setSelectedInstances(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  };
-
-  const updateButton = (i: number, patch: Partial<IButton>) => {
-    setButtons(prev => prev.map((b, idx) => idx === i ? { ...b, ...patch } : b));
-  };
-
-  const addButton = () => {
-    if (buttons.length >= 3) return;
-    setButtons(prev => [...prev, { type: 'quick_reply', label: '', id: `btn_${prev.length + 1}` }]);
-  };
-
-  const removeButton = (i: number) => setButtons(prev => prev.filter((_, idx) => idx !== i));
-
-  const handleSend = async () => {
-    if (selectedInstances.length === 0) return alert('Select at least one instance');
-    const numberList = numbers.split('\n').map(n => n.trim()).filter(n => n);
-    if (!numberList.length) return alert('Enter at least one number');
-
-    if (mode === 'text' && !message.trim()) return alert('Enter a message');
-    if (mode === 'interactive' && !body.trim()) return alert('Enter a message body');
-
-    setIsSending(true);
-    setResults([]);
-    const newResults: typeof results = [];
-    let instanceIdx = 0;
-
-    for (const num of numberList) {
-      const instanceId = selectedInstances[instanceIdx % selectedInstances.length];
-      try {
-        let payload: any = { number: num };
-
-        if (mode === 'text') {
-          payload.message = message;
-          if (mediaUrl.trim()) payload.media = { url: mediaUrl.trim() };
-        } else if (mode === 'media') {
-          payload.message = message;
-          payload.media = { url: mediaUrl.trim() };
-        } else if (mode === 'interactive') {
-          payload.interactive = {
-            headerType,
-            headerText: headerType === 'text' ? headerText : undefined,
-            headerImageUrl: headerType === 'image' ? headerImageUrl : undefined,
-            body,
-            footer,
-            buttons: buttons.filter(b => b.label.trim()),
-          };
-        }
-
-        const formData = new FormData();
-        formData.append('payload', JSON.stringify(payload));
-        if (mode === 'text' && mediaFile) {
-            formData.append('file', mediaFile);
-        } else if (mode === 'interactive' && headerImageFile) {
-            formData.append('file', headerImageFile);
-        }
-
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/instances/${instanceId}/send`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-          body: formData
-        });
-        const data = await res.json();
-
-        if (res.ok) {
-          newResults.push({ number: num, status: 'success', fallback: data.usedFallback });
-        } else {
-          newResults.push({ number: num, status: 'failed', error: data.error || 'Failed' });
-        }
-      } catch {
-        newResults.push({ number: num, status: 'failed', error: 'Network error' });
-      }
-      setResults([...newResults]);
-      instanceIdx++;
-      await new Promise(r => setTimeout(r, 1000));
+    } catch (err) {
+      console.error('Failed to fetch campaigns:', err);
+    } finally {
+      if (showLoading) setCampaignLoading(false);
     }
-    setIsSending(false);
   };
 
-  const numberList = numbers.split('\n').map(n => n.trim()).filter(n => n);
-  const successCount = results.filter(r => r.status === 'success').length;
-  const failCount = results.filter(r => r.status === 'failed').length;
-  const fallbackCount = results.filter(r => r.fallback).length;
+  const handleDeleteCampaign = async (campaignId: string) => {
+    if (!confirm('Are you sure you want to delete this campaign batch and its number logs?')) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/broadcast/campaigns/${campaignId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        fetchCampaigns();
+      }
+    } catch (err) {
+      alert('Failed to delete campaign batch');
+    }
+  };
+
+  const totalBatches = campaignTotal;
+  const totalBroadcastSent = campaigns.reduce((acc, c) => acc + c.sentCount, 0);
+  const totalBroadcastFailed = campaigns.reduce((acc, c) => acc + c.failedCount, 0);
+  const totalBroadcastRecipients = campaigns.reduce((acc, c) => acc + c.totalCount, 0);
+  const overallSuccessRate = totalBroadcastRecipients > 0 
+    ? ((totalBroadcastSent / totalBroadcastRecipients) * 100).toFixed(1) 
+    : '100.0';
 
   return (
-    <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Page Header */}
+    <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px', paddingBottom: '60px' }}>
+      
+      {/* ─────────────────────────────────────────────────────────────
+          PAGE HEADER WITH TOP-RIGHT 'NEW BROADCAST' BUTTON
+          ───────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#0F172A', margin: '0 0 4px', letterSpacing: '-0.02em' }}>Broadcast Hub</h2>
-          <p style={{ color: '#64748B', fontSize: '14px', margin: 0, fontWeight: 500 }}>
-            Send bulk messages and interactive CTA cards across your linked WhatsApp numbers.
+          <h2 style={{ fontSize: '22px', fontWeight: 900, color: '#0F172A', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
+            Broadcast Batches
+          </h2>
+          <p style={{ color: '#64748B', fontSize: '13.5px', margin: 0, fontWeight: 500 }}>
+            Manage multi-SIM broadcast batches, monitor delivery logs, and track recipient reach.
           </p>
         </div>
+
+        {/* Top-Right Primary Action Button */}
+        <div>
+          <button
+            onClick={() => navigate('/broadcast/new')}
+            className="btn-primary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '11px 22px',
+              borderRadius: '12px',
+              fontSize: '13.5px',
+              fontWeight: 800,
+              boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <GlassPlusIcon size={18} />
+            <span>New Broadcast</span>
+          </button>
+        </div>
       </div>
 
-      {/* Mode Selector Tabs (Shopeers SaaS Style) */}
-      <div className="mode-tabs-container" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-        {([
-          { key: 'text', icon: GlassSendIcon, label: 'Text / Media Campaign' },
-          { key: 'interactive', icon: GlassSparklesIcon, label: 'Interactive CTA Buttons' },
-        ] as const).map(({ key, icon: IconComponent, label }) => {
-          const isActive = mode === key;
-          return (
-            <button 
-              key={key} 
-              onClick={() => setMode(key)} 
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '10px',
-                padding: '12px 24px', borderRadius: '12px',
-                border: isActive ? 'none' : '1px solid #E2E8F0',
-                background: isActive ? '#2563EB' : '#FFFFFF',
-                color: isActive ? '#FFFFFF' : '#64748B',
-                fontWeight: 800, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s ease',
-                boxShadow: isActive ? '0 4px 14px rgba(37, 99, 235, 0.3)' : '0 2px 6px rgba(0,0,0,0.02)',
-              }}
-            >
-              <IconComponent size={20} />
-              {label}
-              {key === 'interactive' && (
-                <span style={{ background: isActive ? '#FFFFFF' : '#EFF6FF', color: isActive ? '#2563EB' : '#2563EB', fontSize: '10px', padding: '2px 8px', borderRadius: '9999px', fontWeight: 800, letterSpacing: '0.04em' }}>
-                  FEATURE
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="broadcast-grid">
-        {/* LEFT COLUMN */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-
-          {/* Step 1: Select Instances */}
-          <div className="card">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ background: '#EFF6FF', width: '36px', height: '36px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <GlassInstanceIcon size={20} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>Multi-SIM Sending Pool</h3>
-                  <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748B' }}>Choose which connected SIMs will share the sending load.</p>
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {instances.length > 1 && (
-                  <>
-                    <button 
-                      type="button"
-                      onClick={() => setSelectedInstances(instances.map(i => i.id))}
-                      style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', border: '1px solid #BFDBFE', background: '#EFF6FF', color: '#1D4ED8', cursor: 'pointer' }}
-                    >
-                      Select All ({instances.length})
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => setSelectedInstances([])}
-                      style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', cursor: 'pointer' }}
-                    >
-                      Clear
-                    </button>
-                  </>
-                )}
-              </div>
+      {/* ─────────────────────────────────────────────────────────────
+          KPI STATS ROW
+          ───────────────────────────────────────────────────────────── */}
+      <div className="stats-grid">
+        <div className="card" style={{ padding: '20px 24px', borderRadius: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>Total Campaigns</span>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassBatchIcon size={20} />
             </div>
+          </div>
+          <p style={{ fontSize: '26px', fontWeight: 900, color: '#0F172A', margin: 0 }}>{totalBatches}</p>
+          <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>Saved Broadcast Batches</span>
+        </div>
 
-            {/* Quick Pool Selector Pills */}
-            {pools.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '14px', padding: '8px 12px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-                <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  SIM Pools:
-                </span>
-                {pools.map(pool => (
-                  <button
-                    key={pool.id}
-                    type="button"
-                    onClick={() => selectPool(pool)}
-                    style={{
-                      fontSize: '12px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', cursor: 'pointer',
-                      border: '1px solid #DBEAFE', background: '#EFF6FF', color: '#1D4ED8', transition: 'all 0.15s ease',
-                      display: 'inline-flex', alignItems: 'center', gap: '6px',
-                      boxShadow: '0 1px 3px rgba(37,99,235,0.08)'
-                    }}
-                    title={`Select ${pool.members?.length || 0} numbers in ${pool.name}`}
+        <div className="card" style={{ padding: '20px 24px', borderRadius: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>Total Numbers</span>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassCallIcon size={20} />
+            </div>
+          </div>
+          <p style={{ fontSize: '26px', fontWeight: 900, color: '#059669', margin: 0 }}>{totalBroadcastRecipients.toLocaleString()}</p>
+          <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>Total Broadcast Recipients</span>
+        </div>
+
+        <div className="card" style={{ padding: '20px 24px', borderRadius: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>Delivered Messages</span>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassCheckCircleIcon size={20} />
+            </div>
+          </div>
+          <p style={{ fontSize: '26px', fontWeight: 900, color: '#2563EB', margin: 0 }}>{totalBroadcastSent.toLocaleString()}</p>
+          <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>Successfully Delivered</span>
+        </div>
+
+        <div className="card" style={{ padding: '20px 24px', borderRadius: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>Success Rate</span>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <GlassStarSparkleIcon size={20} />
+            </div>
+          </div>
+          <p style={{ fontSize: '26px', fontWeight: 900, color: '#D97706', margin: 0 }}>{overallSuccessRate}%</p>
+          <span style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px', display: 'block' }}>{totalBroadcastFailed} Failed Messages</span>
+        </div>
+      </div>
+
+      {/* ─────────────────────────────────────────────────────────────
+          CAMPAIGN BATCHES TABLE CARD
+          ───────────────────────────────────────────────────────────── */}
+      <div className="card" style={{ padding: '24px 0', borderRadius: '16px' }}>
+        
+        {/* Header & Search Toolbar */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px 20px', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0F172A', margin: '0 0 4px' }}>All Campaign Batches</h3>
+            <p style={{ color: '#64748B', fontSize: '13px', margin: 0, fontWeight: 500 }}>Click the View button on any batch to inspect detailed number delivery reports.</p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ position: 'relative', width: '260px' }}>
+              <GlassSearchIcon size={18} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                placeholder="Search campaign name..."
+                value={campaignSearch}
+                onChange={e => { setCampaignSearch(e.target.value); setCampaignPage(1); }}
+                className="rounded-input"
+                style={{ paddingRight: '38px', height: '40px', borderRadius: '10px' }}
+              />
+            </div>
+            <button
+              onClick={fetchCampaigns}
+              className="btn-outline"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', fontWeight: 700 }}
+              title="Refresh campaigns"
+            >
+              <GlassRefreshIcon size={16} /> Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Table Content */}
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
+                <th style={{ padding: '14px 24px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>CAMPAIGN BATCH</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>TYPE</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>NUMBERS</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>DELIVERY STATS</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>STATUS</th>
+                <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>DATE & TIME</th>
+                <th style={{ padding: '14px 24px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase', textAlign: 'right' }}>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {campaigns.map((camp) => {
+                const rate = camp.totalCount > 0 ? ((camp.sentCount / camp.totalCount) * 100).toFixed(0) : '0';
+                return (
+                  <tr 
+                    key={camp.id}
+                    style={{ borderBottom: '1px solid #F1F5F9' }}
                   >
-                    <GlassTagIcon size={16} />
-                    <span>{pool.name}</span>
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: pool.connectedCount > 0 ? '#059669' : '#DC2626', background: '#FFFFFF', padding: '1px 6px', borderRadius: '9999px', border: '1px solid #DBEAFE' }}>
-                      {pool.connectedCount}/{pool.totalCount} online
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {selectedInstances.length > 1 && (
-              <div style={{ background: 'linear-gradient(135deg, #EFF6FF 0%, #F0FDF4 100%)', border: '1px solid #BFDBFE', borderRadius: '12px', padding: '10px 14px', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#1E40AF', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  ⚡ Multi-SIM Rotation Active: <strong>{selectedInstances.length} SIMs</strong>
-                </span>
-                {numberList.length > 0 && (
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#15803D', background: '#DCFCE7', padding: '3px 8px', borderRadius: '6px' }}>
-                    ~{Math.ceil(numberList.length / selectedInstances.length)} msgs / SIM
-                  </span>
-                )}
-              </div>
-            )}
-
-            {instances.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '24px', background: '#F8FAFC', borderRadius: '14px', border: '1px dashed #E2E8F0' }}>
-                <p style={{ fontSize: '14px', color: '#94A3B8', fontWeight: 600, margin: 0 }}>No active connected instances found.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {instances.map(inst => {
-                  const sel = selectedInstances.includes(inst.id);
-                  return (
-                    <label key={inst.id} onClick={() => toggleInstance(inst.id)} style={{
-                      display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px',
-                      borderRadius: '14px', cursor: 'pointer',
-                      border: sel ? '2px solid #2563EB' : '1px solid #E2E8F0',
-                      background: sel ? '#EFF6FF' : '#F8FAFC', transition: 'all 0.2s ease',
-                      boxShadow: sel ? '0 4px 12px rgba(37, 99, 235, 0.1)' : 'none'
-                    }}>
-                      <div style={{ width: '20px', height: '20px', borderRadius: '6px', border: `2px solid ${sel ? '#2563EB' : '#CBD5E1'}`, background: sel ? '#2563EB' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s' }}>
-                        {sel && <CheckIcon size={12} color="white" />}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
-                        <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: '#D1FAE5', border: '1px solid #A7F3D0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <GlassInstanceIcon size={18} />
+                    <td style={{ padding: '16px 24px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <GlassBatchIcon size={18} />
                         </div>
                         <div style={{ minWidth: 0 }}>
-                          <p style={{ fontWeight: 800, fontSize: '13.5px', color: '#0F172A', margin: 0, fontFamily: 'var(--font-mono)' }}>{inst.id}</p>
-                          {inst.phoneNumber && <p style={{ fontSize: '12px', color: '#64748B', margin: '1px 0 0', fontWeight: 600 }}>+{inst.phoneNumber}</p>}
+                          <p style={{ fontWeight: 800, fontSize: '14px', color: '#0F172A', margin: 0 }}>{camp.name}</p>
+                          {camp.poolName ? (
+                            <span style={{ fontSize: '11px', color: '#2563EB', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                              <GlassTagIcon size={12} /> {camp.poolName}
+                            </span>
+                          ) : camp.instanceId ? (
+                            <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600, display: 'block', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
+                              SIM: {camp.instanceId}
+                            </span>
+                          ) : null}
                         </div>
                       </div>
-                      <span style={{ fontSize: '11px', fontWeight: 800, color: sel ? '#1D4ED8' : '#059669', background: sel ? '#DBEAFE' : '#D1FAE5', padding: '3px 10px', borderRadius: '9999px', marginLeft: 'auto', flexShrink: 0 }}>
-                        {sel ? 'In Pool' : 'Active'}
+                    </td>
+
+                    <td style={{ padding: '16px 16px' }}>
+                      <span style={{
+                        padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800, textTransform: 'capitalize',
+                        background: camp.messageType === 'interactive' ? '#F5F3FF' : '#EFF6FF',
+                        color: camp.messageType === 'interactive' ? '#7C3AED' : '#2563EB'
+                      }}>
+                        {camp.messageType}
                       </span>
-                    </label>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                    </td>
 
-          {/* Step 2: Target Numbers */}
-          <div className="card">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ background: '#EFF6FF', width: '32px', height: '32px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <GlassGroupIcon size={18} />
-                </div>
-                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>Target Numbers List</h3>
-              </div>
-              {numberList.length > 0 && (
-                <span style={{ fontSize: '12px', fontWeight: 800, color: '#2563EB', background: '#EFF6FF', padding: '4px 12px', borderRadius: '9999px' }}>
-                  {numberList.length} recipient{numberList.length !== 1 ? 's' : ''}
-                </span>
+                    <td style={{ padding: '16px 16px', fontWeight: 800, fontSize: '14px', color: '#0F172A' }}>
+                      {camp.totalCount.toLocaleString()}
+                    </td>
+
+                    <td style={{ padding: '16px 16px' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 800, color: '#059669' }}>{camp.sentCount} sent</span>
+                          {camp.failedCount > 0 && <span style={{ fontSize: '12px', fontWeight: 800, color: '#DC2626' }}>· {camp.failedCount} failed</span>}
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748B', marginLeft: 'auto' }}>{rate}%</span>
+                        </div>
+                        <div style={{ width: '130px', height: '6px', background: '#E2E8F0', borderRadius: '9999px', overflow: 'hidden' }}>
+                          <div style={{ width: `${rate}%`, height: '100%', background: '#059669', borderRadius: '9999px' }} />
+                        </div>
+                      </div>
+                    </td>
+
+                    <td style={{ padding: '16px 16px' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800,
+                        background: camp.status === 'completed' ? '#D1FAE5' : camp.status === 'running' ? '#EFF6FF' : '#FEE2E2',
+                        color: camp.status === 'completed' ? '#065F46' : camp.status === 'running' ? '#1D4ED8' : '#991B1B'
+                      }}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: camp.status === 'completed' ? '#059669' : camp.status === 'running' ? '#2563EB' : '#DC2626' }} />
+                        {camp.status === 'completed' ? 'Completed' : camp.status === 'running' ? 'Running' : 'Failed'}
+                      </span>
+                    </td>
+
+                    <td style={{ padding: '16px 16px', fontSize: '12px', color: '#64748B', fontWeight: 600 }}>
+                      {new Date(camp.createdAt).toLocaleDateString()} {new Date(camp.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </td>
+
+                    <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                        <button
+                          onClick={() => navigate(`/broadcast/batch/${camp.id}`)}
+                          title="View all numbers in this batch"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                            background: '#EFF6FF', border: '1px solid #DBEAFE', borderRadius: '8px',
+                            padding: '6px 12px', fontSize: '12px', fontWeight: 800, color: '#2563EB',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <GlassEyeIcon size={14} /> <span>View</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCampaign(camp.id)}
+                          title="Delete campaign"
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '4px',
+                            background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '8px',
+                            padding: '6px 10px', fontSize: '12px', fontWeight: 700, color: '#DC2626',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <GlassCancelIcon size={14} /> <span>Delete</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {campaigns.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ padding: '48px 24px', textAlign: 'center', color: '#94A3B8', fontWeight: 500 }}>
+                    {campaignLoading ? 'Loading campaigns...' : 'No broadcast campaign batches recorded yet. Click "New Broadcast" above to launch your first campaign.'}
+                  </td>
+                </tr>
               )}
-            </div>
-            <textarea 
-              rows={6} 
-              placeholder={"911234567890\n91XXXXXXXXXX\n447911123456"} 
-              value={numbers} 
-              onChange={e => setNumbers(e.target.value)} 
-              style={{ ...taStyle, fontFamily: 'var(--font-mono)', fontSize: '13px' }} 
-            />
-          </div>
-
-          {/* Step 3: Live Preview Mockup */}
-          <div className="card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-              <GlassEyeIcon size={20} />
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>Live Device Preview</h3>
-            </div>
-            <Preview mode={mode} message={message} mediaUrl={mediaUrl} headerType={headerType} headerText={headerText} headerImageUrl={headerImageUrl} body={body} footer={footer} buttons={buttons} />
-          </div>
+            </tbody>
+          </table>
         </div>
 
-        {/* RIGHT COLUMN */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-
-          {/* Step 4: Message Composer */}
-          <div className="card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-              <div style={{ background: '#D1FAE5', width: '32px', height: '32px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <GlassEditIcon size={18} />
-              </div>
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>
-                {mode === 'interactive' ? 'Interactive Message Composer' : 'Text / Media Message Composer'}
-              </h3>
-            </div>
-
-            {mode === 'text' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div>
-                  <label style={labelStyle}>Campaign Message Body</label>
-                  <textarea rows={5} placeholder="Write your WhatsApp broadcast message content here..." value={message} onChange={e => setMessage(e.target.value)} style={taStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Media Attachment URL <span style={{ color: '#94A3B8', fontWeight: 500, textTransform: 'none' }}>(Optional)</span></label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input type="text" placeholder="https://example.com/image.jpg" value={mediaUrl} onChange={e => { setMediaUrl(e.target.value); setMediaFile(null); }} style={{ ...inputStyle, flex: 1, opacity: mediaFile ? 0.5 : 1 }} disabled={!!mediaFile} />
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: mediaFile ? '#EFF6FF' : '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0 16px', cursor: 'pointer', position: 'relative', transition: 'all 0.2s', color: mediaFile ? '#2563EB' : '#475569', gap: '6px' }}>
-                      <GlassPaperclipIcon size={16} />
-                      <span style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{mediaFile ? mediaFile.name : 'Attach File'}</span>
-                      <input type="file" onChange={e => { const f = e.target.files?.[0]; if (f) { setMediaFile(f); setMediaUrl(''); } }} style={{ position: 'absolute', opacity: 0, inset: 0, cursor: 'pointer' }} />
-                      {mediaFile && (
-                        <button onClick={(e) => { e.preventDefault(); setMediaFile(null); }} style={{ marginLeft: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', fontWeight: 'bold', fontSize: '16px', padding: '0 4px' }}>×</button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {mode === 'interactive' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                {/* Notice */}
-                <div style={{ background: '#FFFBEB', border: '1px solid #FEF3C7', borderRadius: '12px', padding: '12px 16px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <GlassAlertIcon size={20} />
-                  <p style={{ fontSize: '12px', color: '#B45309', fontWeight: 600, margin: 0, lineHeight: 1.5 }}>
-                    If recipient WhatsApp version does not support interactive buttons, a clean formatted text fallback will be transmitted automatically.
-                  </p>
-                </div>
-
-                {/* Header Selector */}
-                <div>
-                  <label style={labelStyle}>Header Format</label>
-                  <select value={headerType} onChange={e => setHeaderType(e.target.value as any)} style={selectStyle}>
-                    <option value="none">No Header</option>
-                    <option value="text">Text Header</option>
-                    <option value="image">Image Banner Header</option>
-                  </select>
-                </div>
-
-                {headerType === 'text' && (
-                  <div>
-                    <label style={labelStyle}>Header Text</label>
-                    <input type="text" placeholder="Welcome to our store!" value={headerText} onChange={e => setHeaderText(e.target.value)} style={inputStyle} />
-                  </div>
-                )}
-                {headerType === 'image' && (
-                  <div>
-                    <label style={labelStyle}>Header Banner Image URL</label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <input type="text" placeholder="https://example.com/banner.jpg" value={headerImageUrl} onChange={e => { setHeaderImageUrl(e.target.value); setHeaderImageFile(null); }} style={{ ...inputStyle, flex: 1, opacity: headerImageFile ? 0.5 : 1 }} disabled={!!headerImageFile} />
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: headerImageFile ? '#EFF6FF' : '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '0 16px', cursor: 'pointer', position: 'relative', transition: 'all 0.2s', color: headerImageFile ? '#2563EB' : '#475569', gap: '6px' }}>
-                        <GlassPaperclipIcon size={16} />
-                        <span style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{headerImageFile ? headerImageFile.name : 'Upload Header'}</span>
-                        <input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) { setHeaderImageFile(f); setHeaderImageUrl(''); } }} style={{ position: 'absolute', opacity: 0, inset: 0, cursor: 'pointer' }} />
-                        {headerImageFile && (
-                          <button onClick={(e) => { e.preventDefault(); setHeaderImageFile(null); }} style={{ marginLeft: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', fontWeight: 'bold', fontSize: '16px', padding: '0 4px' }}>×</button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Body */}
-                <div>
-                  <label style={labelStyle}>Message Body Content (Required)</label>
-                  <textarea rows={4} placeholder="Hello! Choose an action below..." value={body} onChange={e => setBody(e.target.value)} style={taStyle} />
-                </div>
-
-                {/* Footer */}
-                <div>
-                  <label style={labelStyle}>Message Footer <span style={{ color: '#94A3B8', fontWeight: 500, textTransform: 'none' }}>(Optional)</span></label>
-                  <input type="text" placeholder="Powered by API Gateway" value={footer} onChange={e => setFooter(e.target.value)} style={inputStyle} />
-                </div>
-
-                {/* Buttons List */}
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <label style={{ ...labelStyle, margin: 0 }}>CTA Action Buttons ({buttons.length}/3)</label>
-                    {buttons.length < 3 && (
-                      <button onClick={addButton} style={{ background: '#EFF6FF', border: 'none', borderRadius: '8px', padding: '6px 14px', color: '#2563EB', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <GlassPlusIcon size={16} /> Add Button
-                      </button>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {buttons.map((btn, i) => (
-                      <div key={i} style={{ background: '#F8FAFC', borderRadius: '14px', padding: '16px', border: '1px solid #E2E8F0' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                          <span style={{ fontSize: '11px', fontWeight: 800, color: BTN_COLORS[btn.type], background: '#FFFFFF', border: `1px solid ${BTN_COLORS[btn.type]}`, padding: '3px 10px', borderRadius: '6px' }}>
-                            {BTN_LABELS[btn.type]}
-                          </span>
-                          {buttons.length > 1 && (
-                            <button onClick={() => removeButton(i)} style={{ background: '#FEF2F2', border: 'none', color: '#EF4444', cursor: 'pointer', borderRadius: '6px', padding: '4px 8px', fontSize: '12px', fontWeight: 700 }}>Remove</button>
-                          )}
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                          <div>
-                            <label style={labelStyle}>Button Type</label>
-                            <select value={btn.type} onChange={e => updateButton(i, { type: e.target.value as BtnType })} style={{ ...selectStyle, padding: '8px 12px' }}>
-                              <option value="quick_reply">Quick Reply</option>
-                              <option value="cta_url">URL Button</option>
-                              <option value="cta_call">Call Button</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label style={labelStyle}>Button Label</label>
-                            <input type="text" placeholder="e.g. Learn More" value={btn.label} onChange={e => updateButton(i, { label: e.target.value })} style={{ ...inputStyle, padding: '8px 12px' }} />
-                          </div>
-                          {btn.type === 'cta_url' && (
-                            <div style={{ gridColumn: '1/-1' }}>
-                              <label style={labelStyle}>Target URL</label>
-                              <input type="url" placeholder="https://example.com" value={btn.url || ''} onChange={e => updateButton(i, { url: e.target.value })} style={{ ...inputStyle, padding: '8px 12px' }} />
-                            </div>
-                          )}
-                          {btn.type === 'cta_call' && (
-                            <div style={{ gridColumn: '1/-1' }}>
-                              <label style={labelStyle}>Phone Number</label>
-                              <input type="text" placeholder="91XXXXXXXXXX" value={btn.phone || ''} onChange={e => updateButton(i, { phone: e.target.value })} style={{ ...inputStyle, padding: '8px 12px' }} />
-                            </div>
-                          )}
-                          {btn.type === 'quick_reply' && (
-                            <div style={{ gridColumn: '1/-1' }}>
-                              <label style={labelStyle}>Reply Payload ID (Optional)</label>
-                              <input type="text" placeholder="btn_1" value={btn.id || ''} onChange={e => updateButton(i, { id: e.target.value })} style={{ ...inputStyle, padding: '8px 12px' }} />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Step 5: Summary + Send */}
-          <div className="card">
-            <div className="summary-strip-card">
-              {[
-                { label: 'SELECTED INSTANCES', val: selectedInstances.length, color: '#2563EB' },
-                { label: 'TOTAL RECIPIENTS', val: numberList.length, color: '#059669' },
-                { label: 'CAMPAIGN TYPE', val: mode === 'interactive' ? 'Interactive' : mode === 'media' ? 'Media' : 'Text', color: '#D97706' },
-              ].map(({ label, val, color }) => (
-                <div key={label}>
-                  <p style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', margin: 0, letterSpacing: '0.05em' }}>{label}</p>
-                  <p style={{ fontSize: '20px', fontWeight: 900, color, margin: '2px 0 0', letterSpacing: '-0.02em' }}>{val}</p>
-                </div>
-              ))}
-            </div>
-
-            <button 
-              onClick={handleSend}
-              disabled={isSending || selectedInstances.length === 0 || !numberList.length || (mode === 'text' && !message) || (mode === 'interactive' && !body)}
-              className="btn-primary"
-              style={{
-                width: '100%', padding: '16px', fontSize: '15px', fontWeight: 800, borderRadius: '12px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', height: 'auto',
-                ...( (isSending || selectedInstances.length === 0 || !numberList.length) ? { background: '#CBD5E1', color: '#94A3B8', cursor: 'not-allowed', boxShadow: 'none' } : {} )
-              }}
+        {/* Pagination */}
+        {Math.ceil(campaignTotal / 10) > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px 0', borderTop: '1px solid #F1F5F9' }}>
+            <button
+              disabled={campaignPage === 1}
+              onClick={() => setCampaignPage(p => Math.max(1, p - 1))}
+              className="btn-outline"
+              style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 700 }}
             >
-              {isSending ? (
-                <><div style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div> Transmitting {results.length}/{numberList.length}…</>
-              ) : (
-                <><GlassSendIcon size={20} /> Dispatch Broadcast Campaign</>
-              )}
+              ← Prev
+            </button>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>
+              Page {campaignPage} of {Math.ceil(campaignTotal / 10)}
+            </span>
+            <button
+              disabled={campaignPage >= Math.ceil(campaignTotal / 10)}
+              onClick={() => setCampaignPage(p => p + 1)}
+              className="btn-outline"
+              style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 700 }}
+            >
+              Next →
             </button>
           </div>
-          {/* Delivery Results Log */}
-          {results.length > 0 && (
-            <div className="card">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <h3 style={{ fontWeight: 800, fontSize: '15px', color: '#0F172A', margin: 0 }}>Campaign Delivery Report</h3>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {successCount > 0 && <span style={{ fontSize: '12px', fontWeight: 800, color: '#059669', background: '#D1FAE5', padding: '4px 10px', borderRadius: '9999px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}><GlassCheckCircleIcon size={16} /> {successCount} Sent</span>}
-                  {fallbackCount > 0 && <span style={{ fontSize: '12px', fontWeight: 800, color: '#D97706', background: '#FEF3C7', padding: '4px 10px', borderRadius: '9999px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}><GlassRefreshIcon size={16} /> {fallbackCount} Fallback</span>}
-                  {failCount > 0 && <span style={{ fontSize: '12px', fontWeight: 800, color: '#DC2626', background: '#FEE2E2', padding: '4px 10px', borderRadius: '9999px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}><GlassCancelIcon size={16} /> {failCount} Failed</span>}
-                </div>
-              </div>
-
-              {isSending && (
-                <div style={{ marginBottom: '16px' }}>
-                  <div style={{ height: '6px', background: '#F1F5F9', borderRadius: '9999px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', background: 'linear-gradient(90deg, #2563EB, #7C3AED)', borderRadius: '9999px', width: `${(results.length / numberList.length) * 100}%`, transition: 'width 0.5s' }} />
-                  </div>
-                </div>
-              )}
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }} className="custom-scrollbar">
-                {results.map((r, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '10px', background: r.status === 'success' ? '#F0FDF4' : '#FEF2F2', border: `1px solid ${r.status === 'success' ? '#BBF7D0' : '#FEE2E2'}` }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{r.number}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {r.fallback && <span style={{ fontSize: '11px', background: '#FEF3C7', color: '#D97706', padding: '2px 8px', borderRadius: '9999px', fontWeight: 800 }}>FALLBACK</span>}
-                      <span style={{ fontSize: '12px', fontWeight: 800, color: r.status === 'success' ? '#16A34A' : '#DC2626', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {r.status === 'success' ? <><GlassCheckCircleIcon size={14} /> Delivered</> : <><GlassCancelIcon size={14} /> {r.error}</>}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 };

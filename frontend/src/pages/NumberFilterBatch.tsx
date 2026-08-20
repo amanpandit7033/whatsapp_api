@@ -194,7 +194,7 @@ export const NumberFilterBatch = () => {
       });
       const data = await res.json();
       const validNumbers = (data.items || []).map((i: FilterItem) => i.number).join('\n');
-      navigate('/broadcast', { state: { prefilledNumbers: validNumbers } });
+      navigate('/broadcast/new', { state: { prefilledNumbers: validNumbers } });
     } catch (e) {
       alert('Failed to forward numbers to broadcast');
     }

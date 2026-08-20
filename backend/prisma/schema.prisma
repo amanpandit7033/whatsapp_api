@@ -36,6 +36,7 @@ model User {
   lastMessageMonth      String @default("")
   dailyUsageStats DailyUsageStat[]
   instancePools   InstancePool[]
+  broadcastCampaigns BroadcastCampaign[]
   createdAt     DateTime     @default(now())
 }
 
@@ -61,6 +62,7 @@ model Instance {
   user           User         @relation(fields: [userId], references: [id])
   status         String       @default("disconnected") // connected, disconnected
   phoneNumber    String?
+  profilePicUrl  String?
   webhookUrl     String?
   webhookEnabled Boolean      @default(false)
   createdAt      DateTime     @default(now())
@@ -115,5 +117,39 @@ model InstancePool {
 
   @@unique([userId, name])
   @@unique([userId, slug])
+}
+
+model BroadcastCampaign {
+  id            String          @id @default(uuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String          @default("Untitled Campaign")
+  instanceId    String?
+  poolName      String?
+  messageType   String          @default("text") // "text", "media", "interactive"
+  messageText   String?
+  mediaUrl      String?
+  totalCount    Int             @default(0)
+  sentCount     Int             @default(0)
+  failedCount   Int             @default(0)
+  status        String          @default("completed") // "running", "completed", "failed"
+  items         BroadcastItem[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([userId])
+}
+
+model BroadcastItem {
+  id         String            @id @default(uuid())
+  campaignId String
+  campaign   BroadcastCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  number     String
+  status     String            @default("pending") // "sent", "failed", "pending"
+  error      String?
+  sentAt     DateTime?
+  createdAt  DateTime          @default(now())
+
+  @@index([campaignId])
 }
 

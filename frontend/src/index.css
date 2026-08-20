@@ -848,8 +848,8 @@ div[style*="overflow-y: auto"]::-webkit-scrollbar {
 
 .broadcast-grid {
   display: grid;
-  grid-template-columns: 1fr 1.3fr;
-  gap: 24px;
+  grid-template-columns: 1fr 380px;
+  gap: 28px;
   align-items: start;
 }
 

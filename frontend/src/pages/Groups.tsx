@@ -218,7 +218,7 @@ export const Groups = () => {
   const handleForwardToBroadcast = () => {
     if (members.length === 0) return;
     const numbersList = members.map((m) => m.number).filter(Boolean).join('\n');
-    navigate('/broadcast', { state: { prefilledNumbers: numbersList } });
+    navigate('/broadcast/new', { state: { prefilledNumbers: numbersList } });
   };
 
   // Stats

@@ -29,7 +29,8 @@ import {
   GlassLockIcon,
   GlassCalendarIcon,
   GlassSendIcon,
-  GlassInstanceIcon
+  GlassInstanceIcon,
+  GlassBoltIcon
 } from '../components/GlassIcons';
 
 const S: Record<string, React.CSSProperties> = {
@@ -320,7 +321,7 @@ export const AdminPanel = () => {
                         </span>
                       ) : isReseller ? (
                         <span style={{ background: '#FEF3C7', color: '#B45309', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 800, display: 'inline-flex', alignItems: 'center' }}>
-                          Reseller ({user._count?.clients || 0} clients)
+                          Reseller
                         </span>
                       ) : (
                         <span style={{ background: '#EFF6FF', color: '#2563EB', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700, display: 'inline-flex', alignItems: 'center' }}>
@@ -706,7 +707,9 @@ export const AdminPanel = () => {
               >
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span>⚡ WhatsApp Number Verification Mode</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                      <GlassBoltIcon size={15} /> WhatsApp Number Verification Mode
+                    </span>
                   </div>
                   <p style={{ fontSize: '12px', color: '#64748B', margin: '3px 0 0', fontWeight: 500 }}>
                     {newCheckWhatsAppNumber 
@@ -715,8 +718,8 @@ export const AdminPanel = () => {
                   </p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-                  <span style={{ fontSize: '12px', fontWeight: 800, color: newCheckWhatsAppNumber ? '#15803D' : '#B45309' }}>
-                    {newCheckWhatsAppNumber ? 'Verification ON' : '⚡ Turbo Mode'}
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: newCheckWhatsAppNumber ? '#15803D' : '#B45309', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {newCheckWhatsAppNumber ? 'Verification ON' : <><GlassBoltIcon size={13} /> Turbo Mode</>}
                   </span>
                   <ToggleIcon
                     size={38}
@@ -1051,7 +1054,9 @@ export const AdminPanel = () => {
               >
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span>⚡ WhatsApp Number Verification Mode</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                      <GlassBoltIcon size={15} /> WhatsApp Number Verification Mode
+                    </span>
                   </div>
                   <p style={{ fontSize: '12px', color: '#64748B', margin: '3px 0 0', fontWeight: 500 }}>
                     {editingUser.checkWhatsAppNumber !== false 
@@ -1060,8 +1065,8 @@ export const AdminPanel = () => {
                   </p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-                  <span style={{ fontSize: '12px', fontWeight: 800, color: editingUser.checkWhatsAppNumber !== false ? '#15803D' : '#B45309' }}>
-                    {editingUser.checkWhatsAppNumber !== false ? 'Verification ON' : '⚡ Turbo Mode'}
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: editingUser.checkWhatsAppNumber !== false ? '#15803D' : '#B45309', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {editingUser.checkWhatsAppNumber !== false ? 'Verification ON' : <><GlassBoltIcon size={13} /> Turbo Mode</>}
                   </span>
                   <ToggleIcon
                     size={38}

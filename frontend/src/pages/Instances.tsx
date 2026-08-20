@@ -391,6 +391,7 @@ export const Instances = () => {
               <thead>
                 <tr style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
                   <th style={{ padding: '14px 28px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase', width: '60px' }}>#</th>
+                  <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase', width: '64px', textAlign: 'center' }}>DP</th>
                   <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Instance ID</th>
                   <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Linked Phone</th>
                   <th style={{ padding: '14px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Status</th>
@@ -401,7 +402,7 @@ export const Instances = () => {
               <tbody>
                 {paginatedInstances.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: '#94A3B8', fontSize: '14px', fontWeight: 500 }}>
+                    <td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: '#94A3B8', fontSize: '14px', fontWeight: 500 }}>
                       No instances found.
                     </td>
                   </tr>
@@ -409,6 +410,54 @@ export const Instances = () => {
                   <tr key={inst.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.15s ease' }}>
                     <td style={{ padding: '16px 28px', fontSize: '13px', fontWeight: 700, color: '#64748B' }}>
                       {(startIndex + idx + 1).toString().padStart(2, '0')}
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                      {inst.profilePicUrl ? (
+                        <img
+                          src={inst.profilePicUrl}
+                          alt="DP"
+                          style={{
+                            width: '38px',
+                            height: '38px',
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                            border: '2px solid #E2E8F0',
+                            boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                            display: 'inline-block',
+                            verticalAlign: 'middle'
+                          }}
+                          onError={(e: any) => {
+                            e.currentTarget.style.display = 'none';
+                            const next = e.currentTarget.nextElementSibling;
+                            if (next) (next as HTMLElement).style.display = 'inline-flex';
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        style={{
+                          display: inst.profilePicUrl ? 'none' : 'inline-flex',
+                          width: '38px',
+                          height: '38px',
+                          borderRadius: '50%',
+                          background: inst.status === 'connected' ? '#EFF6FF' : '#F1F5F9',
+                          border: '1.5px solid #E2E8F0',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: inst.status === 'connected' ? '#2563EB' : '#94A3B8',
+                          fontWeight: 800,
+                          fontSize: '13px',
+                          margin: '0 auto'
+                        }}
+                        title={inst.phoneNumber ? `+${inst.phoneNumber}` : 'No DP'}
+                      >
+                        {inst.phoneNumber ? (
+                          <span style={{ fontSize: '11px', fontWeight: 800 }}>
+                            {inst.phoneNumber.slice(-2)}
+                          </span>
+                        ) : (
+                          <GlassUsersIcon size={16} />
+                        )}
+                      </div>
                     </td>
                     <td style={{ padding: '16px 16px', fontSize: '14px', fontWeight: 800, color: '#0F172A', fontFamily: 'var(--font-mono)' }}>
                       {inst.id}

@@ -15,7 +15,8 @@ import {
   GlassTrashIcon,
   GlassEyeIcon,
   GlassRefreshIcon,
-  GlassInstanceIcon
+  GlassInstanceIcon,
+  GlassBatchIcon
 } from '../components/GlassIcons';
 import { SearchableSelect } from '../components/SearchableSelect';
 
@@ -288,7 +289,7 @@ export const NumberFilter = () => {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '14px', fontWeight: 600, color: '#64748B' }}>Total Batches</span>
             <div style={{ width: 34, height: 34, borderRadius: 10, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <GlassFilterIcon size={20} />
+              <GlassBatchIcon size={20} />
             </div>
           </div>
           <div>
@@ -391,8 +392,10 @@ export const NumberFilter = () => {
               <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
                 <th style={{ padding: '12px 24px', fontSize: '11px', fontWeight: 800, color: '#64748B' }}>BATCH NAME & DATE</th>
                 <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'center' }}>TOTAL</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'center' }}>🟢 WHATSAPP</th>
-                <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'center' }}>🔴 NON-WA</th>
+                <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'center' }}>
+                  <GlassCheckCircleIcon size={10} /> WHATSAPP</th>
+                <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'center' }}>
+                  <GlassCancelIcon size={10} /> NON-WA</th>
                 <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'center' }}>STATUS</th>
                 <th style={{ padding: '12px 24px', fontSize: '11px', fontWeight: 800, color: '#64748B', textAlign: 'right' }}>ACTIONS</th>
               </tr>

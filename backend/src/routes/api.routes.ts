@@ -189,10 +189,21 @@ router.post('/instances/create', authenticate, async (req: any, res: any) => {
 });
 
 router.get('/instances', authenticate, async (req: any, res: any) => {
-    const instances = await prisma.instance.findMany({ 
+    const instances = await (prisma as any).instance.findMany({ 
         where: { userId: req.user.userId },
         orderBy: { createdAt: 'desc' }
     });
+
+    // Background opportunistic DP enrichment for connected instances missing DP
+    try {
+        const { syncInstanceProfilePic } = require('../services/whatsapp.service');
+        for (const inst of instances) {
+            if (inst.status === 'connected' && !inst.profilePicUrl) {
+                syncInstanceProfilePic(inst.id).catch(() => {});
+            }
+        }
+    } catch (e) {}
+
     res.json({ instances });
 });
 
@@ -220,9 +231,9 @@ router.post('/instances/:id/logout', authenticate, async (req: any, res: any) =>
     } catch (e) {}
     
     // Update DB
-    await prisma.instance.update({
+    await (prisma as any).instance.update({
         where: { id: instanceId },
-        data: { status: 'disconnected', phoneNumber: null }
+        data: { status: 'disconnected', phoneNumber: null, profilePicUrl: null }
     });
     
     res.json({ success: true });
@@ -265,18 +276,25 @@ router.delete('/instances/:id', authenticate, async (req: any, res: any) => {
 
 router.post('/instances/:id/sync', authenticate, async (req: any, res: any) => {
     const instanceId = req.params.id;
-    const instance = await prisma.instance.findUnique({ where: { id: instanceId } });
+    const instance = await (prisma as any).instance.findUnique({ where: { id: instanceId } });
     if (!instance || instance.userId !== req.user.userId) {
         return res.status(404).json({ error: 'Instance not found' });
     }
 
     try {
-        const { getSocket, waitUntilConnected } = require('../services/whatsapp.service');
+        const { getSocket, waitUntilConnected, syncInstanceProfilePic } = require('../services/whatsapp.service');
         await getSocket(instanceId);
         const isOpen = await waitUntilConnected(instanceId);
+        if (isOpen) {
+            await syncInstanceProfilePic(instanceId);
+        }
         
-        const updatedInst = await prisma.instance.findUnique({ where: { id: instanceId } });
-        res.json({ success: true, status: updatedInst?.status || 'disconnected' });
+        const updatedInst = await (prisma as any).instance.findUnique({ where: { id: instanceId } });
+        res.json({ 
+            success: true, 
+            status: updatedInst?.status || 'disconnected',
+            profilePicUrl: updatedInst?.profilePicUrl || null
+        });
     } catch (e: any) {
         res.json({ success: true, status: 'disconnected' });
     }
@@ -3872,6 +3890,439 @@ router.get('/send_group', publicSendGroupHandler);
 router.post('/send_group', publicSendGroupHandler);
 router.get('/send-group', publicSendGroupHandler);
 router.post('/send-group', publicSendGroupHandler);
+
+// ─────────────────────────────────────────────────────────────
+// BROADCAST CAMPAIGNS & BATCH NUMBER MANAGEMENT
+// ─────────────────────────────────────────────────────────────
+
+// Helper function to resolve Spintax: {Hi|Hello|Hey} -> Random choice
+const resolveSpintax = (text: string): string => {
+    if (!text) return '';
+    return text.replace(/\{([^{}]+)\}/g, (_, choices) => {
+        const options = choices.split('|');
+        return options[Math.floor(Math.random() * options.length)] || '';
+    });
+};
+
+// Start a new Broadcast Campaign Batch with Instant Creation & Background Dispatch
+router.post('/broadcast/campaigns/start', authenticate, async (req: any, res: any) => {
+    try {
+        const {
+            name,
+            instances: requestedInstances,
+            poolName,
+            messageType = 'text',
+            messageText,
+            mediaUrl,
+            headerType = 'none',
+            headerText,
+            headerImageUrl,
+            body,
+            footer,
+            buttons,
+            numbers,
+            minDelay = 3,
+            maxDelay = 8,
+            batchSize = 50,
+            batchDelay = 30
+        } = req.body;
+
+        const userId = req.user.userId;
+
+        // Parse and clean numbers
+        let numberList: string[] = [];
+        if (Array.isArray(numbers)) {
+            numberList = numbers.map(n => String(n).trim().replace(/[^0-9]/g, '')).filter(n => n.length >= 7);
+        } else if (typeof numbers === 'string') {
+            numberList = numbers.split(/[\r\n,;]+/).map(n => n.trim().replace(/[^0-9]/g, '')).filter(n => n.length >= 7);
+        }
+        numberList = Array.from(new Set(numberList)); // Deduplicate
+
+        if (numberList.length === 0) {
+            return res.status(400).json({ error: 'Please provide at least one valid recipient phone number.' });
+        }
+
+        // Validate sender instances
+        let senderInstances: string[] = [];
+        if (Array.isArray(requestedInstances) && requestedInstances.length > 0) {
+            senderInstances = requestedInstances;
+        } else if (poolName) {
+            const pool = await (prisma as any).instancePool.findFirst({
+                where: { userId, name: poolName }
+            });
+            if (pool) {
+                try {
+                    senderInstances = JSON.parse(pool.instanceIds || '[]');
+                } catch (e) {}
+            }
+        }
+
+        if (senderInstances.length === 0) {
+            const connected = await prisma.instance.findMany({
+                where: { userId, status: 'connected' },
+                select: { id: true }
+            });
+            senderInstances = connected.map(c => c.id);
+        }
+
+        if (senderInstances.length === 0) {
+            return res.status(400).json({ error: 'No active WhatsApp instances available for sending. Please connect an instance.' });
+        }
+
+        // 1. Instantly create the campaign record in DB
+        const campaign = await (prisma as any).broadcastCampaign.create({
+            data: {
+                userId,
+                name: (name || `Campaign ${new Date().toLocaleDateString()}`).trim(),
+                instanceId: senderInstances.length === 1 ? senderInstances[0] : null,
+                poolName: poolName || null,
+                messageType: messageType || 'text',
+                messageText: messageType === 'interactive' ? (body || '') : (messageText || ''),
+                mediaUrl: messageType === 'media' ? (mediaUrl || null) : messageType === 'interactive' && headerType === 'image' ? (headerImageUrl || null) : null,
+                totalCount: numberList.length,
+                sentCount: 0,
+                failedCount: 0,
+                status: 'running'
+            }
+        });
+
+        // 2. Instantly create all pending item records in DB
+        const itemRecords = numberList.map(num => ({
+            campaignId: campaign.id,
+            number: num,
+            status: 'pending',
+            error: null
+        }));
+
+        const chunkSize = 500;
+        for (let i = 0; i < itemRecords.length; i += chunkSize) {
+            const chunk = itemRecords.slice(i, i + chunkSize);
+            await (prisma as any).broadcastItem.createMany({
+                data: chunk
+            });
+        }
+
+        // 3. Immediately respond to client so frontend can instantly navigate to /broadcast
+        res.json({
+            success: true,
+            message: 'Campaign batch created and queued for background dispatch',
+            campaign
+        });
+
+        // 4. Background Async Worker Loop
+        (async () => {
+            const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+            const safeMin = Math.max(0, Math.min(Number(minDelay) || 3, Number(maxDelay) || 8));
+            const safeMax = Math.max(safeMin, Math.max(Number(minDelay) || 3, Number(maxDelay) || 8));
+            const safeBatchSize = Math.max(1, Number(batchSize) || 50);
+            const safeBatchDelay = Math.max(0, Number(batchDelay) || 30);
+
+            let sentCounter = 0;
+            let failedCounter = 0;
+            let instanceIndex = 0;
+
+            const itemsInDb = await (prisma as any).broadcastItem.findMany({
+                where: { campaignId: campaign.id },
+                orderBy: { createdAt: 'asc' }
+            });
+
+            for (let i = 0; i < itemsInDb.length; i++) {
+                const item = itemsInDb[i];
+                const activeInstId = senderInstances[instanceIndex % senderInstances.length];
+                instanceIndex++;
+
+                let itemStatus = 'sent';
+                let itemError: string | null = null;
+
+                try {
+                    if (messageType === 'interactive') {
+                        const rawBody = resolveSpintax(body || '');
+                        const rawHeaderText = headerType === 'text' ? resolveSpintax(headerText || '') : undefined;
+                        const rawFooter = footer ? resolveSpintax(footer) : undefined;
+
+                        const interactivePayload: InteractivePayload = {
+                            headerType: headerType || 'none',
+                            headerText: rawHeaderText,
+                            headerImageUrl: headerType === 'image' ? headerImageUrl : undefined,
+                            body: rawBody,
+                            footer: rawFooter,
+                            buttons: Array.isArray(buttons) ? buttons : []
+                        };
+                        await sendInteractiveMessage(activeInstId, item.number, interactivePayload);
+                    } else {
+                        let fileObj = undefined;
+                        if (messageType === 'media' && mediaUrl) {
+                            let mimetype = 'application/octet-stream';
+                            const lowerUrl = mediaUrl.toLowerCase();
+                            if (lowerUrl.endsWith('.png')) mimetype = 'image/png';
+                            else if (lowerUrl.endsWith('.jpg') || lowerUrl.endsWith('.jpeg')) mimetype = 'image/jpeg';
+                            else if (lowerUrl.endsWith('.mp4')) mimetype = 'video/mp4';
+                            else if (lowerUrl.endsWith('.pdf')) mimetype = 'application/pdf';
+
+                            fileObj = {
+                                url: mediaUrl,
+                                mimetype,
+                                fileName: mediaUrl.split('/').pop() || 'attachment'
+                            };
+                        }
+                        const rawText = resolveSpintax(messageText || '');
+                        const safeMsg = applyInvisibleAntiHash(rawText);
+                        await sendMessage(activeInstId, item.number, safeMsg, fileObj);
+                    }
+                    sentCounter++;
+                } catch (err: any) {
+                    console.error(`[Broadcast ${campaign.id}] Error sending to ${item.number}:`, err?.message || err);
+                    itemStatus = 'failed';
+                    itemError = err?.message || 'Dispatch failed';
+                    failedCounter++;
+                }
+
+                // Update individual item status in database
+                await (prisma as any).broadcastItem.update({
+                    where: { id: item.id },
+                    data: {
+                        status: itemStatus,
+                        error: itemError,
+                        sentAt: itemStatus === 'sent' ? new Date() : null
+                    }
+                });
+
+                // Update campaign counts periodically
+                await (prisma as any).broadcastCampaign.update({
+                    where: { id: campaign.id },
+                    data: {
+                        sentCount: sentCounter,
+                        failedCount: failedCounter
+                    }
+                });
+
+                // Anti-ban delay between messages
+                if (i < itemsInDb.length - 1) {
+                    if ((i + 1) % safeBatchSize === 0 && safeBatchDelay > 0) {
+                        await delay(safeBatchDelay * 1000);
+                    } else if (safeMax > 0) {
+                        const randomInterval = Math.floor(Math.random() * (safeMax - safeMin + 1) + safeMin);
+                        await delay(randomInterval * 1000);
+                    }
+                }
+            }
+
+            // Mark campaign as completed
+            await (prisma as any).broadcastCampaign.update({
+                where: { id: campaign.id },
+                data: {
+                    status: 'completed',
+                    sentCount: sentCounter,
+                    failedCount: failedCounter
+                }
+            });
+            console.log(`[Broadcast ${campaign.id}] Finished dispatching ${itemsInDb.length} messages (${sentCounter} sent, ${failedCounter} failed).`);
+        })().catch(err => {
+            console.error(`[Broadcast ${campaign.id}] Fatal worker error:`, err);
+        });
+
+    } catch (e: any) {
+        console.error('Error starting broadcast campaign:', e);
+        res.status(500).json({ error: e.message || 'Failed to start broadcast campaign' });
+    }
+});
+
+// Save/Create a Broadcast Campaign Batch with Results
+router.post('/broadcast/campaigns/save-results', authenticate, async (req: any, res: any) => {
+    try {
+        const { 
+            name, 
+            instanceId, 
+            poolName, 
+            messageType, 
+            messageText, 
+            mediaUrl, 
+            totalCount, 
+            sentCount, 
+            failedCount, 
+            status, 
+            items 
+        } = req.body;
+
+        const campaign = await (prisma as any).broadcastCampaign.create({
+            data: {
+                userId: req.user.userId,
+                name: (name || 'Broadcast Campaign').trim(),
+                instanceId: instanceId || null,
+                poolName: poolName || null,
+                messageType: messageType || 'text',
+                messageText: messageText || '',
+                mediaUrl: mediaUrl || null,
+                totalCount: Number(totalCount) || (Array.isArray(items) ? items.length : 0),
+                sentCount: Number(sentCount) || 0,
+                failedCount: Number(failedCount) || 0,
+                status: status || 'completed'
+            }
+        });
+
+        if (Array.isArray(items) && items.length > 0) {
+            const itemRecords = items.map((item: any) => ({
+                campaignId: campaign.id,
+                number: String(item.number || item.phone || item.to || '').trim(),
+                status: item.status || 'sent',
+                error: item.error || null,
+                sentAt: item.status === 'sent' ? new Date() : null
+            }));
+
+            // Bulk create items in chunks of 500 for safety
+            const chunkSize = 500;
+            for (let i = 0; i < itemRecords.length; i += chunkSize) {
+                const chunk = itemRecords.slice(i, i + chunkSize);
+                await (prisma as any).broadcastItem.createMany({
+                    data: chunk
+                });
+            }
+        }
+
+        res.json({
+            success: true,
+            message: 'Campaign batch saved successfully',
+            campaign
+        });
+    } catch (e: any) {
+        console.error('Error saving broadcast campaign:', e);
+        res.status(500).json({ error: e.message || 'Failed to save broadcast campaign batch' });
+    }
+});
+
+// List all broadcast campaign batches
+router.get('/broadcast/campaigns', authenticate, async (req: any, res: any) => {
+    try {
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
+        const search = (req.query.search || '').trim();
+        const skip = (page - 1) * limit;
+
+        const where: any = { userId: req.user.userId };
+        if (search) {
+            where.name = { contains: search };
+        }
+
+        const [campaigns, totalCount] = await Promise.all([
+            (prisma as any).broadcastCampaign.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit
+            }),
+            (prisma as any).broadcastCampaign.count({ where })
+        ]);
+
+        res.json({
+            campaigns,
+            totalCount,
+            page,
+            limit,
+            totalPages: Math.ceil(totalCount / limit) || 1
+        });
+    } catch (e: any) {
+        console.error('Error fetching broadcast campaigns:', e);
+        res.status(500).json({ error: 'Failed to fetch campaign batches' });
+    }
+});
+
+// Get single campaign batch details with all related numbers
+router.get('/broadcast/campaigns/:id', authenticate, async (req: any, res: any) => {
+    try {
+        const { id } = req.params;
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
+        const status = req.query.status || 'all'; // 'all', 'sent', 'failed'
+        const search = (req.query.search || '').trim();
+        const skip = (page - 1) * limit;
+
+        const campaign = await (prisma as any).broadcastCampaign.findFirst({
+            where: { id, userId: req.user.userId }
+        });
+
+        if (!campaign) {
+            return res.status(404).json({ error: 'Campaign batch not found' });
+        }
+
+        const itemWhere: any = { campaignId: id };
+        if (status === 'sent') itemWhere.status = 'sent';
+        if (status === 'failed') itemWhere.status = 'failed';
+        if (status === 'pending') itemWhere.status = 'pending';
+        if (search) itemWhere.number = { contains: search };
+
+        const [items, totalItems] = await Promise.all([
+            (prisma as any).broadcastItem.findMany({
+                where: itemWhere,
+                orderBy: { createdAt: 'asc' },
+                skip,
+                take: limit
+            }),
+            (prisma as any).broadcastItem.count({ where: itemWhere })
+        ]);
+
+        res.json({
+            campaign,
+            items,
+            totalItems,
+            page,
+            limit,
+            totalPages: Math.ceil(totalItems / limit) || 1
+        });
+    } catch (e: any) {
+        console.error('Error fetching campaign batch details:', e);
+        res.status(500).json({ error: 'Failed to fetch campaign details' });
+    }
+});
+
+// Export all numbers of a campaign batch
+router.get('/broadcast/campaigns/:id/export', authenticate, async (req: any, res: any) => {
+    try {
+        const { id } = req.params;
+        const status = req.query.status || 'all'; // 'all', 'sent', 'pending', 'failed'
+
+        const campaign = await (prisma as any).broadcastCampaign.findFirst({
+            where: { id, userId: req.user.userId }
+        });
+
+        if (!campaign) {
+            return res.status(404).json({ error: 'Campaign batch not found' });
+        }
+
+        const itemWhere: any = { campaignId: id };
+        if (status === 'sent') itemWhere.status = 'sent';
+        if (status === 'failed') itemWhere.status = 'failed';
+        if (status === 'pending') itemWhere.status = 'pending';
+
+        const items = await (prisma as any).broadcastItem.findMany({
+            where: itemWhere,
+            orderBy: { createdAt: 'asc' }
+        });
+
+        res.json({ campaign, items });
+    } catch (e: any) {
+        res.status(500).json({ error: 'Failed to export campaign numbers' });
+    }
+});
+
+// Delete a campaign batch
+router.delete('/broadcast/campaigns/:id', authenticate, async (req: any, res: any) => {
+    try {
+        const { id } = req.params;
+        const campaign = await (prisma as any).broadcastCampaign.findFirst({
+            where: { id, userId: req.user.userId }
+        });
+
+        if (!campaign) {
+            return res.status(404).json({ error: 'Campaign batch not found' });
+        }
+
+        await (prisma as any).broadcastItem.deleteMany({ where: { campaignId: id } });
+        await (prisma as any).broadcastCampaign.delete({ where: { id } });
+        res.json({ success: true, message: 'Campaign batch deleted successfully' });
+    } catch (e: any) {
+        res.status(500).json({ error: 'Failed to delete campaign batch' });
+    }
+});
 
 export default router;
 

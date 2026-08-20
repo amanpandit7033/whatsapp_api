@@ -172,14 +172,26 @@ export const createInstance = async (instanceId: string, retryCount = 0) => {
             lastPolled.delete(instanceId);
             const phoneNumber = sock.user?.id?.split(':')[0] || null;
             console.log(`[WA] ✅ [${instanceId}] Successfully Connected! Phone: +${phoneNumber || 'Unknown'}`);
+
+            let profilePicUrl: string | null = null;
             try {
-                await prisma.instance.update({
+                const jid = sock.user?.id ? (sock.user.id.split(':')[0] + '@s.whatsapp.net') : null;
+                if (jid) {
+                    profilePicUrl = await sock.profilePictureUrl(jid, 'image');
+                    console.log(`[WA] 🖼️ [${instanceId}] Profile Picture loaded: ${profilePicUrl}`);
+                }
+            } catch (dpErr: any) {
+                console.log(`[WA] ℹ️ [${instanceId}] Profile picture not set or privacy restricted.`);
+            }
+
+            try {
+                await (prisma as any).instance.update({
                     where: { id: instanceId },
-                    data: { status: 'connected', phoneNumber }
+                    data: { status: 'connected', phoneNumber, profilePicUrl }
                 });
             } catch (e) { }
             socketIo.emit(`status-${instanceId}`, 'connected');
-            dispatchWebhook(instanceId, 'connection.update', { status: 'connected', phoneNumber });
+            dispatchWebhook(instanceId, 'connection.update', { status: 'connected', phoneNumber, profilePicUrl });
         }
     });
 
@@ -770,6 +782,37 @@ export const fetchGroupMetadata = async (instanceId: string, groupJid: string) =
         participantsCount: participants.length,
         participants
     };
+};
+
+export const syncInstanceProfilePic = async (instanceId: string): Promise<string | null> => {
+    try {
+        const sock = await getSocket(instanceId);
+        const isOpen = await waitUntilConnected(instanceId);
+        if (!isOpen || !sock) return null;
+
+        const inst = await (prisma as any).instance.findUnique({ where: { id: instanceId } });
+        const rawPhone = sock.user?.id ? sock.user.id.split(':')[0].replace(/\D/g, '') : (inst?.phoneNumber || '').replace(/\D/g, '');
+        if (!rawPhone) return null;
+
+        const jid = `${rawPhone}@s.whatsapp.net`;
+        let profilePicUrl: string | null = null;
+        try {
+            profilePicUrl = await sock.profilePictureUrl(jid, 'image');
+            console.log(`[WA] 🖼️ [${instanceId}] Profile Picture loaded for +${rawPhone}:`, profilePicUrl);
+        } catch (e: any) {
+            console.log(`[WA] ℹ️ [${instanceId}] No DP found or restricted for +${rawPhone}:`, e?.message || e);
+        }
+
+        if (profilePicUrl) {
+            await (prisma as any).instance.update({
+                where: { id: instanceId },
+                data: { profilePicUrl }
+            });
+        }
+        return profilePicUrl;
+    } catch (e) {
+        return null;
+    }
 };
 
 
