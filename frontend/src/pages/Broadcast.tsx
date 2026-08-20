@@ -19,7 +19,8 @@ import {
   GlassRefreshIcon,
   GlassCancelIcon,
   GlassGroupIcon,
-  GlassEditIcon
+  GlassEditIcon,
+  GlassTagIcon
 } from '../components/GlassIcons';
 
 // ─── Types ───────────────────────────────────
@@ -140,8 +141,12 @@ export const Broadcast = () => {
   const [body, setBody] = useState('');
   const [footer, setFooter] = useState('');
   const [buttons, setButtons] = useState<IButton[]>([{ type: 'quick_reply', label: '', id: 'btn_1' }]);
+  const [pools, setPools] = useState<any[]>([]);
 
-  useEffect(() => { fetchInstances(); }, []);
+  useEffect(() => { 
+    fetchInstances(); 
+    fetchPools();
+  }, []);
 
   const fetchInstances = async () => {
     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/instances`, {
@@ -150,6 +155,23 @@ export const Broadcast = () => {
     if (res.status === 401) { navigate('/login'); return; }
     const data = await res.json();
     setInstances((data.instances || []).filter((i: any) => i.status === 'connected'));
+  };
+
+  const fetchPools = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/pools`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPools(data.pools || []);
+      }
+    } catch (e) {}
+  };
+
+  const selectPool = (pool: any) => {
+    const ids = pool.instanceIds || [];
+    setSelectedInstances(ids.filter((id: string) => instances.some(inst => inst.id === id)));
   };
 
   const toggleInstance = (id: string) => {
@@ -288,12 +310,79 @@ export const Broadcast = () => {
 
           {/* Step 1: Select Instances */}
           <div className="card">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-              <div style={{ background: '#EFF6FF', width: '32px', height: '32px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <GlassInstanceIcon size={18} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ background: '#EFF6FF', width: '36px', height: '36px', borderRadius: '10px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <GlassInstanceIcon size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>Multi-SIM Sending Pool</h3>
+                  <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748B' }}>Choose which connected SIMs will share the sending load.</p>
+                </div>
               </div>
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0F172A' }}>Select Connected Numbers</h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {instances.length > 1 && (
+                  <>
+                    <button 
+                      type="button"
+                      onClick={() => setSelectedInstances(instances.map(i => i.id))}
+                      style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', border: '1px solid #BFDBFE', background: '#EFF6FF', color: '#1D4ED8', cursor: 'pointer' }}
+                    >
+                      Select All ({instances.length})
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setSelectedInstances([])}
+                      style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', cursor: 'pointer' }}
+                    >
+                      Clear
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
+
+            {/* Quick Pool Selector Pills */}
+            {pools.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '14px', padding: '8px 12px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  SIM Pools:
+                </span>
+                {pools.map(pool => (
+                  <button
+                    key={pool.id}
+                    type="button"
+                    onClick={() => selectPool(pool)}
+                    style={{
+                      fontSize: '12px', fontWeight: 700, padding: '5px 12px', borderRadius: '8px', cursor: 'pointer',
+                      border: '1px solid #DBEAFE', background: '#EFF6FF', color: '#1D4ED8', transition: 'all 0.15s ease',
+                      display: 'inline-flex', alignItems: 'center', gap: '6px',
+                      boxShadow: '0 1px 3px rgba(37,99,235,0.08)'
+                    }}
+                    title={`Select ${pool.members?.length || 0} numbers in ${pool.name}`}
+                  >
+                    <GlassTagIcon size={16} />
+                    <span>{pool.name}</span>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: pool.connectedCount > 0 ? '#059669' : '#DC2626', background: '#FFFFFF', padding: '1px 6px', borderRadius: '9999px', border: '1px solid #DBEAFE' }}>
+                      {pool.connectedCount}/{pool.totalCount} online
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {selectedInstances.length > 1 && (
+              <div style={{ background: 'linear-gradient(135deg, #EFF6FF 0%, #F0FDF4 100%)', border: '1px solid #BFDBFE', borderRadius: '12px', padding: '10px 14px', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#1E40AF', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  ⚡ Multi-SIM Rotation Active: <strong>{selectedInstances.length} SIMs</strong>
+                </span>
+                {numberList.length > 0 && (
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#15803D', background: '#DCFCE7', padding: '3px 8px', borderRadius: '6px' }}>
+                    ~{Math.ceil(numberList.length / selectedInstances.length)} msgs / SIM
+                  </span>
+                )}
+              </div>
+            )}
 
             {instances.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px', background: '#F8FAFC', borderRadius: '14px', border: '1px dashed #E2E8F0' }}>
@@ -305,7 +394,7 @@ export const Broadcast = () => {
                   const sel = selectedInstances.includes(inst.id);
                   return (
                     <label key={inst.id} onClick={() => toggleInstance(inst.id)} style={{
-                      display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px',
+                      display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px',
                       borderRadius: '14px', cursor: 'pointer',
                       border: sel ? '2px solid #2563EB' : '1px solid #E2E8F0',
                       background: sel ? '#EFF6FF' : '#F8FAFC', transition: 'all 0.2s ease',
@@ -315,16 +404,16 @@ export const Broadcast = () => {
                         {sel && <CheckIcon size={12} color="white" />}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#D1FAE5', border: '1px solid #A7F3D0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <GlassInstanceIcon size={20} />
+                        <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: '#D1FAE5', border: '1px solid #A7F3D0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <GlassInstanceIcon size={18} />
                         </div>
                         <div style={{ minWidth: 0 }}>
-                          <p style={{ fontWeight: 800, fontSize: '14px', color: '#0F172A', margin: 0, fontFamily: 'var(--font-mono)' }}>{inst.id}</p>
-                          {inst.phoneNumber && <p style={{ fontSize: '12px', color: '#64748B', margin: '2px 0 0', fontWeight: 600 }}>+{inst.phoneNumber}</p>}
+                          <p style={{ fontWeight: 800, fontSize: '13.5px', color: '#0F172A', margin: 0, fontFamily: 'var(--font-mono)' }}>{inst.id}</p>
+                          {inst.phoneNumber && <p style={{ fontSize: '12px', color: '#64748B', margin: '1px 0 0', fontWeight: 600 }}>+{inst.phoneNumber}</p>}
                         </div>
                       </div>
-                      <span style={{ fontSize: '11px', fontWeight: 800, color: '#059669', background: '#D1FAE5', padding: '3px 10px', borderRadius: '9999px', marginLeft: 'auto', flexShrink: 0 }}>
-                        Active
+                      <span style={{ fontSize: '11px', fontWeight: 800, color: sel ? '#1D4ED8' : '#059669', background: sel ? '#DBEAFE' : '#D1FAE5', padding: '3px 10px', borderRadius: '9999px', marginLeft: 'auto', flexShrink: 0 }}>
+                        {sel ? 'In Pool' : 'Active'}
                       </span>
                     </label>
                   );
@@ -350,7 +439,7 @@ export const Broadcast = () => {
             </div>
             <textarea 
               rows={6} 
-              placeholder={"911234567890\n919876543210\n447911123456"} 
+              placeholder={"911234567890\n91XXXXXXXXXX\n447911123456"} 
               value={numbers} 
               onChange={e => setNumbers(e.target.value)} 
               style={{ ...taStyle, fontFamily: 'var(--font-mono)', fontSize: '13px' }} 
@@ -502,7 +591,7 @@ export const Broadcast = () => {
                           {btn.type === 'cta_call' && (
                             <div style={{ gridColumn: '1/-1' }}>
                               <label style={labelStyle}>Phone Number</label>
-                              <input type="text" placeholder="919876543210" value={btn.phone || ''} onChange={e => updateButton(i, { phone: e.target.value })} style={{ ...inputStyle, padding: '8px 12px' }} />
+                              <input type="text" placeholder="91XXXXXXXXXX" value={btn.phone || ''} onChange={e => updateButton(i, { phone: e.target.value })} style={{ ...inputStyle, padding: '8px 12px' }} />
                             </div>
                           )}
                           {btn.type === 'quick_reply' && (

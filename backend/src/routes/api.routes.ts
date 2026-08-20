@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../server';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { createInstance, sendMessage, sendInteractiveMessage, deleteInstanceSession, InteractivePayload } from '../services/whatsapp.service';
+import { createInstance, sendMessage, sendInteractiveMessage, deleteInstanceSession, InteractivePayload, applyInvisibleAntiHash } from '../services/whatsapp.service';
 import fs from 'fs';
 import multer from 'multer';
 import * as XLSX from 'xlsx';
@@ -521,17 +521,213 @@ export const backfillDailyStats = async () => {
     }
 };
 
+// ─────────────────────────────────────────────────────────────
+// MULTI-SIM LOAD BALANCER & FAILOVER POOL RESOLVER
+// ─────────────────────────────────────────────────────────────
+const roundRobinIndices = new Map<string, number>();
+
+/**
+/**
+ * Resolves target instances for an API or broadcast user.
+ * Supports:
+ * - Specific pool name / slug (e.g. "marketing", "otp-gateway", "support")
+ * - Single instance_id
+ * - Auto-Pool (selects from all connected instances of the user)
+ */
+async function resolveInstancesForUser(
+    user: any, 
+    requestedInstanceId?: string, 
+    requestedPoolName?: string
+): Promise<{ primary: any; pool: any[]; poolName?: string }> {
+    let candidateIds: string[] = [];
+    let matchedPoolName: string | undefined = undefined;
+
+    if (requestedPoolName) {
+        const rawPool = String(requestedPoolName).trim();
+        const slug = rawPool.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        try {
+            const foundPool = await (prisma as any).instancePool.findFirst({
+                where: {
+                    userId: user.id,
+                    OR: [
+                        { name: rawPool },
+                        { slug: slug },
+                        { slug: rawPool.toLowerCase() }
+                    ]
+                }
+            });
+            if (foundPool) {
+                matchedPoolName = foundPool.name;
+                const parsed = JSON.parse(foundPool.instanceIds || '[]');
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    candidateIds = parsed;
+                }
+            } else {
+                throw new Error(`Instance pool "${rawPool}" not found for your account.`);
+            }
+        } catch (dbErr: any) {
+            if (dbErr.message?.includes('Instance pool')) throw dbErr;
+        }
+    }
+
+    if (candidateIds.length === 0 && requestedInstanceId) {
+        candidateIds = String(requestedInstanceId).split(',').map(s => s.trim()).filter(Boolean);
+    }
+
+    let connectedInstances: any[] = [];
+    if (candidateIds.length > 0) {
+        connectedInstances = await prisma.instance.findMany({
+            where: { id: { in: candidateIds }, userId: user.id, status: 'connected' }
+        });
+        if (connectedInstances.length === 0) {
+            const anyInst = await prisma.instance.findFirst({ where: { id: { in: candidateIds }, userId: user.id } });
+            if (!anyInst) {
+                throw new Error(matchedPoolName ? `All SIMs in pool "${matchedPoolName}" are disconnected` : 'Specified instance(s) not found or do not belong to your account');
+            }
+            throw new Error(matchedPoolName ? `All SIMs in pool "${matchedPoolName}" are currently disconnected` : 'Specified instance(s) are currently disconnected');
+        }
+    } else {
+        // Default Auto-Pool: load-balance across all active connected instances
+        connectedInstances = await prisma.instance.findMany({
+            where: { userId: user.id, status: 'connected' }
+        });
+        if (connectedInstances.length === 0) {
+            throw new Error('No active connected WhatsApp instances found. Please connect a number first.');
+        }
+    }
+
+    // Round-Robin rotation index per user / candidate group
+    const poolKey = candidateIds.length > 0 ? `${user.id}:${candidateIds.sort().join(':')}` : `${user.id}:all`;
+    const currentIndex = roundRobinIndices.get(poolKey) || 0;
+    const selectedIdx = currentIndex % connectedInstances.length;
+    roundRobinIndices.set(poolKey, selectedIdx + 1);
+
+    const primary = connectedInstances[selectedIdx];
+    const pool = [primary, ...connectedInstances.filter(i => i.id !== primary.id)];
+
+    return { primary, pool, poolName: matchedPoolName };
+}
+
+/**
+ * Executes a send action with instant failover across the instance pool.
+ */
+async function executeWithFailover(
+    pool: any[], 
+    sendFn: (instanceId: string) => Promise<any>
+): Promise<{ result: any; usedInstanceId: string }> {
+    let lastErr: any = null;
+    for (const inst of pool) {
+        try {
+            const result = await sendFn(inst.id);
+            return { result, usedInstanceId: inst.id };
+        } catch (err: any) {
+            lastErr = err;
+            if (err?.message === 'Non-Whatsapp') {
+                throw err;
+            }
+            console.warn(`[MultiSIM Failover] Instance ${inst.id} failed (${err?.message || err}), trying next instance in pool...`);
+        }
+    }
+    throw lastErr || new Error('All instances in pool failed to send message');
+}
+
+// ─────────────────────────────────────────────────────────────
+// INSTANCE POOL MANAGEMENT REST APIS
+// ─────────────────────────────────────────────────────────────
+router.get('/pools', authenticate, async (req: any, res: any) => {
+    try {
+        const userId = req.user.userId;
+        const pools = await (prisma as any).instancePool.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' }
+        });
+        const userInstances = await prisma.instance.findMany({
+            where: { userId },
+            select: { id: true, phoneNumber: true, status: true }
+        });
+        const instMap = new Map(userInstances.map(i => [i.id, i]));
+
+        const formatted = pools.map((p: any) => {
+            let ids: string[] = [];
+            try { ids = JSON.parse(p.instanceIds || '[]'); } catch { ids = []; }
+            const members = ids.map(id => instMap.get(id)).filter(Boolean);
+            const connectedCount = members.filter(m => m?.status === 'connected').length;
+            return {
+                id: p.id,
+                name: p.name,
+                slug: p.slug,
+                instanceIds: ids,
+                totalCount: ids.length,
+                connectedCount,
+                members,
+                createdAt: p.createdAt
+            };
+        });
+        res.json({ success: true, pools: formatted });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+router.post('/pools', authenticate, async (req: any, res: any) => {
+    try {
+        const userId = req.user.userId;
+        const { id, name, instanceIds } = req.body;
+        if (!name || typeof name !== 'string' || !name.trim()) {
+            return res.status(400).json({ success: false, error: 'Pool name is required' });
+        }
+        if (!Array.isArray(instanceIds) || instanceIds.length === 0) {
+            return res.status(400).json({ success: false, error: 'Select at least 1 instance for this pool' });
+        }
+
+        const cleanName = name.trim();
+        const slug = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+        const jsonIds = JSON.stringify(instanceIds.map(String).map(s => s.trim()));
+
+        let pool: any;
+        if (id) {
+            pool = await (prisma as any).instancePool.update({
+                where: { id, userId },
+                data: { name: cleanName, slug, instanceIds: jsonIds }
+            });
+        } else {
+            pool = await (prisma as any).instancePool.upsert({
+                where: { userId_slug: { userId, slug } },
+                create: { userId, name: cleanName, slug, instanceIds: jsonIds },
+                update: { name: cleanName, instanceIds: jsonIds }
+            });
+        }
+
+        res.json({ success: true, pool });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
+router.delete('/pools/:id', authenticate, async (req: any, res: any) => {
+    try {
+        const userId = req.user.userId;
+        await (prisma as any).instancePool.delete({
+            where: { id: req.params.id, userId }
+        });
+        res.json({ success: true, message: 'Pool deleted successfully' });
+    } catch (e: any) {
+        res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 // --- API TO SEND MESSAGE ---
 const handleSendMessage = async (req: any, res: any) => {
     const instance_id = req.body?.instance_id || req.query?.instance_id || req.body?.instanceId || req.query?.instanceId || req.body?.instance || req.query?.instance;
+    const pool_name = req.body?.pool || req.query?.pool || req.body?.pool_name || req.query?.pool_name || req.body?.poolName || req.query?.poolName;
     const api_key = req.body?.api_key || req.query?.api_key || req.body?.apiKey || req.query?.apiKey || req.body?.access_token || req.query?.access_token || req.headers?.['x-api-key'] || (req.headers?.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : undefined);
     let number = req.body?.number || req.query?.number || req.body?.phone || req.query?.phone || req.body?.to || req.query?.to;
     const message = req.body?.message !== undefined ? req.body.message : (req.query?.message !== undefined ? req.query.message : (req.body?.body || req.query?.body));
     const media_url = req.body?.media_url || req.query?.media_url || req.body?.mediaUrl || req.query?.mediaUrl || req.body?.url || req.query?.url;
     const filename = req.body?.filename || req.query?.filename || req.body?.fileName || req.query?.fileName;
 
-    if (!instance_id || !api_key || !number) {
-        return res.status(400).json({ error: 'Missing required fields: instance_id, api_key (or access_token), number' });
+    if (!api_key || !number) {
+        return res.status(400).json({ error: 'Missing required fields: api_key (or access_token), number' });
     }
     number = String(number).trim();
     if (number.includes(',')) {
@@ -546,11 +742,8 @@ const handleSendMessage = async (req: any, res: any) => {
             return res.status(403).json({ error: 'Account has expired. Please contact admin.' });
         }
 
-        const inst = await prisma.instance.findFirst({ where: { id: instance_id, userId: user.id } });
-        if (!inst) return res.status(404).json({ error: 'Instance not found or unauthorized' });
-        if (inst.status !== 'connected') {
-            return res.status(400).json({ error: 'Instance is not connected' });
-        }
+        // Resolve active multi-SIM pool with load balancing
+        const { primary, pool, poolName } = await resolveInstancesForUser(user, instance_id, pool_name);
 
         if (!(await checkMessageLimit(user.id))) {
             return res.status(403).json({ error: 'Monthly message limit exceeded' });
@@ -576,8 +769,8 @@ const handleSendMessage = async (req: any, res: any) => {
         try {
             logRecord = await prisma.messageLog.create({
                 data: {
-                    instanceId: instance_id,
-                    userId: inst.userId,
+                    instanceId: primary.id,
+                    userId: user.id,
                     toNumber: number,
                     message: media_url ? JSON.stringify({
                         type: 'media',
@@ -590,11 +783,16 @@ const handleSendMessage = async (req: any, res: any) => {
             });
         } catch (dbErr) { console.error('Log error:', dbErr); }
 
-        // Background processing
+        // Background processing with failover
         (async () => {
             let finalStatus = 'sent';
+            let activeInstId = primary.id;
             try {
-                await sendMessage(instance_id, number, message || '', fileObj);
+                const safeMessage = applyInvisibleAntiHash(message || '');
+                const { usedInstanceId } = await executeWithFailover(pool, (instId) => 
+                    sendMessage(instId, number, safeMessage, fileObj)
+                );
+                activeInstId = usedInstanceId;
             } catch (err: any) {
                 console.error('SEND MESSAGE ERROR:', err);
                 finalStatus = err?.message === 'Non-Whatsapp' ? 'Non-Whatsapp' : 'failed';
@@ -604,14 +802,20 @@ const handleSendMessage = async (req: any, res: any) => {
                 try {
                     await prisma.messageLog.update({
                         where: { id: logRecord.id },
-                        data: { status: finalStatus }
+                        data: { status: finalStatus, instanceId: activeInstId }
                     });
                 } catch (updateErr) { console.error('Update log error:', updateErr); }
             }
-            await recordDailyUsage(inst.userId, finalStatus);
+            await recordDailyUsage(user.id, finalStatus);
         })();
 
-        res.json({ success: true, message: 'Message queued', message_id: logRecord?.id });
+        res.json({ 
+            success: true, 
+            message: 'Message queued', 
+            message_id: logRecord?.id, 
+            assigned_instance: primary.id,
+            pool_size: pool.length 
+        });
     } catch (e: any) {
         res.status(500).json({ error: e.message });
     }
@@ -652,7 +856,7 @@ const handleSendInteractiveMessage = async (req: any, res: any) => {
                 buttons.push({ type: 'cta_url', label: urlLabel, url });
             }
 
-            // Call button (e.g. call_btn=Call+Us|+919876543210 or call_phone=+919876543210)
+            // Call button (e.g. call_btn=Call+Us|+91XXXXXXXXXX or call_phone=+91XXXXXXXXXX)
             const callBtn = req.query?.call_btn || req.body?.call_btn;
             const callPhone = req.query?.call_phone || req.body?.call_phone;
             const callLabel = req.query?.call_label || req.body?.call_label || 'Call Support';
@@ -1223,6 +1427,49 @@ router.put('/admin/users/:id', adminAuthenticate, async (req: any, res: any) => 
         res.json({ message: 'User updated successfully' });
     } catch (e: any) {
         res.status(400).json({ error: 'Failed to update user. Username may already exist.' });
+    }
+});
+
+// DELETE /admin/users/:id (Super Admin Delete User)
+router.delete('/admin/users/:id', adminAuthenticate, async (req: any, res: any) => {
+    try {
+        const { id } = req.params;
+        if (id === req.user.userId) {
+            return res.status(400).json({ error: 'Cannot delete your own active administrator account' });
+        }
+
+        const targetUser = await prisma.user.findUnique({
+            where: { id },
+            include: { instances: true }
+        });
+
+        if (!targetUser) {
+            return res.status(404).json({ error: 'User account not found' });
+        }
+
+        // Clean up socket sessions for all instances belonging to this user
+        for (const inst of targetUser.instances) {
+            try {
+                await deleteInstanceSession(inst.id);
+            } catch (err) {
+                console.error(`Failed to delete session for instance ${inst.id}:`, err);
+            }
+        }
+
+        // Delete instances belonging to user first (to satisfy FK constraints)
+        await prisma.instance.deleteMany({
+            where: { userId: id }
+        });
+
+        // Delete user
+        await prisma.user.delete({
+            where: { id }
+        });
+
+        res.json({ success: true, message: `User @${targetUser.username} deleted successfully` });
+    } catch (e: any) {
+        console.error('Error deleting user:', e);
+        res.status(500).json({ error: e.message || 'Failed to delete user account' });
     }
 });
 
@@ -1916,24 +2163,35 @@ router.put('/reseller/clients/:id', resellerAuthenticate, async (req: any, res: 
     }
 });
 
-// Delete Client (Super Admin Only - Resellers cannot delete users)
+// Delete Client (Reseller or Super Admin)
 router.delete('/reseller/clients/:id', resellerAuthenticate, async (req: any, res: any) => {
     try {
-        if (!req.user.isAdmin) {
-            return res.status(403).json({ error: 'Permission denied. Resellers cannot delete client accounts. Please contact Super Admin.' });
-        }
-
         const { id } = req.params;
-        const targetClient = await prisma.user.findUnique({
-            where: { id }
+        const targetClient = await prisma.user.findFirst({
+            where: {
+                id,
+                ...(req.user.isAdmin ? {} : { resellerId: req.user.userId })
+            },
+            include: { instances: true }
         });
 
         if (!targetClient) {
-            return res.status(404).json({ error: 'Client not found' });
+            return res.status(404).json({ error: 'Client account not found or unauthorized' });
         }
 
+        // Clean up socket sessions for all instances belonging to this client
+        for (const inst of targetClient.instances) {
+            try {
+                await deleteInstanceSession(inst.id);
+            } catch (err) {
+                console.error(`Failed to delete session for instance ${inst.id}:`, err);
+            }
+        }
+
+        // Delete instances belonging to user first (to satisfy FK constraints)
+        await prisma.instance.deleteMany({ where: { userId: id } });
         await prisma.user.delete({ where: { id } });
-        res.json({ message: 'Client deleted successfully' });
+        res.json({ success: true, message: 'Client deleted successfully' });
     } catch (e: any) {
         res.status(500).json({ error: e.message || 'Failed to delete client' });
     }
@@ -2431,18 +2689,19 @@ router.delete('/client/instance/delete', clientAuthenticate, async (req: any, re
 // ─────────────────────────────────────────────────────────────
 // PUBLIC SEND API  (TechRush-style, no JWT – uses access_token)
 // GET  /api/send?number=91XXXXXXXXXX&type=text&message=Hello&instance_id=XXXX&access_token=XXXX
+// ─────────────────────────────────────────────────────────────
+// PUBLIC SEND API  (TechRush-style, no JWT – uses access_token)
+// GET  /api/send?number=91XXXXXXXXXX&type=text&message=Hello&instance_id=XXXX&access_token=XXXX
 // POST /api/send  (same params in JSON body or query)
 // ─────────────────────────────────────────────────────────────
 const publicSendHandler = async (req: any, res: any) => {
-    console.log('[API SEND] Incoming Request:', { method: req.method, url: req.originalUrl, query: req.query, body: req.body, headers: req.headers });
     // Accept params from query string (GET) or body (POST)
     const p = { ...req.query, ...req.body };
-    const { type = 'text', message, media_url, instance_id, access_token } = p;
+    const { type = 'text', message, media_url, instance_id, pool: pool_param, pool_name, access_token } = p;
     let number = p.number;
 
     if (!access_token) return res.status(401).json({ success: false, error: 'access_token is required' });
     if (!number)       return res.status(400).json({ success: false, error: 'number is required' });
-    if (!instance_id)  return res.status(400).json({ success: false, error: 'instance_id is required' });
 
     number = String(number);
 
@@ -2455,10 +2714,8 @@ const publicSendHandler = async (req: any, res: any) => {
         return res.status(403).json({ success: false, error: 'Account has expired' });
     }
 
-    // Verify instance ownership
-    const inst = await prisma.instance.findFirst({ where: { id: instance_id, userId: user.id } });
-    if (!inst) return res.status(404).json({ success: false, error: 'instance_id not found or does not belong to your account' });
-    if (inst.status !== 'connected') return res.status(400).json({ success: false, error: 'Instance is not connected' });
+    // Resolve multi-SIM instance pool
+    const { primary, pool, poolName } = await resolveInstancesForUser(user, instance_id, pool_param || pool_name);
 
     // Check message limit
     if (!(await checkMessageLimit(user.id))) {
@@ -2488,7 +2745,7 @@ const publicSendHandler = async (req: any, res: any) => {
     let logRecord: any = null;
     try {
         logRecord = await prisma.messageLog.create({
-            data: { instanceId: instance_id, userId: user.id, toNumber: number, message: messageVal, status: 'pending' }
+            data: { instanceId: primary.id, userId: user.id, toNumber: number, message: messageVal, status: 'pending' }
         });
         const currentMonth = new Date().toISOString().slice(0, 7);
         await prisma.user.update({
@@ -2499,22 +2756,37 @@ const publicSendHandler = async (req: any, res: any) => {
 
     try {
         let sendResult: any = null;
+        let activeInstId = primary.id;
+
         if (type === 'text' || !media_url) {
             if (!message) return res.status(400).json({ success: false, error: 'message is required for type=text' });
-            sendResult = await sendMessage(instance_id, number, message);
+            const safeMessage = applyInvisibleAntiHash(message);
+            const { result, usedInstanceId } = await executeWithFailover(pool, (instId) => 
+                sendMessage(instId, number, safeMessage)
+            );
+            sendResult = result;
+            activeInstId = usedInstanceId;
         } else {
             const mimetype = getMimetype(media_url, type);
             const fileName = p.filename || media_url.split('/').pop() || 'file';
-            sendResult = await sendMessage(instance_id, number, message || '', { url: media_url, mimetype, fileName });
+            const safeCaption = message ? applyInvisibleAntiHash(message) : '';
+            const { result, usedInstanceId } = await executeWithFailover(pool, (instId) => 
+                sendMessage(instId, number, safeCaption, { url: media_url, mimetype, fileName })
+            );
+            sendResult = result;
+            activeInstId = usedInstanceId;
         }
 
         if (logRecord) {
-            try { await prisma.messageLog.update({ where: { id: logRecord.id }, data: { status: 'sent' } }); } catch {}
+            try { await prisma.messageLog.update({ where: { id: logRecord.id }, data: { status: 'sent', instanceId: activeInstId } }); } catch {}
         }
         await recordDailyUsage(user.id, 'sent');
 
         return res.json({
             status: "success",
+            instance_id: activeInstId,
+            pool_name: poolName,
+            pool_size: pool.length,
             message: sendResult,
             messageTimestamp: Math.floor(Date.now() / 1000).toString()
         });
@@ -2526,12 +2798,166 @@ const publicSendHandler = async (req: any, res: any) => {
             try { await prisma.messageLog.update({ where: { id: logRecord.id }, data: { status: finalStatus } }); } catch {}
         }
         await recordDailyUsage(user.id, finalStatus);
-        return res.status(500).json({ success: false, error: err?.message || 'Failed to send message' });
+        return res.status(err?.message === 'Non-Whatsapp' ? 400 : 500).json({ 
+            success: false, 
+            error: err?.message === 'Non-Whatsapp' ? 'Recipient number is not registered on WhatsApp' : (err?.message || 'Failed to send message') 
+        });
     }
 };
 
 router.get('/send',  publicSendHandler);
 router.post('/send', publicSendHandler);
+
+// ─────────────────────────────────────────────────────────────
+// DEDICATED HIGH-PRIORITY OTP & AUTHENTICATION ENDPOINT
+// ─────────────────────────────────────────────────────────────
+const handleSendOtp = async (req: any, res: any) => {
+    const startTime = Date.now();
+    const instance_id = req.body?.instance_id || req.query?.instance_id || req.body?.instanceId || req.query?.instanceId || req.body?.instance || req.query?.instance;
+    const pool_name = req.body?.pool || req.query?.pool || req.body?.pool_name || req.query?.pool_name || req.body?.poolName || req.query?.poolName;
+    const api_key = req.body?.api_key || req.query?.api_key || req.body?.apiKey || req.query?.apiKey || req.body?.access_token || req.query?.access_token || req.headers?.['x-api-key'] || (req.headers?.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : undefined);
+    let number = req.body?.number || req.query?.number || req.body?.phone || req.query?.phone || req.body?.to || req.query?.to;
+    
+    // OTP & Custom Message parameters (100% Client Controlled)
+    const otp = req.body?.otp || req.query?.otp || req.body?.code || req.query?.code;
+    let message = req.body?.message || req.query?.message || req.body?.msg || req.query?.msg || req.body?.text || req.query?.text || req.body?.template || req.query?.template;
+    const footer = req.body?.footer || req.query?.footer;
+    const header = req.body?.header || req.query?.header;
+    const copy_button = req.body?.copy_button !== undefined ? req.body.copy_button : (req.query?.copy_button !== undefined ? req.query.copy_button : (req.body?.copyButton || req.query?.copyButton));
+    const copy_button_label = req.body?.copy_button_label || req.query?.copy_button_label || req.body?.button_text || req.query?.button_text || 'Copy Code';
+
+    if (!api_key || !number) {
+        return res.status(400).json({ success: false, error: 'Missing required fields: api_key, number' });
+    }
+
+    if (!message && !otp) {
+        return res.status(400).json({ success: false, error: 'Either "message" (your custom OTP text) or "otp" is required' });
+    }
+
+    number = String(number).trim().replace(/[^0-9]/g, '');
+
+    // Substitute {{otp}} or {otp} or {{code}} if client passes both template and code
+    if (message && otp) {
+        message = String(message)
+            .replace(/\{\{\s*otp\s*\}\}/gi, String(otp))
+            .replace(/\{\s*otp\s*\}/gi, String(otp))
+            .replace(/\{\{\s*code\s*\}\}/gi, String(otp))
+            .replace(/\{\s*code\s*\}/gi, String(otp));
+    } else if (!message && otp) {
+        message = String(otp);
+    }
+
+    try {
+        const user = await prisma.user.findFirst({ where: { OR: [{ apiKey: api_key }, { id: api_key }] } });
+        if (!user) return res.status(401).json({ success: false, error: 'Invalid api_key or access_token' });
+        
+        if (!user.isAdmin && user.expiresAt && new Date(user.expiresAt) < new Date()) {
+            return res.status(403).json({ success: false, error: 'Account has expired. Please contact admin.' });
+        }
+
+        // Resolve multi-SIM pool with load balancing
+        const { primary, pool, poolName } = await resolveInstancesForUser(user, instance_id, pool_name);
+
+        if (!(await checkMessageLimit(user.id))) {
+            return res.status(403).json({ success: false, error: 'Monthly message limit exceeded' });
+        }
+
+        const isCopyBtnRequested = copy_button === true || copy_button === 'true' || copy_button === 1 || copy_button === '1';
+        let logMessageText = String(message);
+        if (footer) logMessageText += `\n_${footer}_`;
+
+        let logRecord: any = null;
+        try {
+            logRecord = await prisma.messageLog.create({
+                data: {
+                    instanceId: primary.id,
+                    userId: user.id,
+                    toNumber: number,
+                    message: logMessageText,
+                    status: 'pending'
+                }
+            });
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { messagesSentThisMonth: { increment: 1 }, lastMessageMonth: currentMonth }
+            });
+        } catch (dbErr) {
+            console.error('[OTP] Log error:', dbErr);
+        }
+
+        // High-priority synchronous execution with multi-SIM failover
+        let sendResult: any = null;
+        let activeInstId = primary.id;
+
+        if (isCopyBtnRequested) {
+            const buttonCode = otp ? String(otp).trim() : (String(message).replace(/[^0-9]/g, '') || String(message).trim());
+            const safeBody = applyInvisibleAntiHash(String(message));
+
+            const { result, usedInstanceId } = await executeWithFailover(pool, (instId) =>
+                sendInteractiveMessage(instId, number, {
+                    headerType: header ? 'text' : 'none',
+                    headerText: header ? String(header).trim() : undefined,
+                    body: safeBody,
+                    footer: footer ? String(footer).trim() : undefined,
+                    buttons: [
+                        {
+                            type: 'cta_copy',
+                            label: String(copy_button_label),
+                            copy_code: buttonCode
+                        }
+                    ]
+                })
+            );
+            sendResult = result;
+            activeInstId = usedInstanceId;
+        } else {
+            // Standard custom text with optional footer and invisible anti-hash
+            let rawMessage = String(message);
+            if (footer) {
+                rawMessage += `\n\n_${footer}_`;
+            }
+            const safeMessage = applyInvisibleAntiHash(rawMessage);
+            const { result, usedInstanceId } = await executeWithFailover(pool, (instId) =>
+                sendMessage(instId, number, safeMessage)
+            );
+            sendResult = result;
+            activeInstId = usedInstanceId;
+        }
+
+        const latencyMs = Date.now() - startTime;
+
+        if (logRecord) {
+            try { await prisma.messageLog.update({ where: { id: logRecord.id }, data: { status: 'sent', instanceId: activeInstId } }); } catch {}
+        }
+        await recordDailyUsage(user.id, 'sent');
+
+        return res.json({
+            success: true,
+            status: "sent",
+            has_copy_button: Boolean(isCopyBtnRequested),
+            instance_id: activeInstId,
+            pool_name: poolName,
+            pool_size: pool.length,
+            message_id: logRecord?.id || sendResult?.key?.id,
+            to: number,
+            latency_ms: latencyMs,
+            timestamp: Math.floor(Date.now() / 1000)
+        });
+
+    } catch (err: any) {
+        console.error('[OTP API] Send error:', err?.message || err);
+        return res.status(err?.message === 'Non-Whatsapp' ? 400 : 500).json({
+            success: false,
+            error: err?.message === 'Non-Whatsapp' ? 'Recipient number is not registered on WhatsApp' : (err?.message || 'Failed to send OTP')
+        });
+    }
+};
+
+router.post('/send/otp', handleSendOtp);
+router.get('/send/otp', handleSendOtp);
+router.post('/otp/send', handleSendOtp);
+router.get('/otp/send', handleSendOtp);
 
 // ─────────────────────────────────────────────────────────────
 // PUBLIC INSTANCE MANAGEMENT (TechRush-style, access_token auth)

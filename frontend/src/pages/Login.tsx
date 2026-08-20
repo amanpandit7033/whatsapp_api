@@ -224,7 +224,7 @@ export const Login = () => {
               <div style={{ color: '#38BDF8', marginBottom: '6px', fontWeight: 700 }}>POST /api/v1/broadcast/send</div>
               <div style={{ color: '#94A3B8' }}>&#123;</div>
               <div style={{ paddingLeft: '16px' }}><span style={{ color: '#93C5FD' }}>"instanceId"</span>: <span style={{ color: '#FDE047' }}>"inst_sales_01"</span>,</div>
-              <div style={{ paddingLeft: '16px' }}><span style={{ color: '#93C5FD' }}>"recipient"</span>: <span style={{ color: '#FDE047' }}>"+919876543210"</span>,</div>
+              <div style={{ paddingLeft: '16px' }}><span style={{ color: '#93C5FD' }}>"recipient"</span>: <span style={{ color: '#FDE047' }}>"+91XXXXXXXXXX"</span>,</div>
               <div style={{ paddingLeft: '16px' }}><span style={{ color: '#93C5FD' }}>"deliveryStatus"</span>: <span style={{ color: '#34D399' }}>"DELIVERED"</span>,</div>
               <div style={{ paddingLeft: '16px' }}><span style={{ color: '#93C5FD' }}>"latencyMs"</span>: <span style={{ color: '#38BDF8' }}>14</span></div>
               <div style={{ color: '#94A3B8' }}>&#125;</div>

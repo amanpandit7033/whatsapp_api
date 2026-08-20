@@ -15,3 +15,5 @@ backend/prisma/*.db-journal
 backend/reset_instance.js
 .env
 .env.local
+
+ANTI_BAN_PROTECTION_SPEC.md

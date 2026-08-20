@@ -281,45 +281,103 @@ export const GlassActivityIcon: React.FC<GlassIconProps> = ({ size = 24, ...prop
 };
 export const GlassPulseIcon = GlassActivityIcon;
 
-// 8. API Docs / Developer Book (Indigo)
-export const GlassDocsIcon: React.FC<GlassIconProps> = ({ size = 24, ...props }) => {
+// 8. API Docs / Code 3D Glass Icon with </> Glyphs (Sapphire & Cyan)
+export const GlassCodeIcon: React.FC<GlassIconProps> = ({ size = 24, ...props }) => {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+
+  const backDepthPath = "M7.40039 3C5.16018 3 4.03924 2.99957 3.18359 3.43555C2.43109 3.81902 1.81902 4.43109 1.43555 5.18359C0.999573 6.03924 1 7.16018 1 9.40039V14.5996C1 16.8398 0.999573 17.9608 1.43555 18.8164C1.81902 19.5689 2.43109 20.181 3.18359 20.5645C4.03924 21.0004 5.16018 21 7.40039 21H11L9.42383 20.6064C8.55716 20.3898 8.12343 20.2807 7.80078 20.0391C7.51632 19.8259 7.29393 19.5406 7.15625 19.2129C7.00022 18.8414 7 18.3949 7 17.502V6.49805C7 5.60513 7.00022 5.15863 7.15625 4.78711C7.29393 4.45941 7.51632 4.17406 7.80078 3.96094C8.12343 3.71934 8.55717 3.61022 9.42383 3.39355L11 3H7.40039Z";
+  const frontGlassCardPath = "M16.5996 3C18.8398 3 19.9608 2.99957 20.8164 3.43555C21.5689 3.81902 22.181 4.43109 22.5645 5.18359C23.0004 6.03924 23 7.16018 23 9.40039V14.5996C23 16.8398 23.0004 17.9608 22.5645 18.8164C22.181 19.5689 21.5689 20.181 20.8164 20.5645C19.9608 21.0004 18.8398 21 16.5996 21H11.4004C9.16018 21 8.03924 21.0004 7.18359 20.5645C6.43109 20.181 5.81902 19.5689 5.43555 18.8164C4.99957 17.9608 5 16.8398 5 14.5996V9.40039C5 7.16018 4.99957 6.03924 5.43555 5.18359C5.81902 4.43109 6.43109 3.81902 7.18359 3.43555C8.03924 2.99957 9.16018 3 11.4004 3H16.5996Z";
+  const specularRimPath = "M16.5996 3C18.8398 3 19.9608 2.99957 20.8164 3.43555C21.5689 3.81902 22.181 4.43109 22.5645 5.18359C23.0004 6.03924 23 7.16018 23 9.40039V14.5996C23 16.8398 23.0004 17.9608 22.5645 18.8164C22.181 19.5689 21.5689 20.181 20.8164 20.5645C19.9608 21.0004 18.8398 21 16.5996 21H11.4004C9.16018 21 8.03924 21.0004 7.18359 20.5645C6.43109 20.181 5.81902 19.5689 5.43555 18.8164C4.99957 17.9608 5 16.8398 5 14.5996V9.40039C5 7.16018 4.99957 6.03924 5.43555 5.18359C5.81902 4.43109 6.43109 3.81902 7.18359 3.43555C8.03924 2.99957 9.16018 3 11.4004 3H16.5996ZM11.4004 3.75C10.268 3.75 9.4636 3.75045 8.83398 3.80176C8.2133 3.85235 7.8287 3.94856 7.52441 4.10352C6.913 4.41508 6.41508 4.913 6.10352 5.52441C5.94856 5.8287 5.85235 6.2133 5.80176 6.83398C5.75045 7.4636 5.75 8.268 5.75 9.40039V14.5996C5.75 15.732 5.75045 16.5364 5.80176 17.166C5.85235 17.7867 5.94856 18.1713 6.10352 18.4756C6.41508 19.087 6.913 19.5849 7.52441 19.8965C7.8287 20.0514 8.2133 20.1476 8.83398 20.1982C9.4636 20.2495 10.268 20.25 11.4004 20.25H16.5996C17.732 20.25 18.5364 20.2495 19.166 20.1982C19.7867 20.1476 20.1713 20.0514 20.4756 19.8965C21.087 19.5849 21.5849 19.087 21.8965 18.4756C22.0514 18.1713 22.1476 17.7867 22.1982 17.166C22.2495 16.5364 22.25 15.732 22.25 14.5996V9.40039C22.25 8.268 22.2495 7.4636 22.1982 6.83398C22.1476 6.2133 22.0514 5.8287 21.8965 5.52441C21.5849 4.913 21.087 4.41508 20.4756 4.10352C20.1713 3.94856 19.7867 3.85235 19.166 3.80176C18.5364 3.75045 17.732 3.75 16.5996 3.75H11.4004Z";
+
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
       <g>
-        <path d="M19.8 7C20.9201 7 21.4802 7 21.908 7.21799C22.2843 7.40973 22.5903 7.7157 22.782 8.09202C23 8.51984 23 9.0799 23 10.2V14.6C23 16.8402 23 17.9603 22.564 18.816C22.1805 19.5686 21.5686 20.1805 20.816 20.564C19.9603 21 18.8402 21 16.6 21C16.0003 21 15.3477 20.9253 14.7546 21.031C14.3513 21.1029 14.0296 21.3136 13.6938 21.5374C13.4363 21.7091 13.1783 21.93 12.8727 21.9845C12.7857 22 12.6956 22 12.5156 22H11.4844C11.3044 22 11.2143 22 11.1273 21.9845C10.8217 21.93 10.5637 21.7091 10.3062 21.5374C9.97044 21.3136 9.64872 21.1029 9.24542 21.031C8.65232 20.9253 7.99966 21 7.4 21C5.15979 21 4.03968 21 3.18404 20.564C2.43139 20.1805 1.81947 19.5686 1.43597 18.816C1 17.9603 1 16.8402 1 14.6L1 10.2C1 9.07989 1 8.51984 1.21799 8.09202C1.40973 7.71569 1.7157 7.40973 2.09202 7.21799C2.51984 7 3.0799 7 4.2 7L19.8 7Z" fill={`url(#g-doc-0-${uid})`} mask={`url(#m-doc-${uid})`} />
-        <path d="M19.8 7C20.9201 7 21.4802 7 21.908 7.21799C22.2843 7.40973 22.5903 7.7157 22.782 8.09202C23 8.51984 23 9.0799 23 10.2V14.6C23 16.8402 23 17.9603 22.564 18.816C22.1805 19.5686 21.5686 20.1805 20.816 20.564C19.9603 21 18.8402 21 16.6 21C16.0003 21 15.3477 20.9253 14.7546 21.031C14.3513 21.1029 14.0296 21.3136 13.6938 21.5374C13.4363 21.7091 13.1783 21.93 12.8727 21.9845C12.7857 22 12.6956 22 12.5156 22H11.4844C11.3044 22 11.2143 22 11.1273 21.9845C10.8217 21.93 10.5637 21.7091 10.3062 21.5374C9.97044 21.3136 9.64872 21.1029 9.24542 21.031C8.65232 20.9253 7.99966 21 7.4 21C5.15979 21 4.03968 21 3.18404 20.564C2.43139 20.1805 1.81947 19.5686 1.43597 18.816C1 17.9603 1 16.8402 1 14.6L1 10.2C1 9.07989 1 8.51984 1.21799 8.09202C1.40973 7.71569 1.7157 7.40973 2.09202 7.21799C2.51984 7 3.0799 7 4.2 7L19.8 7Z" fill={`url(#g-doc-0-${uid})`} filter={`url(#f-doc-${uid})`} clipPath={`url(#cp-doc-${uid})`} />
-        <path d="M17.1058 2.86537C18.4374 2.56947 19.1032 2.42152 19.6257 2.59361C20.0838 2.74451 20.472 3.05589 20.7187 3.47039C21 3.94312 21 4.62513 21 5.98917L21 14.4331C21 15.349 21 15.807 20.8377 16.1849C20.6945 16.5182 20.4634 16.8063 20.1691 17.0184C19.8354 17.2588 19.3883 17.3582 18.4942 17.5568L12.3471 18.9229C12.2176 18.9517 12.1528 18.966 12.0874 18.9718C12.0292 18.9769 11.9708 18.9769 11.9126 18.9718C11.8472 18.966 11.7824 18.9517 11.6529 18.9229L5.50582 17.5568C4.6117 17.3582 4.16464 17.2588 3.83093 17.0184C3.53658 16.8063 3.30545 16.5182 3.1623 16.1849C3 15.8069 3 15.349 3 14.4331L3 5.98917C3 4.62513 3 3.94312 3.28134 3.47039C3.52803 3.05589 3.9162 2.74451 4.37434 2.59361C4.89684 2.42152 5.56262 2.56947 6.89418 2.86537L11.6529 3.92287C11.7824 3.95165 11.8472 3.96604 11.9126 3.97178C11.9708 3.97688 12.0292 3.97688 12.0874 3.97178C12.1528 3.96604 12.2176 3.95165 12.3471 3.92287L17.1058 2.86537Z" fill={`url(#g-doc-1-${uid})`} />
-        <path d="M20.25 5.98921C20.25 5.29355 20.2494 4.82046 20.2178 4.46088C20.1867 4.10809 20.1309 3.94983 20.0742 3.85443C19.92 3.59536 19.677 3.3999 19.3906 3.3056C19.2852 3.27098 19.1185 3.25158 18.7676 3.29778C18.4097 3.34493 17.9476 3.44668 17.2686 3.59759L12.5098 4.65521C12.3988 4.67988 12.2789 4.70764 12.1533 4.71869C12.0516 4.72761 11.9484 4.72761 11.8467 4.71869C11.7211 4.70764 11.6012 4.67988 11.4902 4.65521L6.73145 3.59759C6.05237 3.44668 5.59029 3.34493 5.23242 3.29778C4.88146 3.25158 4.71479 3.27098 4.60938 3.3056C4.32304 3.3999 4.07996 3.59536 3.92578 3.85443C3.86911 3.94983 3.81326 4.10809 3.78223 4.46088C3.75062 4.82046 3.75 5.29355 3.75 5.98921V14.4336C3.75 14.9022 3.75076 15.2137 3.76855 15.4561C3.78565 15.6887 3.81605 15.8059 3.85156 15.8887C3.94103 16.097 4.08556 16.2776 4.26953 16.4102C4.34261 16.4628 4.45054 16.5178 4.67383 16.585C4.90661 16.6549 5.21124 16.7235 5.66895 16.8252L11.8154 18.1905C11.8836 18.2056 11.9214 18.2141 11.9502 18.2198C11.9732 18.2242 11.9794 18.2247 11.9785 18.2246C11.9928 18.2259 12.0072 18.2259 12.0215 18.2246C12.0206 18.2247 12.0268 18.2242 12.0498 18.2198C12.0786 18.2141 12.1164 18.2056 12.1846 18.1905L18.3311 16.8252C18.7888 16.7235 19.0934 16.6549 19.3262 16.585C19.5495 16.5178 19.6574 16.4628 19.7305 16.4102C19.9144 16.2776 20.059 16.097 20.1484 15.8887C20.1839 15.8059 20.2143 15.6887 20.2314 15.4561C20.2492 15.2137 20.25 14.9022 20.25 14.4336V5.98921Z" fill={`url(#g-doc-2-${uid})`} />
+        {/* Layer 0: Sapphire Blue Back Depth Base */}
+        <path d={backDepthPath} fill={`url(#g-code-0-${uid})`} mask={`url(#m-code-${uid})`} />
+        <path d={backDepthPath} fill={`url(#g-code-0-${uid})`} filter={`url(#f-code-${uid})`} clipPath={`url(#cp-code-${uid})`} />
+
+        {/* Layer 1: Frosted Glass Front Card */}
+        <path d={frontGlassCardPath} fill={`url(#g-code-1-${uid})`} />
+
+        {/* Layer 2: Specular Rim Highlight */}
+        <path d={specularRimPath} fill={`url(#g-code-2-${uid})`} />
+
+        {/* Floating Code Glyph: Left Bracket < */}
+        <path 
+          d="M10.5 9.25L7.75 12L10.5 14.75" 
+          stroke={`url(#g-code-bracket-${uid})`} 
+          strokeWidth="1.9" 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+        />
+
+        {/* Floating Code Glyph: Center Slash / */}
+        <path 
+          d="M15 8.25L13 15.75" 
+          stroke={`url(#g-code-slash-${uid})`} 
+          strokeWidth="1.9" 
+          strokeLinecap="round" 
+        />
+
+        {/* Floating Code Glyph: Right Bracket > */}
+        <path 
+          d="M17.5 9.25L20.25 12L17.5 14.75" 
+          stroke={`url(#g-code-bracket-${uid})`} 
+          strokeWidth="1.9" 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
+        />
       </g>
       <defs>
-        <linearGradient id={`g-doc-0-${uid}`} x1="12" y1="7" x2="12" y2="22" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#4F46E5" />
-          <stop offset="1" stopColor="#3730A3" />
+        {/* Layer 0: Solid Vibrant Sapphire Base */}
+        <linearGradient id={`g-code-0-${uid}`} x1="1" y1="3" x2="11" y2="21" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#2563EB" />
+          <stop offset="1" stopColor="#1D4ED8" />
         </linearGradient>
-        <linearGradient id={`g-doc-1-${uid}`} x1="21" y1="10.5" x2="3" y2="10.5" gradientUnits="userSpaceOnUse">
-          <stop stopColor="rgba(224, 231, 255, 0.85)" />
-          <stop offset="1" stopColor="rgba(165, 180, 252, 0.4)" />
+
+        {/* Layer 1: Translucent Frosted Glass Plate */}
+        <linearGradient id={`g-code-1-${uid}`} x1="14" y1="3" x2="14" y2="21" gradientUnits="userSpaceOnUse">
+          <stop stopColor="rgba(224, 231, 255, 0.88)" />
+          <stop offset="1" stopColor="rgba(165, 243, 252, 0.40)" />
         </linearGradient>
-        <linearGradient id={`g-doc-2-${uid}`} x1="12" y1="2.52" x2="12" y2="12.05" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#818CF8" />
-          <stop offset="1" stopColor="#818CF8" stopOpacity="0" />
+
+        {/* Layer 2: Specular Top-Edge Sheen */}
+        <linearGradient id={`g-code-2-${uid}`} x1="14" y1="3" x2="14" y2="13.424" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#93C5FD" />
+          <stop offset="1" stopColor="#93C5FD" stopOpacity="0" />
         </linearGradient>
-        <filter id={`f-doc-${uid}`} x="-100%" y="-100%" width="400%" height="400%" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse">
+
+        {/* Floating Bracket Gradient: Rich Royal Sapphire */}
+        <linearGradient id={`g-code-bracket-${uid}`} x1="7.75" y1="9.25" x2="20.25" y2="14.75" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#2563EB" />
+          <stop offset="1" stopColor="#1E40AF" />
+        </linearGradient>
+
+        {/* Floating Slash Gradient: Electric Cyan Accent */}
+        <linearGradient id={`g-code-slash-${uid}`} x1="15" y1="8.25" x2="13" y2="15.75" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#06B6D4" />
+          <stop offset="1" stopColor="#0284C7" />
+        </linearGradient>
+
+        {/* Gaussian Glow Filter */}
+        <filter id={`f-code-${uid}`} x="-100%" y="-100%" width="400%" height="400%" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse">
           <feGaussianBlur stdDeviation="2" in="SourceGraphic" result="blur" />
         </filter>
-        <clipPath id={`cp-doc-${uid}`}>
-          <path d="M17.1058 2.86537C18.4374 2.56947 19.1032 2.42152 19.6257 2.59361C20.0838 2.74451 20.472 3.05589 20.7187 3.47039C21 3.94312 21 4.62513 21 5.98917L21 14.4331C21 15.349 21 15.807 20.8377 16.1849C20.6945 16.5182 20.4634 16.8063 20.1691 17.0184C19.8354 17.2588 19.3883 17.3582 18.4942 17.5568L12.3471 18.9229C12.2176 18.9517 12.1528 18.966 12.0874 18.9718C12.0292 18.9769 11.9708 18.9769 11.9126 18.9718C11.8472 18.966 11.7824 18.9517 11.6529 18.9229L5.50582 17.5568C4.6117 17.3582 4.16464 17.2588 3.83093 17.0184C3.53658 16.8063 3.30545 16.5182 3.1623 16.1849C3 15.8069 3 15.349 3 14.4331L3 5.98917C3 4.62513 3 3.94312 3.28134 3.47039C3.52803 3.05589 3.9162 2.74451 4.37434 2.59361C4.89684 2.42152 5.56262 2.56947 6.89418 2.86537L11.6529 3.92287C11.7824 3.95165 11.8472 3.96604 11.9126 3.97178C11.9708 3.97688 12.0292 3.97688 12.0874 3.97178C12.1528 3.96604 12.2176 3.95165 12.3471 3.92287L17.1058 2.86537Z" />
+
+        {/* ClipPath and Mask */}
+        <clipPath id={`cp-code-${uid}`}>
+          <path d={frontGlassCardPath} />
         </clipPath>
-        <mask id={`m-doc-${uid}`}>
+        <mask id={`m-code-${uid}`}>
           <rect width="100%" height="100%" fill="#FFF" />
-          <path d="M17.1058 2.86537C18.4374 2.56947 19.1032 2.42152 19.6257 2.59361C20.0838 2.74451 20.472 3.05589 20.7187 3.47039C21 3.94312 21 4.62513 21 5.98917L21 14.4331C21 15.349 21 15.807 20.8377 16.1849C20.6945 16.5182 20.4634 16.8063 20.1691 17.0184C19.8354 17.2588 19.3883 17.3582 18.4942 17.5568L12.3471 18.9229C12.2176 18.9517 12.1528 18.966 12.0874 18.9718C12.0292 18.9769 11.9708 18.9769 11.9126 18.9718C11.8472 18.966 11.7824 18.9517 11.6529 18.9229L5.50582 17.5568C4.6117 17.3582 4.16464 17.2588 3.83093 17.0184C3.53658 16.8063 3.30545 16.5182 3.1623 16.1849C3 15.8069 3 15.349 3 14.4331L3 5.98917C3 4.62513 3 3.94312 3.28134 3.47039C3.52803 3.05589 3.9162 2.74451 4.37434 2.59361C4.89684 2.42152 5.56262 2.56947 6.89418 2.86537L11.6529 3.92287C11.7824 3.95165 11.8472 3.96604 11.9126 3.97178C11.9708 3.97688 12.0292 3.97688 12.0874 3.97178C12.1528 3.96604 12.2176 3.95165 12.3471 3.92287L17.1058 2.86537Z" fill="#000" />
+          <path d={frontGlassCardPath} fill="#000" />
         </mask>
       </defs>
     </svg>
   );
 };
-export const GlassBookIcon = GlassDocsIcon;
+export const GlassDocsIcon = GlassCodeIcon;
+export const GlassBookIcon = GlassCodeIcon;
 
 // 9. Globe / Custom Domain (Planetary Orbit 3D Glass)
 export const GlassGlobeIcon: React.FC<GlassIconProps> = ({ size = 24, ...props }) => {
@@ -2066,5 +2124,139 @@ export const GlassTouchHandIcon: React.FC<GlassIconProps> = ({ size = 24, ...pro
 export const GlassPointerIcon = GlassTouchHandIcon;
 export const GlassHandIcon = GlassTouchHandIcon;
 export const GlassTapIcon = GlassTouchHandIcon;
+
+// 56. Tag / Label (Sapphire & Cyan Glass Tag)
+export const GlassTagIcon: React.FC<GlassIconProps> = ({ size = 24, ...props }) => {
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const tagPath = "M12.586 2.586C12.211 2.211 11.702 2 11.172 2H4C2.895 2 2 2.895 2 4V11.172C2 11.702 2.211 12.211 2.586 12.586L11.414 21.414C12.195 22.195 13.461 22.195 14.242 21.414L21.414 14.242C22.195 13.461 22.195 12.195 21.414 11.414L12.586 2.586Z";
+  const holePath = "M7 8.5C7.82843 8.5 8.5 7.82843 8.5 7C8.5 6.17157 7.82843 5.5 7 5.5C6.17157 5.5 5.5 6.17157 5.5 7C5.5 7.82843 6.17157 8.5 7 8.5Z";
+  const rimPath = "M11.172 2.75H4C3.30964 2.75 2.75 3.30964 2.75 4V11.172C2.75 11.5035 2.8817 11.8215 3.11621 12.056L11.9443 20.884C12.413 21.3526 13.173 21.3526 13.6416 20.884L20.884 13.6416C21.3526 13.173 21.3526 12.413 20.884 11.9443L12.056 3.11621C11.8215 2.8817 11.5035 2.75 11.172 2.75Z";
+
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <g>
+        {/* Layer 0: Solid Vibrant Sapphire/Cyan Base */}
+        <path d={tagPath} fill={`url(#g-tag-0-${uid})`} mask={`url(#m-tag-${uid})`} />
+        <path d={tagPath} fill={`url(#g-tag-0-${uid})`} filter={`url(#f-tag-${uid})`} clipPath={`url(#cp-tag-${uid})`} />
+        {/* Layer 1: Frosted Glass Body */}
+        <path d={tagPath} fill={`url(#g-tag-1-${uid})`} />
+        {/* Eyelet Hole Cutout */}
+        <path d={holePath} fill={`url(#g-tag-hole-${uid})`} />
+        {/* Specular Rim Stroke */}
+        <path d={rimPath} stroke={`url(#g-tag-2-${uid})`} strokeWidth="1" strokeLinecap="round" />
+      </g>
+      <defs>
+        <linearGradient id={`g-tag-0-${uid}`} x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#3B82F6" />
+          <stop offset="0.5" stopColor="#2563EB" />
+          <stop offset="1" stopColor="#06B6D4" />
+        </linearGradient>
+        <linearGradient id={`g-tag-1-${uid}`} x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+          <stop stopColor="rgba(219, 234, 254, 0.85)" />
+          <stop offset="1" stopColor="rgba(165, 243, 252, 0.35)" />
+        </linearGradient>
+        <linearGradient id={`g-tag-2-${uid}`} x1="2" y1="2" x2="14" y2="14" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#93C5FD" />
+          <stop offset="1" stopColor="#67E8F9" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id={`g-tag-hole-${uid}`} x1="5.5" y1="5.5" x2="8.5" y2="8.5" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#1E40AF" />
+          <stop offset="1" stopColor="#1E3A8A" />
+        </linearGradient>
+        <filter id={`f-tag-${uid}`} x="-100%" y="-100%" width="400%" height="400%" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse">
+          <feGaussianBlur stdDeviation="2" in="SourceGraphic" result="blur" />
+        </filter>
+        <clipPath id={`cp-tag-${uid}`}>
+          <path d={tagPath} />
+        </clipPath>
+        <mask id={`m-tag-${uid}`}>
+          <rect width="100%" height="100%" fill="#FFF" />
+          <path d={holePath} fill="#000" />
+        </mask>
+      </defs>
+    </svg>
+  );
+};
+export const GlassLabelIcon = GlassTagIcon;
+
+// 57. Live Status & Real-time Analytics (Bar Analytics Glass Icon)
+export const GlassLiveStatusIcon: React.FC<GlassIconProps> = ({ size = 24, ...props }) => {
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <g>
+        {/* Right Bar (Tallest): Translucent Frosted Glass with Specular Edge */}
+        <path 
+          d="M14 5.5C14 3.5 15.5 2 18 2C20.5 2 22 3.5 22 5.5V18.5C22 20.5 20.5 22 18 22C15.5 22 14 20.5 14 18.5V5.5Z" 
+          fill={`url(#s-live-right-bg-${uid})`} 
+        />
+        <path 
+          d="M14 5.5C14 3.5 15.5 2 18 2C20.5 2 22 3.5 22 5.5V18.5C22 20.5 20.5 22 18 22C15.5 22 14 20.5 14 18.5V5.5Z" 
+          stroke={`url(#s-live-right-rim-${uid})`} 
+          strokeWidth="1" 
+        />
+
+        {/* Center Bar (Medium): Solid Vibrant Sapphire Hero Pillar */}
+        <path 
+          d="M8 9.5C8 7.5 9.5 6 12 6C14.5 6 16 7.5 16 9.5V17.5C16 19.5 14.5 21 12 21C9.5 21 8 19.5 8 17.5V9.5Z" 
+          fill={`url(#s-live-center-${uid})`} 
+        />
+        <path 
+          d="M8.5 9.5C8.5 7.8 9.8 6.5 12 6.5C14.2 6.5 15.5 7.8 15.5 9.5V17.5C15.5 19.2 14.2 20.5 12 20.5C9.8 20.5 8.5 19.2 8.5 17.5V9.5Z" 
+          stroke={`url(#s-live-center-rim-${uid})`} 
+          strokeWidth="1" 
+        />
+
+        {/* Left Bar (Base): Electric Cyan Accent */}
+        <path 
+          d="M2 13.5C2 11.5 3.5 10 6 10C8.5 10 10 11.5 10 13.5V16.5C10 18.5 8.5 20 6 20C3.5 20 2 18.5 2 16.5V13.5Z" 
+          fill={`url(#s-live-left-${uid})`} 
+        />
+        <path 
+          d="M2 13.5C2 11.5 3.5 10 6 10C8.5 10 10 11.5 10 13.5V16.5C10 18.5 8.5 20 6 20C3.5 20 2 18.5 2 16.5V13.5Z" 
+          stroke={`url(#s-live-left-rim-${uid})`} 
+          strokeWidth="1" 
+        />
+      </g>
+      <defs>
+        {/* Right Bar Fill: Translucent Glass Cyan/White */}
+        <linearGradient id={`s-live-right-bg-${uid}`} x1="18" y1="2" x2="18" y2="22" gradientUnits="userSpaceOnUse">
+          <stop stopColor="rgba(219, 234, 254, 0.85)" />
+          <stop offset="1" stopColor="rgba(165, 243, 252, 0.4)" />
+        </linearGradient>
+        {/* Right Bar Rim */}
+        <linearGradient id={`s-live-right-rim-${uid}`} x1="18" y1="2" x2="18" y2="16" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#93C5FD" />
+          <stop offset="1" stopColor="#60A5FA" stopOpacity="0.2" />
+        </linearGradient>
+
+        {/* Center Bar: Deep Sapphire Blue Gradient */}
+        <linearGradient id={`s-live-center-${uid}`} x1="12" y1="6" x2="12" y2="21" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#3B82F6" />
+          <stop offset="0.45" stopColor="#2563EB" />
+          <stop offset="1" stopColor="#1D4ED8" />
+        </linearGradient>
+        {/* Center Bar Specular Rim */}
+        <linearGradient id={`s-live-center-rim-${uid}`} x1="12" y1="6" x2="12" y2="15" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#BFDBFE" />
+          <stop offset="1" stopColor="#60A5FA" stopOpacity="0" />
+        </linearGradient>
+
+        {/* Left Bar: Vibrant Electric Cyan */}
+        <linearGradient id={`s-live-left-${uid}`} x1="6" y1="10" x2="6" y2="20" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#06B6D4" />
+          <stop offset="1" stopColor="#0891B2" />
+        </linearGradient>
+        {/* Left Bar Specular Rim */}
+        <linearGradient id={`s-live-left-rim-${uid}`} x1="6" y1="10" x2="6" y2="16" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#67E8F9" />
+          <stop offset="1" stopColor="#06B6D4" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+};
+
+
 
 

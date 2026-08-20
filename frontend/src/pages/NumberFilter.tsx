@@ -745,7 +745,7 @@ export const NumberFilter = () => {
 
                 <textarea
                   rows={8}
-                  placeholder={"919876543210\n919123456789\n14155552671\n..."}
+                  placeholder={"91XXXXXXXXXX\n919123456789\n14155552671\n..."}
                   value={rawInput}
                   onChange={(e) => setRawInput(e.target.value)}
                   disabled={isProcessing}

@@ -286,6 +286,30 @@ const enqueueMessage = (instanceId: string, payload: any): Promise<void> => {
     });
 };
 
+/**
+ * Injects invisible zero-width unicode characters into message text.
+ * 0% visible difference to recipient, 100% unique cryptographic hash to Meta servers.
+ */
+export const applyInvisibleAntiHash = (text: string): string => {
+    if (!text || typeof text !== 'string') return text;
+    const zeroWidth = ['\u200B', '\u200C', '\u200D', '\uFEFF'];
+    const words = text.split(' ');
+    if (words.length <= 1) {
+        return text + zeroWidth[Math.floor(Math.random() * zeroWidth.length)];
+    }
+    const idx1 = Math.floor(Math.random() * words.length);
+    const char1 = zeroWidth[Math.floor(Math.random() * zeroWidth.length)];
+    words[idx1] = words[idx1] + char1;
+
+    if (words.length > 3) {
+        let idx2 = Math.floor(Math.random() * words.length);
+        if (idx2 === idx1) idx2 = (idx1 + 1) % words.length;
+        const char2 = zeroWidth[Math.floor(Math.random() * zeroWidth.length)];
+        words[idx2] = words[idx2] + char2;
+    }
+    return words.join(' ');
+};
+
 const doSend = async (sock: any, payload: any, instanceId: string) => {
     const formattedJid = payload.jid.includes('@') ? payload.jid : `${payload.jid}@s.whatsapp.net`;
 
@@ -306,102 +330,142 @@ const doSend = async (sock: any, payload: any, instanceId: string) => {
     }
     payload.usedTurbo = !shouldCheck;
 
+    let targetJid = formattedJid;
+    const cleanPhone = formattedJid.split('@')[0].replace(/[^0-9]/g, '');
+
     if (shouldCheck && !formattedJid.endsWith('@g.us')) {
         try {
-            const [result] = await sock.onWhatsApp(formattedJid);
-            if (!result || !result.exists) {
+            const checkRes = await sock.onWhatsApp(cleanPhone);
+            const result = Array.isArray(checkRes) && checkRes.length > 0 ? checkRes[0] : checkRes;
+            if (result && result.exists === false) {
                 throw new Error('Non-Whatsapp');
+            }
+            if (result && result.jid) {
+                targetJid = result.jid;
             }
         } catch (err: any) {
             if (err.message === 'Non-Whatsapp') throw err;
-            console.warn(`[Warning] onWhatsApp check failed for ${formattedJid}, proceeding anyway.`);
+            console.warn(`[Warning] onWhatsApp check failed for ${cleanPhone}, proceeding anyway.`);
         }
     }
 
-    if (payload.isInteractive) {
-        const p = payload.interactivePayload;
-        // ── Build native flow buttons ──────────────────────
-        const nativeButtons = p.buttons
-            .filter((btn: any) => btn.label?.trim())
-            .map((btn: any) => {
-                if (btn.type === 'quick_reply') {
-                    return { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: btn.label, id: btn.id || btn.label }) };
-                } else if (btn.type === 'cta_url') {
-                    return { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: btn.label, url: btn.url || 'https://example.com', merchant_url: btn.url || 'https://example.com' }) };
-                } else if (btn.type === 'cta_call') {
-                    return { name: 'cta_call', buttonParamsJson: JSON.stringify({ display_text: btn.label, phone_number: btn.phone || '' }) };
-                }
-                return null;
-            })
-            .filter(Boolean);
+    // Automatic human typing simulation before socket write (snappy 200-500ms range)
+    if (!targetJid.endsWith('@g.us')) {
+        try {
+            // 1. Signal foreground active connection
+            await sock.sendPresenceUpdate('available');
 
-        // ── Build header ───────────────────────────────────
-        let headerContent: any = { hasMediaAttachment: false };
-        if (p.headerType === 'text' && p.headerText) {
-            headerContent = { hasMediaAttachment: false, title: p.headerText };
-        } else if (p.headerType === 'image' && p.headerImageUrl) {
-            try {
+            // 2. Select composing or recording presence
+            const isMediaAudio = payload.file?.mimetype?.startsWith('audio/');
+            const presenceType = isMediaAudio ? 'recording' : 'composing';
+            await sock.sendPresenceUpdate(presenceType, targetJid);
+
+            // 3. Fast automated human delay: 200ms - 500ms based on length with random jitter
+            const messageLen = (payload.text?.length || payload.interactivePayload?.body?.length || 20);
+            const dynamicDelay = Math.min(500, Math.max(200, messageLen * 4 + Math.floor(Math.random() * 120)));
+            await new Promise(r => setTimeout(r, dynamicDelay));
+        } catch (e) {}
+    }
+
+    let sendResult: any = null;
+    try {
+        if (payload.isInteractive) {
+            const p = payload.interactivePayload;
+            // ── Build native flow buttons ──────────────────────
+            const nativeButtons = p.buttons
+                .filter((btn: any) => btn.label?.trim())
+                .map((btn: any) => {
+                    if (btn.type === 'quick_reply') {
+                        return { name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: btn.label, id: btn.id || btn.label }) };
+                    } else if (btn.type === 'cta_url') {
+                        return { name: 'cta_url', buttonParamsJson: JSON.stringify({ display_text: btn.label, url: btn.url || 'https://example.com', merchant_url: btn.url || 'https://example.com' }) };
+                    } else if (btn.type === 'cta_call') {
+                        return { name: 'cta_call', buttonParamsJson: JSON.stringify({ display_text: btn.label, phone_number: btn.phone || '' }) };
+                    } else if (btn.type === 'cta_copy' || btn.type === 'copy_code' || btn.type === 'copy') {
+                        return { name: 'cta_copy', buttonParamsJson: JSON.stringify({ display_text: btn.label || 'Copy Code', id: btn.copy_code || btn.code || btn.id || btn.label, copy_code: btn.copy_code || btn.code || btn.id || btn.label }) };
+                    }
+                    return null;
+                })
+                .filter(Boolean);
+
+            // ── Build header ───────────────────────────────────
+            let headerContent: any = { hasMediaAttachment: false };
+            if (p.headerType === 'text' && p.headerText) {
+                headerContent = { hasMediaAttachment: false, title: p.headerText };
+            } else if (p.headerType === 'image' && p.headerImageUrl) {
+                try {
+                    let mediaData: any;
+                    if (p.isLocalFile) {
+                        const fs = require('fs');
+                        mediaData = fs.readFileSync(p.headerImageUrl);
+                    } else {
+                        mediaData = { url: p.headerImageUrl };
+                    }
+                    const mediaContent = await prepareWAMessageMedia({ image: mediaData }, { upload: sock.waUploadToServer });
+                    headerContent = { hasMediaAttachment: true, imageMessage: mediaContent.imageMessage };
+                } catch (e) {
+                    console.warn('Could not prepare image header, using no header:', e);
+                    headerContent = { hasMediaAttachment: false };
+                } finally {
+                    if (p.isLocalFile) {
+                        const fs = require('fs');
+                        try { fs.unlinkSync(p.headerImageUrl); } catch (e) { }
+                    }
+                }
+            }
+
+            const mutatedBody = applyInvisibleAntiHash(p.body);
+            const interactiveMsg = proto.Message.InteractiveMessage.fromObject({
+                header: proto.Message.InteractiveMessage.Header.fromObject(headerContent),
+                body: proto.Message.InteractiveMessage.Body.fromObject({ text: mutatedBody }),
+                footer: proto.Message.InteractiveMessage.Footer.fromObject({ text: p.footer || '' }),
+                nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({ buttons: nativeButtons }),
+            });
+
+            const waMessage = generateWAMessageFromContent(targetJid, proto.Message.fromObject({ interactiveMessage: interactiveMsg }), { userJid: sock.user?.id || '' });
+            sendResult = await sock.relayMessage(targetJid, waMessage.message!, { messageId: waMessage.key?.id! });
+            console.log(`[${instanceId}] ✅ Interactive message sent to ${payload.jid} (${nativeButtons.length} button(s))`);
+            return waMessage;
+        } else {
+            if (payload.file) {
+                const caption = payload.text ? applyInvisibleAntiHash(payload.text) : undefined;
                 let mediaData: any;
-                if (p.isLocalFile) {
-                    const fs = require('fs');
-                    mediaData = fs.readFileSync(p.headerImageUrl);
-                } else {
-                    mediaData = { url: p.headerImageUrl };
-                }
-                const mediaContent = await prepareWAMessageMedia({ image: mediaData }, { upload: sock.waUploadToServer });
-                headerContent = { hasMediaAttachment: true, imageMessage: mediaContent.imageMessage };
-            } catch (e) {
-                console.warn('Could not prepare image header, using no header:', e);
-                headerContent = { hasMediaAttachment: false };
-            } finally {
-                if (p.isLocalFile) {
-                    const fs = require('fs');
-                    try { fs.unlinkSync(p.headerImageUrl); } catch (e) { }
-                }
-            }
-        }
 
-        const interactiveMsg = proto.Message.InteractiveMessage.fromObject({
-            header: proto.Message.InteractiveMessage.Header.fromObject(headerContent),
-            body: proto.Message.InteractiveMessage.Body.fromObject({ text: p.body }),
-            footer: proto.Message.InteractiveMessage.Footer.fromObject({ text: p.footer || '' }),
-            nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.fromObject({ buttons: nativeButtons }),
-        });
-
-        const waMessage = generateWAMessageFromContent(formattedJid, proto.Message.fromObject({ interactiveMessage: interactiveMsg }), { userJid: sock.user?.id || '' });
-        const res = await sock.relayMessage(formattedJid, waMessage.message!, { messageId: waMessage.key?.id! });
-        console.log(`[${instanceId}] ✅ Interactive message sent to ${payload.jid} (${nativeButtons.length} button(s))`);
-        return waMessage;
-    } else {
-        if (payload.file) {
-            const caption = payload.text ? payload.text : undefined;
-            let mediaData: any;
-
-            if (payload.file.isLocalFile) {
-                const fs = require('fs');
-                mediaData = fs.readFileSync(payload.file.url);
-            } else {
-                mediaData = { url: payload.file.url };
-            }
-
-            try {
-                if (payload.file.mimetype.startsWith('image/')) {
-                    return await sock.sendMessage(formattedJid, { image: mediaData, caption });
-                } else if (payload.file.mimetype.startsWith('video/')) {
-                    return await sock.sendMessage(formattedJid, { video: mediaData, caption });
-                } else {
-                    return await sock.sendMessage(formattedJid, { document: mediaData, mimetype: payload.file.mimetype, fileName: payload.file.fileName, caption });
-                }
-            } finally {
-                // Always clean up local file
                 if (payload.file.isLocalFile) {
                     const fs = require('fs');
-                    try { fs.unlinkSync(payload.file.url); } catch (e) { console.error('Failed to cleanup local file', e); }
+                    mediaData = fs.readFileSync(payload.file.url);
+                } else {
+                    mediaData = { url: payload.file.url };
                 }
+
+                try {
+                    if (payload.file.mimetype.startsWith('image/')) {
+                        sendResult = await sock.sendMessage(targetJid, { image: mediaData, caption });
+                        return sendResult;
+                    } else if (payload.file.mimetype.startsWith('video/')) {
+                        sendResult = await sock.sendMessage(targetJid, { video: mediaData, caption });
+                        return sendResult;
+                    } else {
+                        sendResult = await sock.sendMessage(targetJid, { document: mediaData, mimetype: payload.file.mimetype, fileName: payload.file.fileName, caption });
+                        return sendResult;
+                    }
+                } finally {
+                    // Always clean up local file
+                    if (payload.file.isLocalFile) {
+                        const fs = require('fs');
+                        try { fs.unlinkSync(payload.file.url); } catch (e) { console.error('Failed to cleanup local file', e); }
+                    }
+                }
+            } else {
+                if (!payload.text) throw new Error('Message text is required');
+                const safeText = applyInvisibleAntiHash(payload.text);
+                sendResult = await sock.sendMessage(targetJid, { text: safeText });
+                return sendResult;
             }
-        } else {
-            if (!payload.text) throw new Error('Message text is required');
-            return await sock.sendMessage(formattedJid, { text: payload.text });
+        }
+    } finally {
+        if (!targetJid.endsWith('@g.us')) {
+            try { await sock.sendPresenceUpdate('paused', targetJid); } catch (e) {}
         }
     }
 };
@@ -502,11 +566,13 @@ export const sendMessage = async (
 // ─────────────────────────────────────────────
 
 export interface InteractiveButton {
-    type: 'quick_reply' | 'cta_url' | 'cta_call';
+    type: 'quick_reply' | 'cta_url' | 'cta_call' | 'cta_copy' | 'copy_code';
     label: string;
     id?: string;
     url?: string;
     phone?: string;
+    copy_code?: string;
+    code?: string;
 }
 
 export interface InteractivePayload {

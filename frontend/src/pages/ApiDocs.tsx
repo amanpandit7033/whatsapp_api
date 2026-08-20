@@ -253,7 +253,7 @@ export const ApiDocs = () => {
   };
 
   const copyApiUrl = async () => {
-    const url = `${baseApiUrl}/api/send?number=919876543210&type=text&message=Hello+World&instance_id=${activeInstanceId}&access_token=${apiKey}`;
+    const url = `${baseApiUrl}/api/send?number=91XXXXXXXXXX&type=text&message=Hello+World&instance_id=${activeInstanceId}&access_token=${apiKey}`;
     const success = await copyToClipboard(url);
     if (success) {
       setCopiedUrl(true);
@@ -276,6 +276,126 @@ export const ApiDocs = () => {
   };
 
   const allEndpoints: IEndpoint[] = [
+    // 0. Dedicated High-Priority OTP & Authentication API (POST /api/send/otp)
+    {
+      category: 'messaging',
+      method: 'POST',
+      path: '/api/send/otp',
+      title: 'Send OTP & 2FA Code (High-Priority Anti-Ban & Multi-SIM Pool)',
+      desc: 'Dedicated high-speed endpoint for Authentication OTPs and custom login codes. Clients can pass any custom message template of their choice (supporting {{otp}} variables). Includes Multi-SIM load balancing with auto-failover, invisible anti-hash protection, and optional 1-tap "Copy Code" interactive button.',
+      params: [
+        { name: 'number', type: 'string', req: true, desc: 'Recipient phone number with country code (e.g. 91XXXXXXXXXX).' },
+        { name: 'message', type: 'string', req: false, desc: 'Your custom message template (e.g. "Your verification code is: {{otp}}. Do not share with anyone.").' },
+        { name: 'otp', type: 'string', req: false, desc: 'The 4-8 digit verification code (e.g. "849201"). Automatically substitutes {{otp}} in message.' },
+        { name: 'copy_button', type: 'boolean', req: false, desc: 'Set to true to attach an interactive 1-tap "Copy Code" button.' },
+        { name: 'copy_button_label', type: 'string', req: false, desc: 'Button display text (default: "Copy Code").' },
+        { name: 'footer', type: 'string', req: false, desc: 'Optional subtle footer text.' },
+        { name: 'pool', type: 'string', req: false, desc: 'Name or slug of your created SIM pool (e.g. "marketing", "otp-gateway"). The gateway rotates across all SIMs in this pool automatically.' },
+        { name: 'instance_id', type: 'string', req: false, desc: 'Single specific WhatsApp instance ID (optional).' },
+        { name: 'api_key', type: 'string', req: true, desc: 'API Key (or pass in x-api-key / Bearer header).' },
+      ],
+      snippets: [
+        {
+          label: 'cURL',
+          language: 'bash',
+          code: `curl -X POST "${baseApiUrl}/api/send/otp" \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: ${apiKey}" \\
+  -d '{
+    "number": "91XXXXXXXXXX",
+    "otp": "849201",
+    "message": "*AcmeCorp Security*\nYour login OTP is: *{{otp}}*\n\nValid for 5 minutes. Do not share this code.",
+    "copy_button": true,
+    "footer": "Sent via Acme Secure Portal"
+  }'`
+        },
+        {
+          label: 'Node.js',
+          language: 'javascript',
+          code: `const axios = require('axios');
+
+async function sendWhatsAppOtp() {
+  const response = await axios.post('${baseApiUrl}/api/send/otp', {
+    number: '91XXXXXXXXXX',
+    otp: '849201',
+    message: 'Your verification code is: {{otp}}',
+    copy_button: true
+  }, {
+    headers: { 'x-api-key': '${apiKey}' }
+  });
+
+  console.log(response.data);
+}
+
+sendWhatsAppOtp();`
+        },
+        {
+          label: 'Python',
+          language: 'python',
+          code: `import requests
+
+url = "${baseApiUrl}/api/send/otp"
+headers = {"x-api-key": "${apiKey}", "Content-Type": "application/json"}
+payload = {
+    "number": "91XXXXXXXXXX",
+    "otp": "849201",
+    "message": "Your verification code is: {{otp}}",
+    "copy_button": True
+}
+
+response = requests.post(url, json=payload, headers=headers)
+print(response.json())`
+        },
+        {
+          label: 'PHP (cURL)',
+          language: 'php',
+          code: `<?php
+$curl = curl_init();
+
+$payload = json_encode([
+    "number" => "91XXXXXXXXXX",
+    "otp" => "849201",
+    "message" => "Your verification code is: {{otp}}",
+    "copy_button" => true
+]);
+
+curl_setopt_array($curl, [
+    CURLOPT_URL => "${baseApiUrl}/api/send/otp",
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => $payload,
+    CURLOPT_HTTPHEADER => [
+        "Content-Type: application/json",
+        "x-api-key: ${apiKey}"
+    ]
+]);
+
+$response = curl_exec($curl);
+curl_close($curl);
+echo $response;`
+        },
+        {
+          label: 'Direct URL (GET)',
+          language: 'http',
+          code: `${baseApiUrl}/api/send/otp?api_key=${apiKey}&number=91XXXXXXXXXX&otp=849201&message=Your+verification+code+is:+{{otp}}&copy_button=true`
+        }
+      ],
+      resExample: {
+        title: 'RESPONSE JSON (< 1s Latency with Multi-SIM Failover)',
+        code: JSON.stringify({
+          success: true,
+          status: "sent",
+          has_copy_button: true,
+          instance_id: activeInstanceId,
+          pool_size: 3,
+          message_id: "cm7a920b12345678",
+          to: "91XXXXXXXXXX",
+          latency_ms: 365,
+          timestamp: 1740042710
+        }, null, 2)
+      }
+    },
+
     // 1. Quick Send API (GET /api/send)
     {
       category: 'messaging',
@@ -284,23 +404,24 @@ export const ApiDocs = () => {
       title: 'Quick Send API (1-Click URL & cURL)',
       desc: 'The fastest way to send a WhatsApp message — simply call the URL directly in your browser, cURL, or any webhook without formatting a JSON payload.',
       params: [
-        { name: 'number', type: 'string', req: true, desc: 'Recipient phone number with country code (e.g. 919876543210).' },
+        { name: 'number', type: 'string', req: true, desc: 'Recipient phone number with country code (e.g. 91XXXXXXXXXX).' },
         { name: 'message', type: 'string', req: true, desc: 'Message body text (URL-encoded).' },
-        { name: 'instance_id', type: 'string', req: true, desc: 'Your connected WhatsApp instance ID.' },
+        { name: 'instance_id', type: 'string', req: false, desc: 'Your connected WhatsApp instance ID (optional if using pool).' },
+        { name: 'pool', type: 'string', req: false, desc: 'Name or slug of your Multi-SIM pool (e.g. "marketing", "otp-gateway").' },
         { name: 'access_token', type: 'string', req: true, desc: 'Your API Access Token / API Key.' },
         { name: 'type', type: 'string', req: false, desc: '"text" (default) or "media".' },
         { name: 'media_url', type: 'string', req: false, desc: 'Public URL of file/image/PDF when type=media.' },
       ],
       snippets: [
         {
-          label: 'Direct URL (Browser)',
+          label: 'Direct URL (GET)',
           language: 'http',
-          code: `${baseApiUrl}/api/send?number=919876543210&type=text&message=Hello+from+WhatsApp+Gateway&instance_id=${activeInstanceId}&access_token=${apiKey}`
+          code: `${baseApiUrl}/api/send?number=91XXXXXXXXXX&type=text&message=Hello+from+WhatsApp+Gateway&instance_id=${activeInstanceId}&access_token=${apiKey}`
         },
         {
           label: 'cURL',
           language: 'bash',
-          code: `curl -X GET "${baseApiUrl}/api/send?number=919876543210&type=text&message=Hello+from+cURL&instance_id=${activeInstanceId}&access_token=${apiKey}"`
+          code: `curl -X GET "${baseApiUrl}/api/send?number=91XXXXXXXXXX&type=text&message=Hello+from+cURL&instance_id=${activeInstanceId}&access_token=${apiKey}"`
         },
         {
           label: 'Python',
@@ -309,7 +430,7 @@ export const ApiDocs = () => {
 
 url = "${baseApiUrl}/api/send"
 params = {
-    "number": "919876543210",
+    "number": "91XXXXXXXXXX",
     "type": "text",
     "message": "Hello from Python!",
     "instance_id": "${activeInstanceId}",
@@ -322,7 +443,7 @@ print(response.json())`
         {
           label: 'Node.js',
           language: 'javascript',
-          code: `const url = "${baseApiUrl}/api/send?number=919876543210&type=text&message=Hello&instance_id=${activeInstanceId}&access_token=${apiKey}";
+          code: `const url = "${baseApiUrl}/api/send?number=91XXXXXXXXXX&type=text&message=Hello&instance_id=${activeInstanceId}&access_token=${apiKey}";
 
 fetch(url)
   .then(res => res.json())
@@ -333,7 +454,7 @@ fetch(url)
           language: 'php',
           code: `<?php
 $url = "${baseApiUrl}/api/send?" . http_build_query([
-    "number" => "919876543210",
+    "number" => "91XXXXXXXXXX",
     "type" => "text",
     "message" => "Hello from PHP!",
     "instance_id" => "${activeInstanceId}",
@@ -364,16 +485,16 @@ echo $response;`
       params: [
         { name: 'api_key', type: 'string', req: true, desc: 'Your Secrets API Key (or pass in access_token / Bearer header).' },
         { name: 'instance_id', type: 'string', req: true, desc: 'Your linked WhatsApp Instance ID.' },
-        { name: 'number', type: 'string', req: true, desc: 'Recipient phone number with country code (e.g. 919876543210).' },
+        { name: 'number', type: 'string', req: true, desc: 'Recipient phone number with country code (e.g. 91XXXXXXXXXX).' },
         { name: 'message', type: 'string', req: false, desc: 'Plain text message content or caption.' },
         { name: 'media_url', type: 'string', req: false, desc: 'Direct URL to PDF, Image, Video, or Audio file.' },
         { name: 'filename', type: 'string', req: false, desc: 'Custom display filename for documents (e.g. invoice.pdf).' }
       ],
       snippets: [
         {
-          label: 'Direct URL (Browser)',
+          label: 'Direct URL (GET)',
           language: 'http',
-          code: `${baseApiUrl}/api/message/send?number=919876543210&message=Hello+from+Direct+URL&instance_id=${activeInstanceId}&api_key=${apiKey}`
+          code: `${baseApiUrl}/api/message/send?number=91XXXXXXXXXX&message=Hello+from+Direct+URL&instance_id=${activeInstanceId}&api_key=${apiKey}`
         },
         {
           label: 'cURL (Postman)',
@@ -383,7 +504,7 @@ echo $response;`
   -d '{
     "api_key": "${apiKey}",
     "instance_id": "${activeInstanceId}",
-    "number": "919876543210",
+    "number": "91XXXXXXXXXX",
     "message": "Hello from Postman!"
   }'`
         },
@@ -393,7 +514,7 @@ echo $response;`
           code: JSON.stringify({
             api_key: apiKey,
             instance_id: activeInstanceId,
-            number: "919876543210",
+            number: "91XXXXXXXXXX",
             message: "Hello from API!"
           }, null, 2)
         },
@@ -406,7 +527,7 @@ url = "${baseApiUrl}/api/message/send"
 payload = {
     "api_key": "${apiKey}",
     "instance_id": "${activeInstanceId}",
-    "number": "919876543210",
+    "number": "91XXXXXXXXXX",
     "message": "Hello from Python!"
 }
 
@@ -422,7 +543,7 @@ print(response.json())`
   body: JSON.stringify({
     api_key: "${apiKey}",
     instance_id: "${activeInstanceId}",
-    number: "919876543210",
+    number: "91XXXXXXXXXX",
     message: "Hello from Node.js!"
   })
 })
@@ -441,7 +562,7 @@ curl_setopt_array($curl, [
   CURLOPT_POSTFIELDS => json_encode([
     "api_key" => "${apiKey}",
     "instance_id" => "${activeInstanceId}",
-    "number" => "919876543210",
+    "number" => "91XXXXXXXXXX",
     "message" => "Hello from PHP!"
   ]),
   CURLOPT_HTTPHEADER => ["Content-Type: application/json"],
@@ -471,7 +592,7 @@ echo $response;`
       params: [
         { name: 'access_token', type: 'string', req: true, desc: 'Your API Access Token / API Key.' },
         { name: 'instance_id', type: 'string', req: true, desc: 'Your linked WhatsApp Instance ID.' },
-        { name: 'number', type: 'string', req: true, desc: 'Recipient phone number (e.g. 919876543210).' },
+        { name: 'number', type: 'string', req: true, desc: 'Recipient phone number (e.g. 91XXXXXXXXXX).' },
         { name: 'type', type: 'string', req: true, desc: 'Must be set to "media".' },
         { name: 'media_url', type: 'string', req: true, desc: 'Public HTTPS direct URL of media or document.' },
         { name: 'filename', type: 'string', req: false, desc: 'Display filename (e.g. Invoice_August_2026.pdf).' },
@@ -479,9 +600,9 @@ echo $response;`
       ],
       snippets: [
         {
-          label: 'Direct URL (Browser)',
+          label: 'Direct URL (GET)',
           language: 'http',
-          code: `${baseApiUrl}/api/send?number=919876543210&type=media&media_url=https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf&filename=Invoice.pdf&message=Your+Invoice&instance_id=${activeInstanceId}&access_token=${apiKey}`
+          code: `${baseApiUrl}/api/send?number=91XXXXXXXXXX&type=media&media_url=https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf&filename=Invoice.pdf&message=Your+Invoice&instance_id=${activeInstanceId}&access_token=${apiKey}`
         },
         {
           label: 'cURL',
@@ -491,7 +612,7 @@ echo $response;`
   -d '{
     "access_token": "${apiKey}",
     "instance_id": "${activeInstanceId}",
-    "number": "919876543210",
+    "number": "91XXXXXXXXXX",
     "type": "media",
     "media_url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
     "filename": "Invoice.pdf",
@@ -504,7 +625,7 @@ echo $response;`
           code: JSON.stringify({
             access_token: apiKey,
             instance_id: activeInstanceId,
-            number: "919876543210",
+            number: "91XXXXXXXXXX",
             type: "media",
             media_url: "https://example.com/invoice.pdf",
             filename: "Invoice.pdf",
@@ -520,7 +641,7 @@ url = "${baseApiUrl}/api/send"
 payload = {
     "access_token": "${apiKey}",
     "instance_id": "${activeInstanceId}",
-    "number": "919876543210",
+    "number": "91XXXXXXXXXX",
     "type": "media",
     "media_url": "https://example.com/invoice.pdf",
     "filename": "Invoice.pdf",
@@ -551,17 +672,17 @@ print(res.json())`
       params: [
         { name: 'api_key', type: 'string', req: true, desc: 'Your Secrets API Key (or access_token).' },
         { name: 'instance_id', type: 'string', req: true, desc: 'Your connected Instance ID.' },
-        { name: 'number', type: 'string', req: true, desc: 'Recipient phone number (e.g. 919876543210).' },
+        { name: 'number', type: 'string', req: true, desc: 'Recipient phone number (e.g. 91XXXXXXXXXX).' },
         { name: 'message', type: 'string', req: true, desc: 'Main text message content.' },
         { name: 'url_btn', type: 'string', req: false, desc: 'URL Button format: "Label|https://website.com"' },
-        { name: 'call_btn', type: 'string', req: false, desc: 'Call Button format: "Label|+919876543210"' },
+        { name: 'call_btn', type: 'string', req: false, desc: 'Call Button format: "Label|+91XXXXXXXXXX"' },
         { name: 'reply_btn', type: 'string', req: false, desc: 'Quick Reply button text label.' }
       ],
       snippets: [
         {
-          label: 'Direct URL (Browser)',
+          label: 'Direct URL (GET)',
           language: 'http',
-          code: `${baseApiUrl}/api/send-button?number=919876543210&message=Exclusive+Special+Offer!&header=Special+Deal&footer=Powered+by+Gateway&url_btn=Visit+Website|${baseApiUrl}&call_btn=Call+Support|+919876543210&reply_btn=Claim+Discount&instance_id=${activeInstanceId}&api_key=${apiKey}`
+          code: `${baseApiUrl}/api/send-button?number=91XXXXXXXXXX&message=Exclusive+Special+Offer!&header=Special+Deal&footer=Powered+by+Gateway&url_btn=Visit+Website|${baseApiUrl}&call_btn=Call+Support|+91XXXXXXXXXX&reply_btn=Claim+Discount&instance_id=${activeInstanceId}&api_key=${apiKey}`
         },
         {
           label: 'cURL (JSON Payload)',
@@ -571,7 +692,7 @@ print(res.json())`
   -d '{
     "api_key": "${apiKey}",
     "instance_id": "${activeInstanceId}",
-    "number": "919876543210",
+    "number": "91XXXXXXXXXX",
     "interactive": {
       "headerType": "text",
       "headerText": "Exclusive Special Offer!",
@@ -579,7 +700,7 @@ print(res.json())`
       "footer": "Powered by WhatsApp Gateway",
       "buttons": [
         { "type": "cta_url", "label": "Visit Portal", "url": "${baseApiUrl}" },
-        { "type": "cta_call", "label": "Call Support", "phone": "+919876543210" },
+        { "type": "cta_call", "label": "Call Support", "phone": "+91XXXXXXXXXX" },
         { "type": "quick_reply", "label": "Help & FAQs", "id": "btn_help" }
       ]
     }
@@ -591,7 +712,7 @@ print(res.json())`
           code: JSON.stringify({
             api_key: apiKey,
             instance_id: activeInstanceId,
-            number: "919876543210",
+            number: "91XXXXXXXXXX",
             interactive: {
               headerType: "text",
               headerText: "Exclusive Special Offer!",
@@ -599,7 +720,7 @@ print(res.json())`
               footer: "Powered by WhatsApp Gateway",
               buttons: [
                 { type: "cta_url", label: "Visit Website", url: baseApiUrl },
-                { type: "cta_call", label: "Call Us", phone: "+919876543210" },
+                { type: "cta_call", label: "Call Us", phone: "+91XXXXXXXXXX" },
                 { type: "quick_reply", label: "Chat Support", id: "chat_support" }
               ]
             }
@@ -626,7 +747,7 @@ print(res.json())`
       params: [
         { name: 'access_token', type: 'string', req: true, desc: 'Your API Access Token / API Key.' },
         { name: 'instance_id', type: 'string', req: true, desc: 'Your connected WhatsApp instance ID.' },
-        { name: 'numbers', type: 'array | string', req: true, desc: 'Single number or array of numbers with country code (e.g. ["919876543210", "919507066372"]).' },
+        { name: 'numbers', type: 'array | string', req: true, desc: 'Single number or array of numbers with country code (e.g. ["91XXXXXXXXXX", "919507066372"]).' },
         { name: 'delay', type: 'number', req: false, desc: 'Delay in milliseconds between checks (default: 100ms).' }
       ],
       snippets: [
@@ -638,13 +759,13 @@ print(res.json())`
   -d '{
     "access_token": "${apiKey}",
     "instance_id": "${activeInstanceId}",
-    "numbers": ["919876543210", "919507066372"]
+    "numbers": ["91XXXXXXXXXX", "919507066372"]
   }'`
         },
         {
           label: 'Direct GET URL (Single Number)',
           language: 'http',
-          code: `${baseApiUrl}/api/check-number?number=919876543210&instance_id=${activeInstanceId}&access_token=${apiKey}`
+          code: `${baseApiUrl}/api/check-number?number=91XXXXXXXXXX&instance_id=${activeInstanceId}&access_token=${apiKey}`
         },
         {
           label: 'Python',
@@ -655,7 +776,7 @@ url = "${baseApiUrl}/api/check-number"
 payload = {
     "access_token": "${apiKey}",
     "instance_id": "${activeInstanceId}",
-    "numbers": ["919876543210", "919507066372"]
+    "numbers": ["91XXXXXXXXXX", "919507066372"]
 }
 
 res = requests.post(url, json=payload)
@@ -670,7 +791,7 @@ print(res.json())`
           validCount: 1,
           invalidCount: 1,
           results: [
-            { number: "919876543210", exists: true, jid: "919876543210@s.whatsapp.net" },
+            { number: "91XXXXXXXXXX", exists: true, jid: "91XXXXXXXXXX@s.whatsapp.net" },
             { number: "919507066372", exists: false, jid: null }
           ]
         }, null, 2)
@@ -690,7 +811,7 @@ print(res.json())`
       ],
       snippets: [
         {
-          label: 'Direct URL (Browser)',
+          label: 'Direct URL (GET)',
           language: 'http',
           code: `${baseApiUrl}/api/message/status?api_key=${apiKey}&message_id=YOUR_MESSAGE_ID`
         },
@@ -705,7 +826,7 @@ print(res.json())`
         code: JSON.stringify({
           success: true,
           message_id: "c8f12a34-5b67-4890-a1b2-c3d4e5f67890",
-          number: "919876543210",
+          number: "91XXXXXXXXXX",
           status: "sent",
           created_at: new Date().toISOString()
         }, null, 2)
@@ -725,7 +846,7 @@ print(res.json())`
       ],
       snippets: [
         {
-          label: 'Direct URL',
+          label: 'Direct URL (GET)',
           language: 'http',
           code: `${baseApiUrl}/api/group_list?instance_id=${activeInstanceId}&access_token=${apiKey}`
         },
@@ -767,7 +888,7 @@ print(res.json())`
       ],
       snippets: [
         {
-          label: 'Direct URL',
+          label: 'Direct URL (GET)',
           language: 'http',
           code: `${baseApiUrl}/api/group_participants?instance_id=${activeInstanceId}&group_id=120363405275458276@g.us&access_token=${apiKey}`
         },
@@ -824,7 +945,7 @@ print(res.json())`
   }'`
         },
         {
-          label: 'Direct GET URL',
+          label: 'Direct URL (GET)',
           language: 'http',
           code: `${baseApiUrl}/api/send_group?group_id=120363405275458276@g.us&type=text&message=Hello+Team&instance_id=${activeInstanceId}&access_token=${apiKey}`
         }
@@ -852,7 +973,7 @@ print(res.json())`
       ],
       snippets: [
         {
-          label: 'Direct URL',
+          label: 'Direct URL (GET)',
           language: 'http',
           code: `${baseApiUrl}/api/create_instance?access_token=${apiKey}`
         },
@@ -885,7 +1006,7 @@ print(res.json())`
       ],
       snippets: [
         {
-          label: 'Direct URL',
+          label: 'Direct URL (GET)',
           language: 'http',
           code: `${baseApiUrl}/api/get_qrcode?instance_id=${activeInstanceId}&access_token=${apiKey}`
         },
@@ -918,7 +1039,7 @@ print(res.json())`
       ],
       snippets: [
         {
-          label: 'Direct URL (Browser)',
+          label: 'Direct URL (GET)',
           language: 'http',
           code: `${baseApiUrl}/api/reboot?instance_id=${activeInstanceId}&access_token=${apiKey}`
         },
@@ -950,7 +1071,7 @@ print(res.json())`
       ],
       snippets: [
         {
-          label: 'Direct URL (Browser)',
+          label: 'Direct URL (GET)',
           language: 'http',
           code: `${baseApiUrl}/api/reconnect?instance_id=${activeInstanceId}&access_token=${apiKey}`
         },
@@ -982,7 +1103,7 @@ print(res.json())`
       ],
       snippets: [
         {
-          label: 'Direct URL (Browser)',
+          label: 'Direct URL (GET)',
           language: 'http',
           code: `${baseApiUrl}/api/reset_instance?instance_id=${activeInstanceId}&access_token=${apiKey}`
         },
@@ -1054,7 +1175,7 @@ echo $response;`
       ],
       snippets: [
         {
-          label: 'Direct URL (Browser)',
+          label: 'Direct URL (GET)',
           language: 'http',
           code: `${baseApiUrl}/api/set_webhook?webhook_url=${encodeURIComponent('https://yourdomain.com/webhook.php')}&enable=true&instance_id=${activeInstanceId}&access_token=${apiKey}`
         },
@@ -1110,7 +1231,7 @@ echo $response;`
       ],
       snippets: [
         {
-          label: 'Direct URL (Browser)',
+          label: 'Direct URL (GET)',
           language: 'http',
           code: `${baseApiUrl}/api/get_webhook?instance_id=${activeInstanceId}&access_token=${apiKey}`
         },
@@ -1331,7 +1452,7 @@ echo $response;`
             }}
           >
             <code style={{ flex: 1, fontFamily: 'var(--font-mono)', fontSize: '12.5px', color: '#38BDF8', wordBreak: 'break-all', lineHeight: 1.6 }}>
-              {baseApiUrl}/api/send?number=919876543210&type=text&message=Hello+World&instance_id={activeInstanceId}&access_token={apiKey}
+              {baseApiUrl}/api/send?number=91XXXXXXXXXX&type=text&message=Hello+World&instance_id={activeInstanceId}&access_token={apiKey}
             </code>
             <button
               onClick={copyApiUrl}

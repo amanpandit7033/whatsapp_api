@@ -22,7 +22,8 @@ import {
   GlassSidebarHideIcon,
   GlassWhatsAppIcon,
   GlassAdminIcon,
-  GlassUserIcon
+  GlassUserIcon,
+  GlassLiveStatusIcon
 } from './GlassIcons';
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -120,7 +121,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       items: [
         { to: '/reports', icon: GlassReportIcon, label: 'Reports', id: 'reports' },
         ...(isAdmin || (isReseller && !isAdmin) ? [
-          { to: '/live-status', icon: GlassActivityIcon, label: 'Live Status', id: 'live-status' }
+          { to: '/live-status', icon: GlassLiveStatusIcon, label: 'Live Status', id: 'live-status' }
         ] : []),
       ]
     },
@@ -134,7 +135,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
       title: 'Management',
       items: [
         ...(isReseller && !isAdmin ? [
-          { to: '/reseller', icon: GlassResellerIcon, label: 'Reseller Hub', id: 'reseller' }
+          { to: '/reseller', icon: GlassAdminIcon, label: 'User Management', id: 'reseller' }
         ] : []),
         ...(isAdmin ? [
           { to: '/whitelabel', icon: GlassGlobeIcon, label: 'White-Label', id: 'whitelabel' },
@@ -149,7 +150,11 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
     .map(section => ({
       ...section,
       items: section.items.filter(item => 
-        isAdmin || item.id === 'dashboard' || item.id === 'profile' || permissions.includes(item.id)
+        isAdmin ||
+        (isReseller && (item.id === 'reseller' || item.id === 'live-status' || item.id === 'user-management')) ||
+        item.id === 'dashboard' ||
+        item.id === 'profile' ||
+        permissions.includes(item.id)
       )
     }))
     .filter(section => section.items.length > 0);

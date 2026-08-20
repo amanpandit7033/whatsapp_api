@@ -21,6 +21,7 @@ import {
   GlassEditIcon,
   GlassTurboIcon,
   GlassAdminIcon,
+  GlassLiveStatusIcon,
   GlassUserIcon,
   GlassUserPlusIcon,
   GlassPlusIcon,
@@ -54,15 +55,42 @@ export const AdminPanel = () => {
   const [success, setSuccess] = useState('');
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editPassword, setEditPassword] = useState('');
+  const [deletingUser, setDeletingUser] = useState<any>(null);
   const navigate = useNavigate();
 
   useEffect(() => { fetchUsers(); }, [page, search]);
 
+  const handleDeleteUser = async (id: string) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/users/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to delete user');
+      } else {
+        setDeletingUser(null);
+        fetchUsers();
+      }
+    } catch (e: any) {
+      alert('Error deleting user: ' + e.message);
+    }
+  };
+
   const fetchUsers = async () => {
+    const isReseller = localStorage.getItem('isReseller') === 'true' || localStorage.getItem('role') === 'reseller';
+    if (isReseller && !localStorage.getItem('isAdmin')) {
+      navigate('/reseller');
+      return;
+    }
     const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/users?page=${page}&limit=10&search=${search}`, {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
     });
-    if (res.status === 401 || res.status === 403) { navigate('/'); return; }
+    if (res.status === 401 || res.status === 403) { 
+      navigate(isReseller ? '/reseller' : '/'); 
+      return; 
+    }
     const data = await res.json();
     if (data.users) {
       const sortedUsers = [...data.users].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -191,7 +219,7 @@ export const AdminPanel = () => {
             className="btn-outline" 
             style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '12px', fontSize: '13px', fontWeight: 700 }}
           >
-            <GlassTurboIcon size={16} /> View Live Status
+            <GlassLiveStatusIcon size={18} /> View Live Status
           </button>
           <button 
             onClick={() => { setIsAddUserModalOpen(true); setError(''); setSuccess(''); }} 
@@ -356,16 +384,41 @@ export const AdminPanel = () => {
                               transition: 'all 0.2s ease'
                             }}
                           >
-                            <GlassAstronautIcon size={16} /> 
+                            <GlassAstronautIcon size={16} />
+                            <span>Impersonate</span>
                           </button>
                         )}
                         <button onClick={() => { setEditingUser({ ...user }); setEditPassword(''); }} style={{
                           background: '#EFF6FF', border: '1px solid #DBEAFE', borderRadius: '10px',
                           padding: '6px 12px', fontSize: '13px', fontWeight: 700, color: '#2563EB',
                           cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease'
-                        }}>
-                          <GlassEditIcon size={16} /> 
+                        }} title={`Edit ${user.username}`}>
+                          <GlassEditIcon size={16} />
+                          <span>Edit</span>
                         </button>
+                        {!user.isAdmin && (
+                          <button
+                            onClick={() => setDeletingUser(user)}
+                            title={`Delete ${user.username}`}
+                            style={{
+                              background: '#FEF2F2',
+                              border: '1px solid #FEE2E2',
+                              borderRadius: '10px',
+                              padding: '6px 12px',
+                              fontSize: '13px',
+                              fontWeight: 700,
+                              color: '#DC2626',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <GlassCancelIcon size={16} />
+                            <span>Delete</span>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1082,6 +1135,48 @@ export const AdminPanel = () => {
                 <button type="submit" className="btn-primary">Save Changes</button>
               </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {deletingUser && createPortal(
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '24px' }}>
+          <div className="card animate-in" style={{ width: '100%', maxWidth: '440px', borderRadius: '24px', padding: '28px', background: '#FFFFFF', boxShadow: '0 25px 50px -12px rgba(220, 38, 38, 0.25)' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+              <GlassWarningIcon size={24} />
+            </div>
+            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#0F172A', margin: '0 0 8px' }}>
+              Delete User Account?
+            </h3>
+            <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 20px', lineHeight: 1.5 }}>
+              Are you sure you want to permanently delete <strong style={{ color: '#0F172A' }}>@{deletingUser.username}</strong>? All connected instances, message logs, and account configurations will be permanently removed.
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setDeletingUser(null)}
+                className="btn-outline"
+                style={{ flex: 1, height: '44px', borderRadius: '12px', fontWeight: 700 }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteUser(deletingUser.id)}
+                style={{
+                  flex: 1,
+                  height: '44px',
+                  borderRadius: '12px',
+                  fontWeight: 800,
+                  background: '#DC2626',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                Delete User
+              </button>
+            </div>
           </div>
         </div>,
         document.body
