@@ -799,6 +799,12 @@ const handleSendMessage = async (req: any, res: any) => {
                     status: 'pending'
                 }
             });
+
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { messagesSentThisMonth: { increment: 1 }, lastMessageMonth: currentMonth }
+            });
         } catch (dbErr) { console.error('Log error:', dbErr); }
 
         // Background processing with failover
@@ -948,6 +954,12 @@ const handleSendInteractiveMessage = async (req: any, res: any) => {
                     }),
                     status: 'pending'
                 }
+            });
+
+            const currentMonth = new Date().toISOString().slice(0, 7);
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { messagesSentThisMonth: { increment: 1 }, lastMessageMonth: currentMonth }
             });
         } catch (dbErr) { console.error('Log error:', dbErr); }
 
@@ -3831,11 +3843,22 @@ router.post('/groups/send', authenticate, async (req: any, res: any) => {
             });
         } catch (dbErr) { console.error('Group log error:', dbErr); }
 
-        const { sendMessage } = require('../services/whatsapp.service');
-        const sendResult = await sendMessage(instanceId, formattedJid, message || '', fileObj);
+        let sendResult: any = null;
+        try {
+            const { sendMessage } = require('../services/whatsapp.service');
+            sendResult = await sendMessage(instanceId, formattedJid, message || '', fileObj);
 
-        if (logRecord) {
-            try { await prisma.messageLog.update({ where: { id: logRecord.id }, data: { status: 'sent' } }); } catch {}
+            if (logRecord) {
+                try { await prisma.messageLog.update({ where: { id: logRecord.id }, data: { status: 'sent' } }); } catch {}
+            }
+            await recordDailyUsage(req.user.userId, 'sent');
+        } catch (sendErr: any) {
+            console.error('Group send error:', sendErr);
+            if (logRecord) {
+                try { await prisma.messageLog.update({ where: { id: logRecord.id }, data: { status: 'failed' } }); } catch {}
+            }
+            await recordDailyUsage(req.user.userId, 'failed');
+            throw sendErr;
         }
 
         res.json({
@@ -3973,11 +3996,22 @@ const publicSendGroupHandler = async (req: any, res: any) => {
             });
         } catch (dbErr) { console.error('Public group log error:', dbErr); }
 
-        const { sendMessage } = require('../services/whatsapp.service');
-        const sendResult = await sendMessage(instance_id, formattedJid, message || '', fileObj);
+        let sendResult: any = null;
+        try {
+            const { sendMessage } = require('../services/whatsapp.service');
+            sendResult = await sendMessage(instance_id, formattedJid, message || '', fileObj);
 
-        if (logRecord) {
-            try { await prisma.messageLog.update({ where: { id: logRecord.id }, data: { status: 'sent' } }); } catch {}
+            if (logRecord) {
+                try { await prisma.messageLog.update({ where: { id: logRecord.id }, data: { status: 'sent' } }); } catch {}
+            }
+            await recordDailyUsage(user.id, 'sent');
+        } catch (sendErr: any) {
+            console.error('Public group send error:', sendErr);
+            if (logRecord) {
+                try { await prisma.messageLog.update({ where: { id: logRecord.id }, data: { status: 'failed' } }); } catch {}
+            }
+            await recordDailyUsage(user.id, 'failed');
+            throw sendErr;
         }
 
         return res.json({
