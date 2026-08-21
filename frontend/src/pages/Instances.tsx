@@ -21,7 +21,8 @@ import {
   GlassTrashIcon,
   GlassCancelIcon,
   GlassTagIcon,
-  GlassUsersIcon
+  GlassUsersIcon,
+  GlassQrCodeIcon
 } from '../components/GlassIcons';
 
 export const Instances = () => {
@@ -494,9 +495,9 @@ export const Instances = () => {
                               transition: 'all 0.2s ease',
                               padding: '0'
                             }}
-                            title="Connect WhatsApp"
+                            title="Scan QR Code & Connect"
                           >
-                            <GlassRefreshIcon size={18} />
+                            <GlassQrCodeIcon size={18} />
                           </button>
                         )}
                         <button

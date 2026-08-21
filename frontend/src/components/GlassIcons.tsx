@@ -1567,32 +1567,85 @@ export const GlassRefreshIcon: React.FC<GlassIconProps> = ({ size = 24, ...props
 };
 export const GlassSyncIcon = GlassRefreshIcon;
 
-// 30. QR Code / Matrix Scanner (Sapphire / Cyan Glass from icons.txt)
+// 30. QR Code / Matrix Scanner (Sapphire 3D Glass)
 export const GlassQrCodeIcon: React.FC<GlassIconProps> = ({ size = 24, ...props }) => {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const baseTile = "M6 2C3.79086 2 2 3.79086 2 6V18C2 20.2091 3.79086 22 6 22H18C20.2091 22 22 20.2091 22 18V6C22 3.79086 20.2091 2 18 2H6Z";
+
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
       <g>
-        <path fillRule="evenodd" d="M4,4H10V10H4Z M5.25,5.25H8.75V8.75H5.25Z M6.5,6.5H7.5V7.5H6.5Z M14,4H20V10H14Z M15.25,5.25H18.75V8.75H15.25Z M16.5,6.5H17.5V7.5H16.5Z M4,14H10V20H4Z M5.25,15.25H8.75V18.75H5.25Z M6.5,16.5H7.5V17.5H6.5Z M14,14H15.4V15.4H14Z M17.3,14H18.7V15.4H17.3Z M14,17.3H15.4V18.7H14Z M17.3,17.3H18.7V18.7H17.3Z M15.65,15.65H17.05V17.05H15.65Z" fill={`url(#g-qr-0-${uid})`} mask={`url(#m-qr-${uid})`} />
-        <rect x="2" y="2" width="20" height="20" rx="5" fill={`url(#g-qr-1-${uid})`} />
-        <path fillRule="evenodd" d="M7,2 H17 A5,5 0 0 1 22,7 V17 A5,5 0 0 1 17,22 H7 A5,5 0 0 1 2,17 V7 A5,5 0 0 1 7,2 Z M7,2.75 H17 A4.25,4.25 0 0 1 21.25,7 V17 A4.25,4.25 0 0 1 17,21.25 H7 A4.25,4.25 0 0 1 2.75,17 V7 A4.25,4.25 0 0 1 7,2.75 Z" fill={`url(#g-qr-rim-${uid})`} />
+        {/* Layer 0: Deep 3D Solid Background Base (Sapphire to Deep Blue) */}
+        <path d={baseTile} fill={`url(#g-qr-0-${uid})`} mask={`url(#m-qr-${uid})`} />
+        
+        {/* Layer 0 Blur Glow clipped */}
+        <path d={baseTile} fill={`url(#g-qr-0-${uid})`} filter={`url(#f-qr-${uid})`} clipPath={`url(#cp-qr-${uid})`} />
+        
+        {/* Layer 1: Frosted Translucent Glass Foreground Tile */}
+        <path d={baseTile} fill={`url(#g-qr-1-${uid})`} fillOpacity="0.85" />
+        
+        {/* Layer 2: 3D Raised Sapphire Finder Eyes and Data Modules */}
+        {/* Top-Left Finder */}
+        <rect x="4.5" y="4.5" width="5.5" height="5.5" rx="1.5" stroke={`url(#g-qr-mod-${uid})`} strokeWidth="1.5" />
+        <rect x="6.25" y="6.25" width="2" height="2" rx="0.5" fill={`url(#g-qr-mod-${uid})`} />
+        
+        {/* Top-Right Finder */}
+        <rect x="14" y="4.5" width="5.5" height="5.5" rx="1.5" stroke={`url(#g-qr-mod-${uid})`} strokeWidth="1.5" />
+        <rect x="15.75" y="6.25" width="2" height="2" rx="0.5" fill={`url(#g-qr-mod-${uid})`} />
+        
+        {/* Bottom-Left Finder */}
+        <rect x="4.5" y="14" width="5.5" height="5.5" rx="1.5" stroke={`url(#g-qr-mod-${uid})`} strokeWidth="1.5" />
+        <rect x="6.25" y="15.75" width="2" height="2" rx="0.5" fill={`url(#g-qr-mod-${uid})`} />
+        
+        {/* Matrix Data Bits */}
+        <rect x="13.75" y="13.75" width="2" height="2" rx="0.6" fill={`url(#g-qr-mod-${uid})`} />
+        <rect x="17.75" y="13.75" width="2" height="2" rx="0.6" fill={`url(#g-qr-mod-${uid})`} />
+        <rect x="15.75" y="15.75" width="2" height="2" rx="0.6" fill={`url(#g-qr-mod-${uid})`} />
+        <rect x="13.75" y="17.75" width="2" height="2" rx="0.6" fill={`url(#g-qr-mod-${uid})`} />
+        <rect x="17.75" y="17.75" width="2" height="2" rx="0.6" fill={`url(#g-qr-mod-${uid})`} />
+
+        {/* Layer 3: Specular Top Sheen / Rim Lighting */}
+        <path d="M6 2.75H18C19.7949 2.75 21.25 4.20507 21.25 6V18C21.25 18.36 21.19 18.7 21.08 19.02C21.84 17.5 22 15.6 22 13.5V6C22 3.79086 20.2091 2 18 2H6C4.4 2 2.9 2.8 2.2 4C2.5 3.25 3.2 2.75 6 2.75Z" fill={`url(#g-qr-rim-${uid})`} />
+        <rect x="2" y="2" width="20" height="20" rx="5" stroke={`url(#g-qr-spec-${uid})`} strokeWidth="1" />
       </g>
       <defs>
-        <linearGradient id={`g-qr-0-${uid}`} x1="12" y1="4" x2="12" y2="20" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#3B82F6" />
-          <stop offset="1" stopColor="#1D4ED8" />
+        {/* Deep blue to indigo origin */}
+        <linearGradient id={`g-qr-0-${uid}`} x1="12" y1="2" x2="12" y2="22" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#1E40AF" />
+          <stop offset="1" stopColor="#172554" />
         </linearGradient>
-        <linearGradient id={`g-qr-1-${uid}`} x1="12" y1="2" x2="12" y2="22" gradientUnits="userSpaceOnUse">
-          <stop stopColor="rgba(219, 234, 254, 0.85)" />
-          <stop offset="1" stopColor="rgba(147, 197, 253, 0.4)" />
+        {/* Frosted cyan/ice-blue glass body */}
+        <linearGradient id={`g-qr-1-${uid}`} x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">
+          <stop stopColor="rgba(224, 242, 254, 0.92)" />
+          <stop offset="1" stopColor="rgba(147, 197, 253, 0.55)" />
         </linearGradient>
-        <linearGradient id={`g-qr-rim-${uid}`} x1="12" y1="2" x2="12" y2="13.74" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#60A5FA" />
-          <stop offset="1" stopColor="#60A5FA" stopOpacity="0" />
+        {/* Vibrant 3D Sapphire Blue module gradient */}
+        <linearGradient id={`g-qr-mod-${uid}`} x1="4.5" y1="4.5" x2="19.5" y2="19.5" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#2563EB" />
+          <stop offset="0.6" stopColor="#1D4ED8" />
+          <stop offset="1" stopColor="#1E3A8A" />
         </linearGradient>
+        {/* Specular gloss sheen */}
+        <linearGradient id={`g-qr-rim-${uid}`} x1="12" y1="2" x2="12" y2="12" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#FFFFFF" stopOpacity="0.8" />
+          <stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
+        </linearGradient>
+        {/* Outer glass specular bevel */}
+        <linearGradient id={`g-qr-spec-${uid}`} x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+          <stop stopColor="rgba(255, 255, 255, 0.9)" />
+          <stop offset="0.5" stopColor="rgba(96, 165, 250, 0.6)" />
+          <stop offset="1" stopColor="rgba(37, 99, 235, 0.3)" />
+        </linearGradient>
+        {/* Gaussian blur for 3D inner refraction */}
+        <filter id={`f-qr-${uid}`} x="-100%" y="-100%" width="400%" height="400%" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse">
+          <feGaussianBlur stdDeviation="2" in="SourceGraphic" result="blur" />
+        </filter>
+        <clipPath id={`cp-qr-${uid}`}>
+          <path d={baseTile} />
+        </clipPath>
         <mask id={`m-qr-${uid}`}>
           <rect width="100%" height="100%" fill="#FFF" />
-          <path fillRule="evenodd" d="M4,4H10V10H4Z M5.25,5.25H8.75V8.75H5.25Z M6.5,6.5H7.5V7.5H6.5Z M14,4H20V10H14Z M15.25,5.25H18.75V8.75H15.25Z M16.5,6.5H17.5V7.5H16.5Z M4,14H10V20H4Z M5.25,15.25H8.75V18.75H5.25Z M6.5,16.5H7.5V17.5H6.5Z M14,14H15.4V15.4H14Z M17.3,14H18.7V15.4H17.3Z M14,17.3H15.4V18.7H14Z M17.3,17.3H18.7V18.7H17.3Z M15.65,15.65H17.05V17.05H15.65Z" fill="#000" />
+          <path d={baseTile} fill="#000" />
         </mask>
       </defs>
     </svg>
