@@ -1,146 +1,288 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  WhatsAppIcon,
-  DashboardIcon,
-  DeviceIcon,
-  SendIcon,
-  BookIcon,
   ArrowLeftIcon,
-  SearchIcon,
-  ShieldIcon
+  CaretRightIcon
 } from '../components/Icons';
+import {
+  GlassWhatsAppIcon,
+  GlassDashboardIcon,
+  GlassInstanceIcon,
+  GlassSendIcon,
+  GlassFilterIcon,
+  GlassGroupIcon,
+  GlassReportIcon,
+  GlassCodeIcon,
+  GlassLiveStatusIcon,
+  GlassWarningIcon,
+  GlassSparklesIcon
+} from '../components/GlassIcons';
 
 export const NotFound = () => {
   const navigate = useNavigate();
   const isAuthenticated = !!localStorage.getItem('token');
+  const [branding, setBranding] = useState<{ brandName: string; brandLogoUrl: string | null; isCustom: boolean }>({
+    brandName: 'WhatsApp API Gateway',
+    brandLogoUrl: null,
+    isCustom: false
+  });
+
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL || ''}/api/branding`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.brandName) {
+          setBranding(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const navLinks = [
+    {
+      title: 'Instances',
+      desc: 'Connect & scan QR sessions',
+      path: '/instances',
+      icon: GlassInstanceIcon,
+      bg: '#EFF6FF',
+      accent: '#2563EB'
+    },
+    {
+      title: 'Broadcast',
+      desc: 'Multi-device campaign blast',
+      path: '/broadcast',
+      icon: GlassSendIcon,
+      bg: '#EEF2FF',
+      accent: '#4F46E5'
+    },
+    {
+      title: 'Number Filter',
+      desc: 'Batch WhatsApp number validator',
+      path: '/filter',
+      icon: GlassFilterIcon,
+      bg: '#F5F3FF',
+      accent: '#7C3AED'
+    },
+    {
+      title: 'Groups Hub',
+      desc: 'Audience & community reach',
+      path: '/groups',
+      icon: GlassGroupIcon,
+      bg: '#FAF5FF',
+      accent: '#9333EA'
+    },
+    {
+      title: 'Reports',
+      desc: 'Delivery logs & analytics SLA',
+      path: '/reports',
+      icon: GlassReportIcon,
+      bg: '#ECFDF5',
+      accent: '#059669'
+    },
+    {
+      title: 'API Docs',
+      desc: 'REST endpoints & Swagger specs',
+      path: '/docs',
+      icon: GlassCodeIcon,
+      bg: '#F0F9FF',
+      accent: '#0284C7'
+    }
+  ];
 
   return (
     <div
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(180deg, #F8FAFC 0%, #EFF6FF 100%)',
+        background: 'radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.08) 0%, rgba(248, 250, 252, 1) 65%, #EFF6FF 100%)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '32px 20px',
+        padding: '40px 20px',
         fontFamily: 'var(--font-sans, Inter, sans-serif)',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        position: 'relative',
+        overflow: 'hidden'
       }}
     >
+      {/* Background Ambient Glow Circles */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '-120px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '600px',
+          height: '600px',
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0) 70%)',
+          pointerEvents: 'none',
+          zIndex: 0
+        }}
+      />
+
       {/* Brand Header */}
       <div
         onClick={() => navigate('/')}
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
-          marginBottom: '32px',
-          cursor: 'pointer'
+          gap: '14px',
+          marginBottom: '28px',
+          cursor: 'pointer',
+          zIndex: 1,
+          padding: '8px 18px',
+          borderRadius: '18px',
+          background: 'rgba(255, 255, 255, 0.75)',
+          border: '1px solid rgba(226, 232, 240, 0.85)',
+          backdropFilter: 'blur(12px)',
+          boxShadow: '0 6px 20px rgba(15, 23, 42, 0.04)',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 10px 25px rgba(37, 99, 235, 0.12)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'none';
+          e.currentTarget.style.boxShadow = '0 6px 20px rgba(15, 23, 42, 0.04)';
         }}
       >
-        <div
-          style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 8px 20px rgba(37, 99, 235, 0.25)'
-          }}
-        >
-          <WhatsAppIcon size={24} color="#FFFFFF" />
-        </div>
+        {branding.brandLogoUrl ? (
+          <img
+            src={branding.brandLogoUrl}
+            alt={branding.brandName}
+            style={{ width: '40px', height: '40px', borderRadius: '12px', objectFit: 'contain' }}
+          />
+        ) : (
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}
+          >
+            <GlassWhatsAppIcon size={40} />
+          </div>
+        )}
         <div>
-          <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-            WhatsApp API Gateway
+          <h1 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            {branding.brandName || 'WhatsApp API Gateway'}
           </h1>
-          <p style={{ margin: 0, fontSize: '11px', fontWeight: 800, color: '#2563EB', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            Enterprise Cloud System
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+            <span
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: '#10B981',
+                display: 'inline-block',
+                boxShadow: '0 0 8px #10B981'
+              }}
+            />
+            <p style={{ margin: 0, fontSize: '11px', fontWeight: 800, color: '#2563EB', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              Enterprise Cloud Platform
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Main 404 Card */}
+      {/* Main 404 Glass Card */}
       <div
         className="animate-in"
         style={{
           width: '100%',
-          maxWidth: '580px',
-          background: '#FFFFFF',
-          borderRadius: '28px',
-          padding: '44px 36px',
-          boxShadow: '0 25px 60px -15px rgba(37, 99, 235, 0.12), 0 0 0 1px rgba(226, 232, 240, 0.8)',
+          maxWidth: '680px',
+          background: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: '32px',
+          padding: '44px 40px',
+          boxShadow: '0 25px 70px -15px rgba(37, 99, 235, 0.12), 0 0 0 1px rgba(226, 232, 240, 0.9)',
           textAlign: 'center',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          zIndex: 1,
+          position: 'relative'
         }}
       >
-        {/* Visual 404 Badge */}
+        {/* Floating Top Badge */}
         <div
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            justifyContent: 'center',
             gap: '8px',
-            padding: '8px 20px',
+            padding: '6px 16px',
             borderRadius: '9999px',
-            background: '#EFF6FF',
-            border: '1.5px solid #DBEAFE',
-            color: '#2563EB',
-            fontSize: '13px',
+            background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
+            border: '1px solid #BFDBFE',
+            color: '#1D4ED8',
+            fontSize: '12px',
             fontWeight: 800,
-            letterSpacing: '0.05em',
+            letterSpacing: '0.04em',
             textTransform: 'uppercase',
-            marginBottom: '20px'
+            marginBottom: '16px',
+            boxShadow: '0 2px 8px rgba(37, 99, 235, 0.08)'
           }}
         >
-          <SearchIcon size={16} color="#2563EB" /> Error 404
+          <GlassWarningIcon size={16} /> Error 404 • Route Not Found
         </div>
 
-        {/* Large 404 Number */}
+        {/* Hero 404 Graphic & Typography */}
         <div
           style={{
-            fontSize: '84px',
+            fontSize: '100px',
             fontWeight: 900,
             lineHeight: 1,
-            letterSpacing: '-0.05em',
-            background: 'linear-gradient(135deg, #1E40AF 0%, #2563EB 50%, #60A5FA 100%)',
+            letterSpacing: '-0.06em',
+            background: 'linear-gradient(135deg, #0F172A 0%, #1E40AF 45%, #2563EB 75%, #06B6D4 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            margin: '0 0 12px'
+            margin: '0 0 10px',
+            filter: 'drop-shadow(0 4px 12px rgba(37, 99, 235, 0.15))'
           }}
         >
           404
         </div>
 
-        <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', margin: '0 0 12px', letterSpacing: '-0.02em' }}>
-          Page Not Found
+        <h2 style={{ fontSize: '26px', fontWeight: 800, color: '#0F172A', margin: '0 0 10px', letterSpacing: '-0.02em' }}>
+          Lost in Transmission
         </h2>
 
-        <p style={{ fontSize: '14.5px', color: '#64748B', lineHeight: 1.6, margin: '0 auto 32px', maxWidth: '420px', fontWeight: 500 }}>
-          The page you are looking for doesn't exist, has been removed, or is temporarily unavailable.
+        <p style={{ fontSize: '14.5px', color: '#64748B', lineHeight: 1.6, margin: '0 auto 30px', maxWidth: '480px', fontWeight: 500 }}>
+          The endpoint or page you requested does not exist or has been relocated. Let's redirect you back to your workspace.
         </p>
 
         {/* Primary Action Buttons */}
-        <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '32px' }}>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: isAuthenticated ? '32px' : '12px' }}>
           <button
             onClick={() => navigate(-1)}
             style={{
-              padding: '12px 24px',
+              padding: '11px 22px',
               borderRadius: '12px',
-              border: '1.5px solid #CBD5E1',
+              border: '1.5px solid #E2E8F0',
               background: '#FFFFFF',
               color: '#334155',
-              fontSize: '14px',
+              fontSize: '13.5px',
               fontWeight: 700,
               cursor: 'pointer',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#F8FAFC';
+              e.currentTarget.style.borderColor = '#CBD5E1';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#FFFFFF';
+              e.currentTarget.style.borderColor = '#E2E8F0';
+              e.currentTarget.style.transform = 'none';
             }}
           >
             <ArrowLeftIcon size={16} color="#334155" /> Go Back
@@ -150,72 +292,136 @@ export const NotFound = () => {
             onClick={() => navigate('/')}
             className="btn-primary"
             style={{
-              padding: '12px 28px',
+              padding: '11px 26px',
               borderRadius: '12px',
-              fontSize: '14px',
+              fontSize: '13.5px',
               fontWeight: 800,
               background: 'linear-gradient(135deg, #1E40AF 0%, #2563EB 100%)',
               boxShadow: '0 6px 20px rgba(37, 99, 235, 0.3)',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               gap: '8px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              border: 'none',
+              color: '#FFFFFF'
             }}
           >
-            <DashboardIcon size={16} color="#FFFFFF" /> {isAuthenticated ? 'Go to Dashboard' : 'Return to Home'}
+            <GlassDashboardIcon size={18} /> {isAuthenticated ? 'Go to Dashboard' : 'Return to Login'}
+          </button>
+
+          <button
+            onClick={() => navigate('/live-status')}
+            style={{
+              padding: '11px 20px',
+              borderRadius: '12px',
+              border: '1.5px solid #E2E8F0',
+              background: '#F8FAFC',
+              color: '#475569',
+              fontSize: '13.5px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#FFFFFF';
+              e.currentTarget.style.borderColor = '#2563EB';
+              e.currentTarget.style.color = '#2563EB';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#F8FAFC';
+              e.currentTarget.style.borderColor = '#E2E8F0';
+              e.currentTarget.style.color = '#475569';
+            }}
+          >
+            <GlassLiveStatusIcon size={18} /> Live Status
           </button>
         </div>
 
-        {/* Quick Links Card Section */}
+        {/* Quick Navigation Hub (6 Responsive Glass Cards) */}
         {isAuthenticated && (
           <div
             style={{
               borderTop: '1px solid #F1F5F9',
-              paddingTop: '24px',
+              paddingTop: '26px',
               textAlign: 'left'
             }}
           >
-            <span style={{ fontSize: '11px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: '14px' }}>
-              Quick Navigation
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <span style={{ fontSize: '11.5px', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <GlassSparklesIcon size={14} /> Quick Navigation Hub
+              </span>
+              <span style={{ fontSize: '11px', fontWeight: 600, color: '#2563EB' }}>
+                Active Session
+              </span>
+            </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px' }}>
-              {[
-                { title: 'Instances', path: '/instances', icon: DeviceIcon, color: '#2563EB', bg: '#EFF6FF' },
-                { title: 'Broadcast', path: '/broadcast', icon: SendIcon, color: '#059669', bg: '#D1FAE5' },
-                { title: 'API Docs', path: '/docs', icon: BookIcon, color: '#7C3AED', bg: '#F3E8FF' },
-              ].map((item) => {
-                const Icon = item.icon;
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                gap: '12px'
+              }}
+            >
+              {navLinks.map((item) => {
+                const IconComp = item.icon;
                 return (
                   <div
                     key={item.title}
                     onClick={() => navigate(item.path)}
                     style={{
-                      padding: '12px',
-                      borderRadius: '12px',
-                      border: '1px solid #E2E8F0',
-                      background: '#F8FAFC',
+                      padding: '14px 16px',
+                      borderRadius: '16px',
+                      border: '1.5px solid #F1F5F9',
+                      background: '#FAFAFA',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '10px',
-                      transition: 'all 0.2s ease'
+                      gap: '12px',
+                      transition: 'all 0.2s ease',
+                      userSelect: 'none',
+                      position: 'relative'
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = '#FFFFFF';
-                      e.currentTarget.style.borderColor = '#CBD5E1';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
+                      e.currentTarget.style.borderColor = item.accent;
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = `0 8px 20px ${item.accent}18`;
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = '#F8FAFC';
-                      e.currentTarget.style.borderColor = '#E2E8F0';
+                      e.currentTarget.style.background = '#FAFAFA';
+                      e.currentTarget.style.borderColor = '#F1F5F9';
                       e.currentTarget.style.transform = 'none';
+                      e.currentTarget.style.boxShadow = 'none';
                     }}
                   >
-                    <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: item.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Icon size={14} color={item.color} />
+                    <div
+                      style={{
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '12px',
+                        background: item.bg,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}
+                    >
+                      <IconComp size={22} />
                     </div>
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#0F172A' }}>{item.title}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#0F172A', display: 'block' }}>
+                          {item.title}
+                        </span>
+                        <CaretRightIcon size={12} color="#94A3B8" />
+                      </div>
+                      <span style={{ fontSize: '11px', color: '#64748B', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px', fontWeight: 500 }}>
+                        {item.desc}
+                      </span>
+                    </div>
                   </div>
                 );
               })}
@@ -224,10 +430,30 @@ export const NotFound = () => {
         )}
       </div>
 
-      {/* Footer copyright */}
-      <p style={{ marginTop: '28px', fontSize: '12px', color: '#94A3B8', fontWeight: 500 }}>
-        © {new Date().getFullYear()} WhatsApp API Platform. All rights reserved.
-      </p>
+      {/* Modern Status Footer */}
+      <div
+        style={{
+          marginTop: '28px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontSize: '12px',
+          color: '#64748B',
+          fontWeight: 600,
+          zIndex: 1
+        }}
+      >
+        <span
+          style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            background: '#10B981',
+            boxShadow: '0 0 10px #10B981'
+          }}
+        />
+        <span>WhatsApp Cloud Gateway • All Systems Operational</span>
+      </div>
     </div>
   );
 };
