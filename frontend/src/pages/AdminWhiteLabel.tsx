@@ -18,6 +18,7 @@ import {
   GlassLinkIcon
 } from '../components/GlassIcons';
 import { SearchableSelect } from '../components/SearchableSelect';
+import { Pagination } from '../components/Pagination';
 
 interface UserDomainData {
   id: string;
@@ -57,8 +58,10 @@ export const AdminWhiteLabel = () => {
   const [verifying, setVerifying] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Filter & Search
+  // Filter & Search & Pagination
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
   useEffect(() => {
     const isAdmin = localStorage.getItem('isAdmin') === 'true';
@@ -179,6 +182,8 @@ export const AdminWhiteLabel = () => {
     (u.customDomain && u.customDomain.toLowerCase().includes(search.toLowerCase())) ||
     (u.brandName && u.brandName.toLowerCase().includes(search.toLowerCase()))
   );
+  const totalPages = Math.ceil(filteredDomains.length / limit) || 1;
+  const paginatedDomains = filteredDomains.slice((page - 1) * limit, page * limit);
 
   return (
     <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -412,7 +417,7 @@ export const AdminWhiteLabel = () => {
                   </td>
                 </tr>
               ) : (
-                filteredDomains.map((u) => (
+                paginatedDomains.map((u) => (
                   <tr key={u.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.15s' }}>
                     
                     {/* User */}
@@ -550,6 +555,17 @@ export const AdminWhiteLabel = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Bar */}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalCount={filteredDomains.length}
+          limit={limit}
+          onPageChange={setPage}
+          loading={loading}
+          itemName="domains"
+        />
 
       </div>
 

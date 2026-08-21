@@ -26,6 +26,7 @@ import {
 } from '../components/GlassIcons';
 import { SearchableSelect } from '../components/SearchableSelect';
 import { copyToClipboard } from '../utils/clipboard';
+import { Pagination } from '../components/Pagination';
 
 interface GroupItem {
   id: string; // e.g. 120363048999999999@g.us
@@ -662,57 +663,15 @@ export const Groups = () => {
         </div>
 
         {/* Pagination Bar */}
-        {filteredGroups.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px 0', borderTop: '1px solid #F1F5F9', flexWrap: 'wrap', gap: '12px' }}>
-            <span style={{ fontSize: '13px', color: '#64748B', fontWeight: 600 }}>
-              Showing <strong>{(currentPage - 1) * itemsPerPage + 1}</strong> to <strong>{Math.min(filteredGroups.length, currentPage * itemsPerPage)}</strong> of <strong>{filteredGroups.length}</strong> groups
-            </span>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                style={{
-                  padding: '6px 14px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  borderRadius: '8px',
-                  border: '1px solid #CBD5E1',
-                  background: '#FFFFFF',
-                  color: currentPage === 1 ? '#94A3B8' : '#0F172A',
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                  opacity: currentPage === 1 ? 0.6 : 1,
-                  transition: 'all 0.2s'
-                }}
-              >
-                ← Prev
-              </button>
-
-              <span style={{ fontSize: '12px', fontWeight: 800, color: '#0F172A', padding: '0 6px' }}>
-                Page {currentPage} of {totalPages}
-              </span>
-
-              <button
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                style={{
-                  padding: '6px 14px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  borderRadius: '8px',
-                  border: '1px solid #CBD5E1',
-                  background: '#FFFFFF',
-                  color: currentPage >= totalPages ? '#94A3B8' : '#0F172A',
-                  cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
-                  opacity: currentPage >= totalPages ? 0.6 : 1,
-                  transition: 'all 0.2s'
-                }}
-              >
-                Next →
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          page={currentPage}
+          totalPages={totalPages}
+          totalCount={filteredGroups.length}
+          limit={itemsPerPage}
+          onPageChange={setCurrentPage}
+          loading={loading}
+          itemName="groups"
+        />
 
       </div>
       </>

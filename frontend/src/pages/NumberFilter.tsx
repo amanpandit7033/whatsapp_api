@@ -16,9 +16,13 @@ import {
   GlassEyeIcon,
   GlassRefreshIcon,
   GlassInstanceIcon,
-  GlassBatchIcon
+  GlassBatchIcon,
+  GlassTagIcon,
+  GlassZapIcon,
+  GlassBoltIcon
 } from '../components/GlassIcons';
 import { SearchableSelect } from '../components/SearchableSelect';
+import { Pagination } from '../components/Pagination';
 
 interface FilterBatch {
   id: string;
@@ -35,9 +39,12 @@ export const NumberFilter = () => {
   const navigate = useNavigate();
   const [instances, setInstances] = useState<any[]>([]);
   const [selectedInstance, setSelectedInstance] = useState('');
+  const [pools, setPools] = useState<any[]>([]);
+  const [routingMode, setRoutingMode] = useState<'pool' | 'instance'>('pool');
+  const [selectedPoolName, setSelectedPoolName] = useState<string>('all');
   const [batchName, setBatchName] = useState('');
   const [rawInput, setRawInput] = useState('');
-  const [delayMs, setDelayMs] = useState(100);
+  const [delayMs, setDelayMs] = useState(50);
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -57,8 +64,23 @@ export const NumberFilter = () => {
 
   useEffect(() => {
     fetchInstances();
+    fetchPools();
     fetchBatches();
   }, [batchPage]);
+
+  const fetchPools = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/pools`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      if (data.pools) {
+        setPools(data.pools);
+      }
+    } catch (e) {
+      console.error('Failed to load pools', e);
+    }
+  };
 
   const fetchInstances = async () => {
     try {
@@ -132,8 +154,13 @@ export const NumberFilter = () => {
   const handleCreateBatch = async () => {
     setErrorMsg(null);
 
-    if (!selectedInstance) {
+    if (routingMode === 'instance' && !selectedInstance) {
       setErrorMsg('Please select a connected WhatsApp instance.');
+      return;
+    }
+
+    if (routingMode === 'pool' && instances.length === 0) {
+      setErrorMsg('No connected WhatsApp instances available for multi-SIM pooling.');
       return;
     }
 
@@ -149,26 +176,33 @@ export const NumberFilter = () => {
       return;
     }
 
-    if (uniqueNumbers.length > 10000) {
-      setErrorMsg('Please limit verification to a maximum of 10,000 numbers per batch.');
+    if (uniqueNumbers.length > 50000) {
+      setErrorMsg('Please limit verification to a maximum of 50,000 numbers per batch.');
       return;
     }
 
     setIsProcessing(true);
 
     try {
+      const payload: any = {
+        name: batchName.trim() || undefined,
+        numbers: uniqueNumbers,
+        delayMs
+      };
+
+      if (routingMode === 'pool') {
+        payload.poolName = selectedPoolName || 'all';
+      } else {
+        payload.instanceId = selectedInstance;
+      }
+
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/filter/batches/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({
-          instanceId: selectedInstance,
-          name: batchName.trim() || undefined,
-          numbers: uniqueNumbers,
-          delayMs
-        })
+        body: JSON.stringify(payload)
       });
 
       if (res.status === 401) {
@@ -265,6 +299,8 @@ export const NumberFilter = () => {
         {/* Primary Action: Open Create Batch Modal */}
         <button
           onClick={() => {
+            fetchInstances();
+            fetchPools();
             setErrorMsg(null);
             setIsCreateModalOpen(true);
           }}
@@ -533,45 +569,14 @@ export const NumberFilter = () => {
         </div>
 
         {/* Pagination Controls */}
-        {batchTotalPages > 1 && (
-          <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #E2E8F0' }}>
-            <span style={{ fontSize: '12px', color: '#64748B' }}>
-              Page {batchPage} of {batchTotalPages} ({batchTotalCount} total batches)
-            </span>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <button
-                onClick={() => setBatchPage((p) => Math.max(1, p - 1))}
-                disabled={batchPage <= 1}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  border: '1px solid #CBD5E1',
-                  background: batchPage <= 1 ? '#F8FAFC' : '#FFFFFF',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  cursor: batchPage <= 1 ? 'not-allowed' : 'pointer'
-                }}
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setBatchPage((p) => Math.min(batchTotalPages, p + 1))}
-                disabled={batchPage >= batchTotalPages}
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  border: '1px solid #CBD5E1',
-                  background: batchPage >= batchTotalPages ? '#F8FAFC' : '#FFFFFF',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  cursor: batchPage >= batchTotalPages ? 'not-allowed' : 'pointer'
-                }}
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          page={batchPage}
+          totalPages={batchTotalPages}
+          totalCount={batchTotalCount}
+          limit={10}
+          onPageChange={setBatchPage}
+          itemName="batches"
+        />
 
       </div>
 
@@ -669,34 +674,187 @@ export const NumberFilter = () => {
                 />
               </div>
 
-              {/* Select WhatsApp Instance */}
+              {/* Routing Strategy Switch */}
               <div>
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '6px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                  Select WhatsApp Instance
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '8px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  Verification Sender Strategy
                 </label>
-                {instances.length === 0 ? (
-                  <div style={{ padding: '12px', background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '10px', color: '#DC2626', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <GlassAlertIcon size={18} />
-                    <span>No connected instances found. Connect an instance in the <strong>Instances</strong> page first.</span>
-                  </div>
-                ) : (
-                  <SearchableSelect
-                    placeholder="-- Select WhatsApp Instance --"
-                    searchPlaceholder="Search instance name or phone number..."
-                    value={selectedInstance}
-                    onChange={(val) => setSelectedInstance(val)}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', background: '#F1F5F9', padding: '4px', borderRadius: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setRoutingMode('pool')}
                     disabled={isProcessing}
-                    options={instances.map((inst) => ({
-                      value: inst.id,
-                      label: inst.id,
-                      sublabel: inst.phoneNumber ? `+${inst.phoneNumber}` : undefined,
-                      badge: 'Connected',
-                      badgeColor: { bg: '#D1FAE5', text: '#059669' },
-                      icon: <GlassInstanceIcon size={16} />
-                    }))}
-                  />
-                )}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: routingMode === 'pool' ? '#FFFFFF' : 'transparent',
+                      color: routingMode === 'pool' ? '#1E40AF' : '#64748B',
+                      fontWeight: routingMode === 'pool' ? 800 : 600,
+                      fontSize: '12.5px',
+                      cursor: 'pointer',
+                      boxShadow: routingMode === 'pool' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <GlassBoltIcon size={16} />
+                    <span>Multi-SIM Pool (Round-Robin)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRoutingMode('instance')}
+                    disabled={isProcessing}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: routingMode === 'instance' ? '#FFFFFF' : 'transparent',
+                      color: routingMode === 'instance' ? '#0F172A' : '#64748B',
+                      fontWeight: routingMode === 'instance' ? 800 : 600,
+                      fontSize: '12.5px',
+                      cursor: 'pointer',
+                      boxShadow: routingMode === 'instance' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <GlassInstanceIcon size={16} />
+                    <span>Single Instance</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Multi-SIM Pool Selector vs Single Instance Selector */}
+              {routingMode === 'pool' ? (
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '8px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                    Select Multi-SIM Pool (Rotating Verification)
+                  </label>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {/* Auto-Pool (All Connected SIMs) */}
+                    <div
+                      onClick={() => !isProcessing && setSelectedPoolName('all')}
+                      style={{
+                        padding: '12px 16px',
+                        borderRadius: '12px',
+                        border: selectedPoolName === 'all' || !selectedPoolName ? '1.5px solid #2563EB' : '1px solid #E2E8F0',
+                        background: selectedPoolName === 'all' || !selectedPoolName ? '#EFF6FF' : '#FFFFFF',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <GlassBoltIcon size={18} />
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A' }}>
+                              Auto-Pool (All Connected SIMs)
+                            </span>
+                            <span className="badge badge-success" style={{ fontSize: '10.5px', padding: '2px 8px' }}>
+                              {instances.length} Active SIMs
+                            </span>
+                          </div>
+                          <span style={{ fontSize: '11.5px', color: '#64748B', marginTop: '2px', display: 'block' }}>
+                            Rotates checks across all your connected numbers in round-robin sequence with automatic failover.
+                          </span>
+                        </div>
+                      </div>
+                      {(selectedPoolName === 'all' || !selectedPoolName) && (
+                        <span style={{ color: '#2563EB', fontWeight: 900, fontSize: '14px' }}>✓</span>
+                      )}
+                    </div>
+
+                    {/* Custom User-Created Pools */}
+                    {pools.map((p) => {
+                      const isSelected = selectedPoolName === p.name;
+                      const connectedCount = p.instances?.filter((i: any) => i.status === 'connected')?.length || p.connectedCount || 0;
+                      return (
+                        <div
+                          key={p.id}
+                          onClick={() => !isProcessing && setSelectedPoolName(p.name)}
+                          style={{
+                            padding: '12px 16px',
+                            borderRadius: '12px',
+                            border: isSelected ? '1.5px solid #2563EB' : '1px solid #E2E8F0',
+                            background: isSelected ? '#EFF6FF' : '#FFFFFF',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '12px',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: '#F1F5F9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <GlassTagIcon size={16} />
+                            </div>
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A' }}>
+                                  {p.name}
+                                </span>
+                                <span className={`badge ${connectedCount > 0 ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '10.5px', padding: '2px 8px' }}>
+                                  {connectedCount} Connected
+                                </span>
+                              </div>
+                              <span style={{ fontSize: '11.5px', color: '#64748B', marginTop: '2px', display: 'block' }}>
+                                Dedicated multi-SIM pool with round-robin rotation.
+                              </span>
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <span style={{ color: '#2563EB', fontWeight: 900, fontSize: '14px' }}>✓</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#64748B', marginBottom: '6px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                    Select WhatsApp Instance
+                  </label>
+                  {instances.length === 0 ? (
+                    <div style={{ padding: '12px', background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '10px', color: '#DC2626', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <GlassAlertIcon size={18} />
+                      <span>No connected instances found. Connect an instance in the <strong>Instances</strong> page first.</span>
+                    </div>
+                  ) : (
+                    <SearchableSelect
+                      placeholder="-- Select WhatsApp Instance --"
+                      searchPlaceholder="Search instance name or phone number..."
+                      value={selectedInstance}
+                      onChange={(val) => setSelectedInstance(val)}
+                      disabled={isProcessing}
+                      options={instances.map((inst) => ({
+                        value: inst.id,
+                        label: inst.id,
+                        sublabel: inst.phoneNumber ? `+${inst.phoneNumber}` : undefined,
+                        badge: 'Connected',
+                        badgeColor: { bg: '#D1FAE5', text: '#059669' },
+                        icon: <GlassInstanceIcon size={16} />
+                      }))}
+                    />
+                  )}
+                </div>
+              )}
 
               {/* Numbers List */}
               <div>

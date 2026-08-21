@@ -6,6 +6,7 @@ import {
   CaretRightIcon,
   XIcon
 } from '../components/Icons';
+import { Pagination } from '../components/Pagination';
 import {
   GlassInstanceIcon,
   GlassCheckCircleIcon,
@@ -565,22 +566,14 @@ export const Instances = () => {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 24px 0' }}>
-              <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
-                Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, totalCount)} of {totalCount} Results
-              </div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} style={{ background: 'none', border: 'none', color: currentPage === 1 ? '#CBD5E1' : '#64748B', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
-                  <CaretLeftIcon size={18} />
-                </button>
-                <span style={{ background: 'var(--accent-color)', color: '#FFFFFF', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }}>{currentPage}</span>
-                <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} style={{ background: 'none', border: 'none', color: currentPage >= totalPages ? '#CBD5E1' : '#64748B', cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
-                  <CaretRightIcon size={18} />
-                </button>
-              </div>
-            </div>
-          )}
+          <Pagination
+            page={currentPage}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            limit={itemsPerPage}
+            onPageChange={setCurrentPage}
+            itemName="instances"
+          />
         </div>
       ) : (
         /* Multi-SIM Pools & Load Balancers Grid */

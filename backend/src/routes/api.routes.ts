@@ -562,29 +562,34 @@ async function resolveInstancesForUser(
 
     if (requestedPoolName) {
         const rawPool = String(requestedPoolName).trim();
-        const slug = rawPool.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-        try {
-            const foundPool = await (prisma as any).instancePool.findFirst({
-                where: {
-                    userId: user.id,
-                    OR: [
-                        { name: rawPool },
-                        { slug: slug },
-                        { slug: rawPool.toLowerCase() }
-                    ]
+        const lower = rawPool.toLowerCase();
+        if (lower === 'all' || lower === 'auto' || lower === 'auto-pool' || lower === 'autopool') {
+            matchedPoolName = 'Auto-Pool';
+        } else {
+            const slug = lower.replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+            try {
+                const foundPool = await (prisma as any).instancePool.findFirst({
+                    where: {
+                        userId: user.id,
+                        OR: [
+                            { name: rawPool },
+                            { slug: slug },
+                            { slug: lower }
+                        ]
+                    }
+                });
+                if (foundPool) {
+                    matchedPoolName = foundPool.name;
+                    const parsed = JSON.parse(foundPool.instanceIds || '[]');
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        candidateIds = parsed;
+                    }
+                } else {
+                    throw new Error(`Instance pool "${rawPool}" not found for your account.`);
                 }
-            });
-            if (foundPool) {
-                matchedPoolName = foundPool.name;
-                const parsed = JSON.parse(foundPool.instanceIds || '[]');
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    candidateIds = parsed;
-                }
-            } else {
-                throw new Error(`Instance pool "${rawPool}" not found for your account.`);
+            } catch (dbErr: any) {
+                if (dbErr.message?.includes('Instance pool')) throw dbErr;
             }
-        } catch (dbErr: any) {
-            if (dbErr.message?.includes('Instance pool')) throw dbErr;
         }
     }
 
@@ -3363,13 +3368,20 @@ router.post('/me/regenerate-token', authenticate, async (req: any, res: any) => 
 // Create batch, save all numbers into database first, then process asynchronously in the background
 router.post('/filter/batches/create', authenticate, async (req: any, res: any) => {
     try {
-        const { instanceId, name, numbers, delayMs } = req.body;
-        if (!instanceId) return res.status(400).json({ error: 'instanceId is required' });
+        const { instanceId, instanceIds, poolName, pool, name, numbers, delayMs } = req.body;
+        const requestedPool = poolName || pool;
+        const requestedInstance = Array.isArray(instanceIds) ? instanceIds.join(',') : (instanceId || (Array.isArray(req.body?.instances) ? req.body.instances.join(',') : undefined));
+
+        if (!requestedPool && !requestedInstance) {
+            return res.status(400).json({ error: 'Please select a WhatsApp Instance or Multi-SIM Pool' });
+        }
         if (!numbers) return res.status(400).json({ error: 'numbers is required' });
 
-        const inst = await prisma.instance.findUnique({ where: { id: instanceId } });
-        if (!inst || inst.userId !== req.user.userId) return res.status(404).json({ error: 'Instance not found or unauthorized' });
-        if (inst.status !== 'connected') return res.status(400).json({ error: 'Instance is not connected to WhatsApp' });
+        const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
+        if (!user) return res.status(401).json({ error: 'User not found' });
+
+        // Resolve active instances in pool with load-balancing & failover
+        const { primary, pool: activePool, poolName: resolvedPoolName } = await resolveInstancesForUser(user, requestedInstance, requestedPool);
 
         let numList: string[] = [];
         if (Array.isArray(numbers)) {
@@ -3381,17 +3393,18 @@ router.post('/filter/batches/create', authenticate, async (req: any, res: any) =
         const uniqueNumbers = Array.from(new Set(numList.map(n => n.replace(/\D/g, '')).filter(n => n.length >= 7)));
         if (uniqueNumbers.length === 0) return res.status(400).json({ error: 'No valid phone numbers found' });
 
-        if (uniqueNumbers.length > 10000) {
-            return res.status(400).json({ error: 'Maximum 10,000 numbers allowed per batch filter request.' });
+        if (uniqueNumbers.length > 50000) {
+            return res.status(400).json({ error: 'Maximum 50,000 numbers allowed per batch filter request.' });
         }
 
         const batchName = (name && name.trim()) ? name.trim() : `Batch Filter - ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        const displayInstanceId = resolvedPoolName ? `Pool: ${resolvedPoolName} (${activePool.length} SIMs)` : (activePool.length > 1 ? `Multi-SIM (${activePool.length} SIMs)` : primary.id);
 
         // Step 1: Create the batch record in database with status 'processing'
         const batch = await prisma.filterBatch.create({
             data: {
                 userId: req.user.userId,
-                instanceId,
+                instanceId: displayInstanceId,
                 name: batchName,
                 totalCount: uniqueNumbers.length,
                 validCount: 0,
@@ -3416,24 +3429,40 @@ router.post('/filter/batches/create', authenticate, async (req: any, res: any) =
             batchId: batch.id,
             total: uniqueNumbers.length,
             status: 'processing',
-            message: 'All numbers stored successfully. Verification running in background.'
+            pool_size: activePool.length,
+            assigned_instance: displayInstanceId,
+            message: 'All numbers stored successfully. Verification running in background across active SIM pool.'
         });
 
-        // Step 4: Background asynchronous verification worker
+        // Step 4: Background asynchronous verification worker with Multi-SIM Round-Robin & Failover
         (async () => {
             try {
                 const { getSocket, waitUntilConnected } = require('../services/whatsapp.service');
-                const sock = await getSocket(instanceId);
-                const isOpen = await waitUntilConnected(instanceId);
-                if (!isOpen || !sock) {
-                    console.error(`[BackgroundFilter] Instance ${instanceId} disconnected. Aborting batch ${batch.id}`);
+                let validCount = 0;
+                let invalidCount = 0;
+                const delay = typeof delayMs === 'number' ? Math.max(10, delayMs) : 50;
+
+                // Pre-warm all SIM sockets in pool and ensure active connections
+                const readyPool: { id: string; sock: any }[] = [];
+                for (const inst of activePool) {
+                    try {
+                        const sock = await getSocket(inst.id);
+                        const isConnected = await waitUntilConnected(inst.id);
+                        if (isConnected && sock) {
+                            readyPool.push({ id: inst.id, sock });
+                        }
+                    } catch (e) {
+                        console.warn(`[BackgroundFilter] SIM ${inst.id} could not be pre-warmed:`, e);
+                    }
+                }
+
+                if (readyPool.length === 0) {
+                    console.error(`[BackgroundFilter] No active connected SIMs in pool for batch ${batch.id}`);
                     await prisma.filterBatch.update({ where: { id: batch.id }, data: { status: 'failed' } });
                     return;
                 }
 
-                let validCount = 0;
-                let invalidCount = 0;
-                const delay = typeof delayMs === 'number' ? Math.max(20, delayMs) : 100;
+                console.log(`[BackgroundFilter] 🚀 Starting verification on batch ${batch.id} with ${readyPool.length} active SIMs in pool.`);
 
                 const batchItems = await prisma.filterItem.findMany({
                     where: { batchId: batch.id },
@@ -3442,24 +3471,44 @@ router.post('/filter/batches/create', authenticate, async (req: any, res: any) =
 
                 for (let i = 0; i < batchItems.length; i++) {
                     const item = batchItems[i];
-                    try {
-                        const check = await sock.onWhatsApp(item.number);
-                        const exists = Array.isArray(check) && check.length > 0 && !!check[0]?.exists;
-                        const jid = exists ? check[0].jid : null;
+                    const cleanNum = item.number.replace(/\D/g, '');
+                    let exists = false;
+                    let jid: string | null = null;
+                    let checkSuccessful = false;
 
-                        if (exists) validCount++;
-                        else invalidCount++;
-
-                        await prisma.filterItem.update({
-                            where: { id: item.id },
-                            data: { exists, jid }
-                        });
-                    } catch (err: any) {
-                        invalidCount++;
+                    // Round-robin rotation across ready pool of connected SIMs with automatic failover
+                    for (let attempt = 0; attempt < readyPool.length; attempt++) {
+                        const candidate = readyPool[(i + attempt) % readyPool.length];
+                        try {
+                            const check = await candidate.sock.onWhatsApp(cleanNum);
+                            checkSuccessful = true;
+                            if (Array.isArray(check) && check.length > 0) {
+                                const res = check[0];
+                                if (res?.exists === true || (res?.jid && res?.exists !== false)) {
+                                    exists = true;
+                                    jid = res.jid || `${cleanNum}@s.whatsapp.net`;
+                                    break;
+                                }
+                            }
+                            // If check returned array without exists or empty array, it's verified Non-WhatsApp
+                            break;
+                        } catch (err: any) {
+                            console.warn(`[FilterCheck] Socket error on SIM ${candidate.id} for ${cleanNum}:`, err?.message || err);
+                            // Try next SIM in the pool
+                            continue;
+                        }
                     }
 
-                    // Periodically update batch counts in DB every 10 numbers or at completion
-                    if ((i + 1) % 10 === 0 || i === batchItems.length - 1) {
+                    if (exists) validCount++;
+                    else invalidCount++;
+
+                    await prisma.filterItem.update({
+                        where: { id: item.id },
+                        data: { exists, jid }
+                    });
+
+                    // Periodically update batch counts in DB every 5 numbers or at completion
+                    if ((i + 1) % 5 === 0 || i === batchItems.length - 1) {
                         await prisma.filterBatch.update({
                             where: { id: batch.id },
                             data: { validCount, invalidCount }
@@ -3480,7 +3529,7 @@ router.post('/filter/batches/create', authenticate, async (req: any, res: any) =
                         status: 'completed'
                     }
                 });
-                console.log(`[BackgroundFilter] ✅ Batch ${batch.id} completed! (Total: ${batchItems.length}, Valid: ${validCount}, Invalid: ${invalidCount})`);
+                console.log(`[BackgroundFilter] ✅ Batch ${batch.id} completed via Pool (${displayInstanceId})! (Total: ${batchItems.length}, Valid: ${validCount}, Invalid: ${invalidCount})`);
             } catch (bgError) {
                 console.error('[BackgroundFilter] Error processing batch:', bgError);
                 await prisma.filterBatch.update({

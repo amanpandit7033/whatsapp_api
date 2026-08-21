@@ -12,6 +12,7 @@ import {
   KeyIcon,
   ToggleIcon
 } from '../components/Icons';
+import { Pagination } from '../components/Pagination';
 import {
   GlassUsersIcon,
   GlassResellerIcon,
@@ -441,13 +442,14 @@ export const AdminPanel = () => {
           </table>
         </div>
 
-        {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 28px 0' }}>
-            <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '6px 16px', fontSize: '13px', fontWeight: 700, color: page === 1 ? '#CBD5E1' : '#0F172A', cursor: page === 1 ? 'not-allowed' : 'pointer' }}>← Prev</button>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>Page {page} of {totalPages}</span>
-            <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '6px 16px', fontSize: '13px', fontWeight: 700, color: page === totalPages ? '#CBD5E1' : '#0F172A', cursor: page === totalPages ? 'not-allowed' : 'pointer' }}>Next →</button>
-          </div>
-        )}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalCount={globalTotalUsers}
+          limit={10}
+          onPageChange={setPage}
+          itemName="users"
+        />
       </div>
 
       {/* Add User Modal */}

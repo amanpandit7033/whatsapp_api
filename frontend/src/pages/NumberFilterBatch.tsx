@@ -13,9 +13,11 @@ import {
   GlassRefreshIcon,
   GlassInstanceIcon,
   GlassCalendarIcon,
-  GlassFilterIcon
+  GlassFilterIcon,
+  GlassBackIcon
 } from '../components/GlassIcons';
 import { copyToClipboard } from '../utils/clipboard';
+import { Pagination } from '../components/Pagination';
 
 interface FilterItem {
   id: string;
@@ -234,91 +236,50 @@ export const NumberFilterBatch = () => {
     <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
       {/* Top Header Card */}
-      <div className="card" style={{ padding: '24px 28px', background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)', border: '1px solid #E2E8F0' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
+      <div className="card" style={{ padding: '22px 28px', background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)', border: '1px solid #E2E8F0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
           
-          {/* Left: Breadcrumbs, Title, and Meta Tags */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            
-            {/* Breadcrumb Pill */}
-            <button
-              onClick={() => navigate('/filter')}
-              style={{
-                alignSelf: 'flex-start',
-                background: '#EFF6FF',
-                border: '1px solid #DBEAFE',
-                borderRadius: '8px',
-                padding: '6px 12px',
-                color: '#2563EB',
-                fontSize: '12.5px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.2s'
-              }}
-            >
-              <span>←</span>
-              <span>Back to Filter Hub</span>
-            </button>
-
-            {/* Batch Title & Status Badge */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
-                {batch?.name}
-              </h1>
-
-              {isProcessing ? (
-                <span className="badge badge-warning" style={{ fontSize: '11.5px', fontWeight: 800, padding: '4px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <GlassRefreshIcon size={14} style={{ animation: 'spin 1.5s linear infinite' }} />
-                  <span>Verifying in Background ({progressPercent}%)</span>
-                </span>
-              ) : (
-                <span className="badge badge-success" style={{ fontSize: '11.5px', fontWeight: 800, padding: '4px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                  <GlassCheckCircleIcon size={16} />
-                  <span>Completed</span>
-                </span>
-              )}
+          {/* Left: 3D Filter Icon, Title, Status & Meta Tags */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(37, 99, 235, 0.15)' }}>
+              <GlassFilterIcon size={26} />
             </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <h1 style={{ fontSize: '22px', fontWeight: 900, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
+                  {batch?.name || 'Number Verification Batch'}
+                </h1>
 
-            {/* Metadata Tags Strip */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginTop: '2px' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#475569', background: '#FFFFFF', padding: '4px 10px', borderRadius: '8px', border: '1px solid #CBD5E1' }}>
-                <GlassInstanceIcon size={16} />
-                <span>Instance: <strong style={{ color: '#0F172A', fontFamily: 'var(--font-mono)' }}>{batch?.instanceId}</strong></span>
+                {isProcessing ? (
+                  <span className="badge badge-warning" style={{ fontSize: '11.5px', fontWeight: 800, padding: '4px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <GlassRefreshIcon size={14} style={{ animation: 'spin 1.5s linear infinite' }} />
+                    <span>Verifying in Background ({progressPercent}%)</span>
+                  </span>
+                ) : (
+                  <span className="badge badge-success" style={{ fontSize: '11.5px', fontWeight: 800, padding: '4px 12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <GlassCheckCircleIcon size={16} />
+                    <span>Completed</span>
+                  </span>
+                )}
               </div>
 
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#475569', background: '#FFFFFF', padding: '4px 10px', borderRadius: '8px', border: '1px solid #CBD5E1' }}>
-                <GlassCalendarIcon size={16} />
-                <span>Created: {new Date(batch?.createdAt || '').toLocaleString()}</span>
+              {/* Metadata Tags Strip */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '6px' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#475569', background: '#FFFFFF', padding: '4px 10px', borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                  <GlassInstanceIcon size={15} />
+                  <span>Instance: <strong style={{ color: '#0F172A', fontFamily: 'var(--font-mono)' }}>{batch?.instanceId}</strong></span>
+                </div>
+
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#475569', background: '#FFFFFF', padding: '4px 10px', borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
+                  <GlassCalendarIcon size={15} />
+                  <span>Created: {batch?.createdAt ? new Date(batch.createdAt).toLocaleString() : '...'}</span>
+                </div>
               </div>
             </div>
-
           </div>
 
-          {/* Right: Global Forward Action */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button
-              onClick={() => fetchBatchDetails(true)}
-              style={{
-                background: '#FFFFFF',
-                border: '1px solid #CBD5E1',
-                borderRadius: '12px',
-                padding: '10px 16px',
-                fontSize: '13px',
-                fontWeight: 700,
-                color: '#475569',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
-              }}
-            >
-              <GlassRefreshIcon size={14} /> Refresh
-            </button>
-
+          {/* Right: Actions Group including Glass Back Button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             {batch && batch.validCount > 0 && (
               <button
                 onClick={handleSendToBroadcast}
@@ -328,19 +289,64 @@ export const NumberFilterBatch = () => {
                   border: 'none',
                   color: '#FFFFFF',
                   borderRadius: '12px',
-                  padding: '10px 20px',
+                  padding: '9px 18px',
                   fontSize: '13px',
                   fontWeight: 800,
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
-                  boxShadow: '0 4px 15px rgba(37, 99, 235, 0.3)'
+                  boxShadow: '0 4px 14px rgba(37, 99, 235, 0.28)'
                 }}
               >
                 <GlassSendIcon size={18} /> Forward {batch.validCount.toLocaleString()} Valid to Broadcast Hub
               </button>
             )}
+
+            <button
+              onClick={() => fetchBatchDetails(true)}
+              style={{
+                background: '#FFFFFF',
+                border: '1px solid #CBD5E1',
+                borderRadius: '12px',
+                padding: '9px 16px',
+                fontSize: '13px',
+                fontWeight: 700,
+                color: '#334155',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <GlassRefreshIcon size={15} /> Refresh
+            </button>
+
+            {/* Back Button on Right Side */}
+            <button
+              onClick={() => navigate('/filter')}
+              style={{
+                background: '#FFFFFF',
+                border: '1px solid #CBD5E1',
+                borderRadius: '12px',
+                padding: '9px 18px',
+                fontSize: '13px',
+                fontWeight: 800,
+                color: '#1E293B',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                transition: 'all 0.15s ease'
+              }}
+              title="Back to Filter Hub"
+            >
+              <GlassBackIcon size={18} />
+              <span>Back</span>
+            </button>
           </div>
 
         </div>
@@ -752,51 +758,15 @@ export const NumberFilterBatch = () => {
         </div>
 
         {/* Pagination Footer */}
-        <div style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', borderTop: '1px solid #E2E8F0', background: '#FFFFFF' }}>
-          <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 600 }}>
-            Showing {totalItems === 0 ? 0 : (page - 1) * limit + 1} to {Math.min(page * limit, totalItems)} of {totalItems.toLocaleString()} numbers
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                border: '1px solid #CBD5E1',
-                background: page <= 1 ? '#F8FAFC' : '#FFFFFF',
-                color: page <= 1 ? '#94A3B8' : '#0F172A',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: page <= 1 ? 'not-allowed' : 'pointer'
-              }}
-            >
-              Previous
-            </button>
-
-            <span style={{ fontSize: '13px', fontWeight: 800, color: '#0F172A', padding: '0 8px' }}>
-              Page {page} of {totalPages}
-            </span>
-
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '8px',
-                border: '1px solid #CBD5E1',
-                background: page >= totalPages ? '#F8FAFC' : '#FFFFFF',
-                color: page >= totalPages ? '#94A3B8' : '#0F172A',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: page >= totalPages ? 'not-allowed' : 'pointer'
-              }}
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalCount={totalItems}
+          limit={limit}
+          onPageChange={setPage}
+          loading={loading}
+          itemName="numbers"
+        />
 
       </div>
 

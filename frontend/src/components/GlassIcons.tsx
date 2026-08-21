@@ -2751,3 +2751,4 @@ export const GlassPendingIcon: React.FC<GlassIconProps> = ({ size = 24, ...props
 };
 export const GlassLoaderIcon = GlassPendingIcon;
 export const GlassQueueIcon = GlassPendingIcon;
+export const GlassArrowLeftIcon = GlassBackIcon;

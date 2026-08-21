@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { ToggleIcon } from '../components/Icons';
+import { Pagination } from '../components/Pagination';
 import {
   GlassUsersIcon,
   GlassInstanceIcon,
@@ -523,32 +524,14 @@ export const ResellerPanel = () => {
           </table>
         </div>
 
-        {/* Pagination matching Admin Panel */}
-        {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 28px 0', borderTop: '1px solid #F1F5F9' }}>
-            <span style={{ fontSize: '13px', color: '#64748B', fontWeight: 600 }}>
-              Page {page} of {totalPages}
-            </span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="btn-outline"
-                style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 700, borderRadius: '8px' }}
-              >
-                Previous
-              </button>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                className="btn-outline"
-                style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 700, borderRadius: '8px' }}
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalCount={stats?.totalClients || clients.length}
+          limit={10}
+          onPageChange={setPage}
+          itemName="clients"
+        />
       </div>
 
       {/* ─────────────────────────────────────────────────────────────────

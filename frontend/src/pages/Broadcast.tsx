@@ -13,6 +13,7 @@ import {
   GlassStarSparkleIcon,
   GlassCheckCircleIcon
 } from '../components/GlassIcons';
+import { Pagination } from '../components/Pagination';
 
 interface IBroadcastCampaign {
   id: string;
@@ -351,29 +352,15 @@ export const Broadcast = () => {
         </div>
 
         {/* Pagination */}
-        {Math.ceil(campaignTotal / 10) > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px 0', borderTop: '1px solid #F1F5F9' }}>
-            <button
-              disabled={campaignPage === 1}
-              onClick={() => setCampaignPage(p => Math.max(1, p - 1))}
-              className="btn-outline"
-              style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 700 }}
-            >
-              ← Prev
-            </button>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>
-              Page {campaignPage} of {Math.ceil(campaignTotal / 10)}
-            </span>
-            <button
-              disabled={campaignPage >= Math.ceil(campaignTotal / 10)}
-              onClick={() => setCampaignPage(p => p + 1)}
-              className="btn-outline"
-              style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 700 }}
-            >
-              Next →
-            </button>
-          </div>
-        )}
+        <Pagination
+          page={campaignPage}
+          totalPages={Math.ceil(campaignTotal / 10) || 1}
+          totalCount={campaignTotal}
+          limit={10}
+          onPageChange={setCampaignPage}
+          loading={campaignLoading}
+          itemName="campaigns"
+        />
       </div>
 
     </div>

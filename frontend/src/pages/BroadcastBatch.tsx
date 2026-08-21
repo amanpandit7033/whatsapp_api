@@ -19,6 +19,7 @@ import {
   GlassPendingIcon
 } from '../components/GlassIcons';
 import { copyToClipboard } from '../utils/clipboard';
+import { Pagination } from '../components/Pagination';
 
 interface IBroadcastItem {
   id: string;
@@ -521,63 +522,15 @@ export const BroadcastBatch = () => {
         </div>
 
         {/* Pagination Strip */}
-        {totalPages > 1 && (
-          <div style={{ padding: '18px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', borderTop: '1px solid #F1F5F9' }}>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>
-              Showing {items.length > 0 ? (page - 1) * limit + 1 : 0} - {Math.min(page * limit, totalItems)} of {totalItems.toLocaleString()} numbers
-            </span>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="btn-outline"
-                style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 700, borderRadius: '8px' }}
-              >
-                ← Previous
-              </button>
-              
-              <div style={{ display: 'flex', gap: '4px' }}>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNum = i + 1;
-                  if (totalPages > 5) {
-                    if (page > 3) pageNum = page - 2 + i;
-                    if (pageNum > totalPages) pageNum = totalPages - (4 - i);
-                  }
-                  const isCurrent = pageNum === page;
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => setPage(pageNum)}
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '8px',
-                        border: isCurrent ? '1.5px solid #2563EB' : '1px solid #E2E8F0',
-                        background: isCurrent ? '#EFF6FF' : '#FFFFFF',
-                        color: isCurrent ? '#2563EB' : '#64748B',
-                        fontSize: '12px',
-                        fontWeight: 800,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                className="btn-outline"
-                style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 700, borderRadius: '8px' }}
-              >
-                Next →
-              </button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalCount={totalItems}
+          limit={limit}
+          onPageChange={setPage}
+          loading={loading}
+          itemName="numbers"
+        />
       </div>
 
     </div>

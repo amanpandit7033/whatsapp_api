@@ -8,6 +8,7 @@ import {
   ChecksIcon,
   WarningCircleIcon
 } from '../components/Icons';
+import { Pagination } from '../components/Pagination';
 import {
   GlassDownloadIcon,
   GlassEyeIcon,
@@ -639,27 +640,16 @@ export const Reports = () => {
           </table>
         </div>
 
-        {/* Pagination mock (matching Dashboard) */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 32px 0' }}>
-          <div style={{ fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
-            Showing 
-            <select style={{ border: '1px solid #E2E8F0', borderRadius: '4px', margin: '0 8px', padding: '2px 4px', outline: 'none' }} value={page} onChange={e => setPage(Number(e.target.value))}>
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <option key={i + 1} value={i + 1}>{(i + 1).toString().padStart(2, '0')}</option>
-              ))}
-            </select>
-            of {totalCount} Results
-          </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ background: 'none', border: 'none', color: page === 1 ? '#CBD5E1' : '#94A3B8', cursor: page === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
-              <CaretLeftIcon size={18} />
-            </button>
-            <span style={{ background: 'var(--accent-color)', color: '#FFFFFF', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }}>{page.toString().padStart(2, '0')}</span>
-            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} style={{ background: 'none', border: 'none', color: page >= totalPages ? '#CBD5E1' : '#94A3B8', cursor: page >= totalPages ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center' }}>
-              <CaretRightIcon size={18} />
-            </button>
-          </div>
-        </div>
+        {/* Modern Pagination Footer */}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          limit={limit}
+          onPageChange={setPage}
+          loading={loading}
+          itemName="results"
+        />
       </div>
 
       {/* Modal Overlay */}
