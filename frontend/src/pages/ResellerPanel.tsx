@@ -77,9 +77,6 @@ export const ResellerPanel = () => {
   const [editCheckWhatsAppNumber, setEditCheckWhatsAppNumber] = useState(true);
   const [editPermissions, setEditPermissions] = useState<string[]>([]);
 
-  // Delete Confirm Modal State
-  const [deletingClient, setDeletingClient] = useState<ClientUser | null>(null);
-
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -219,25 +216,6 @@ export const ResellerPanel = () => {
       }
     } catch (e: any) {
       setError(e.message || 'Error updating client account.');
-    }
-  };
-
-  const handleDeleteClient = async (id: string) => {
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/reseller/clients/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || 'Failed to delete client');
-      } else {
-        setDeletingClient(null);
-        fetchStats();
-        fetchClients();
-      }
-    } catch (e: any) {
-      alert('Error deleting client: ' + e.message);
     }
   };
 
@@ -518,37 +496,22 @@ export const ResellerPanel = () => {
                             onClick={() => handleOpenEdit(c)}
                             title="Edit User"
                             style={{
-                              width: '32px',
-                              height: '32px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '6px 12px',
                               borderRadius: '8px',
                               background: '#F8FAFC',
                               border: '1px solid #E2E8F0',
-                              display: 'flex',
-                              alignItems: 'center',
                               justifyContent: 'center',
                               color: '#64748B',
-                              cursor: 'pointer'
+                              fontSize: '12px',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
                             }}
-                          >
-                            <GlassEditIcon size={15} /> 
-                          </button>
-                          <button
-                            onClick={() => setDeletingClient(c)}
-                            title="Delete User"
-                            style={{
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '8px',
-                              background: '#FEF2F2',
-                              border: '1px solid #FEE2E2',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#DC2626',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <GlassCancelIcon size={15} />
+                            >
+                            <GlassEditIcon size={15} /> Edit
                           </button>
                         </div>
                       </td>
@@ -1202,55 +1165,6 @@ export const ResellerPanel = () => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* ─────────────────────────────────────────────────────────────────
-          MODAL: DELETE CLIENT CONFIRMATION
-          ───────────────────────────────────────────────────────────────── */}
-      {deletingClient && createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '24px' }}>
-          <div className="card animate-in" style={{ width: '100%', maxWidth: '440px', position: 'relative', borderRadius: '24px', padding: '32px', textAlign: 'center', background: '#FFFFFF', boxShadow: '0 25px 50px -12px rgba(220, 38, 38, 0.25)' }}>
-            
-            <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#FEF2F2', border: '1px solid #FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-              <GlassWarningIcon size={28} />
-            </div>
-
-            <h3 style={{ fontSize: '19px', fontWeight: 800, color: '#0F172A', margin: '0 0 8px' }}>Delete Client Account?</h3>
-            <p style={{ fontSize: '13.5px', color: '#64748B', lineHeight: 1.5, margin: '0 0 24px', fontWeight: 500 }}>
-              Are you sure you want to delete <strong style={{ color: '#0F172A' }}>{deletingClient.username}</strong>? All connected instances, message logs, and quotas will be revoked and returned to your reseller pool.
-            </p>
-
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button 
-                type="button" 
-                onClick={() => setDeletingClient(null)} 
-                className="btn-outline" 
-                style={{ flex: 1, height: '44px', borderRadius: '12px', fontWeight: 700 }}
-              >
-                Cancel
-              </button>
-              <button 
-                type="button" 
-                onClick={() => handleDeleteClient(deletingClient.id)} 
-                style={{ 
-                  flex: 1, 
-                  height: '44px', 
-                  borderRadius: '12px', 
-                  background: '#DC2626', 
-                  color: '#FFFFFF', 
-                  border: 'none', 
-                  fontWeight: 800, 
-                  fontSize: '13.5px', 
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(220, 38, 38, 0.25)'
-                }}
-              >
-                Delete Account
-              </button>
-            </div>
           </div>
         </div>,
         document.body

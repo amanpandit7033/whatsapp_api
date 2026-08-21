@@ -1452,6 +1452,117 @@ router.put('/admin/users/:id', adminAuthenticate, async (req: any, res: any) => 
     }
 });
 
+// Cascade helper to completely delete any user account and all foreign key child records
+export const deleteUserAccountHierarchy = async (userId: string) => {
+    // 1. Fetch user and their instances
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { instances: true }
+    });
+    if (!user) return;
+
+    // 2. Shut down socket sessions & remove session folders on disk
+    for (const inst of user.instances) {
+        try {
+            await deleteInstanceSession(inst.id);
+        } catch (err) {
+            console.error(`Failed to delete session for instance ${inst.id}:`, err);
+        }
+        try {
+            const sessDir = `sessions/${inst.id}`;
+            if (fs.existsSync(sessDir)) {
+                fs.rmSync(sessDir, { recursive: true, force: true });
+            }
+        } catch (e) {}
+    }
+
+    // 3. Delete BroadcastItems & BroadcastCampaigns
+    try {
+        const campaigns = await prisma.broadcastCampaign.findMany({
+            where: { userId },
+            select: { id: true }
+        });
+        const campaignIds = campaigns.map(c => c.id);
+        if (campaignIds.length > 0) {
+            await prisma.broadcastItem.deleteMany({
+                where: { campaignId: { in: campaignIds } }
+            });
+            await prisma.broadcastCampaign.deleteMany({
+                where: { id: { in: campaignIds } }
+            });
+        }
+    } catch (e) {
+        console.error('Error cleaning broadcast campaigns:', e);
+    }
+
+    // 4. Delete FilterItems & FilterBatches
+    try {
+        const batches = await prisma.filterBatch.findMany({
+            where: { userId },
+            select: { id: true }
+        });
+        const batchIds = batches.map(b => b.id);
+        if (batchIds.length > 0) {
+            await prisma.filterItem.deleteMany({
+                where: { batchId: { in: batchIds } }
+            });
+            await prisma.filterBatch.deleteMany({
+                where: { id: { in: batchIds } }
+            });
+        }
+    } catch (e) {
+        console.error('Error cleaning filter batches:', e);
+    }
+
+    // 5. Delete MessageLogs
+    try {
+        await prisma.messageLog.deleteMany({
+            where: { userId }
+        });
+    } catch (e) {
+        console.error('Error cleaning message logs:', e);
+    }
+
+    // 6. Delete InstancePools & DailyUsageStats
+    try {
+        await (prisma as any).instancePool.deleteMany({
+            where: { userId }
+        });
+    } catch (e) {}
+    try {
+        await (prisma as any).dailyUsageStat.deleteMany({
+            where: { userId }
+        });
+    } catch (e) {}
+
+    // 7. Delete Instances
+    try {
+        await prisma.instance.deleteMany({
+            where: { userId }
+        });
+    } catch (e) {
+        console.error('Error cleaning instances:', e);
+    }
+
+    // 8. If user is a reseller, cascade delete sub-clients
+    try {
+        const subClients = await prisma.user.findMany({
+            where: { resellerId: userId },
+            select: { id: true }
+        });
+        for (const sub of subClients) {
+            await deleteUserAccountHierarchy(sub.id);
+        }
+    } catch (e) {
+        console.error('Error cleaning sub-clients:', e);
+    }
+
+    // 9. Finally delete the user record
+    await prisma.user.delete({
+        where: { id: userId }
+    });
+};
+
 // DELETE /admin/users/:id (Super Admin Delete User)
 router.delete('/admin/users/:id', adminAuthenticate, async (req: any, res: any) => {
     try {
@@ -1461,32 +1572,15 @@ router.delete('/admin/users/:id', adminAuthenticate, async (req: any, res: any) 
         }
 
         const targetUser = await prisma.user.findUnique({
-            where: { id },
-            include: { instances: true }
+            where: { id }
         });
 
         if (!targetUser) {
             return res.status(404).json({ error: 'User account not found' });
         }
 
-        // Clean up socket sessions for all instances belonging to this user
-        for (const inst of targetUser.instances) {
-            try {
-                await deleteInstanceSession(inst.id);
-            } catch (err) {
-                console.error(`Failed to delete session for instance ${inst.id}:`, err);
-            }
-        }
-
-        // Delete instances belonging to user first (to satisfy FK constraints)
-        await prisma.instance.deleteMany({
-            where: { userId: id }
-        });
-
-        // Delete user
-        await prisma.user.delete({
-            where: { id }
-        });
+        // Perform complete cascade deletion
+        await deleteUserAccountHierarchy(id);
 
         res.json({ success: true, message: `User @${targetUser.username} deleted successfully` });
     } catch (e: any) {
@@ -2199,28 +2293,19 @@ router.delete('/reseller/clients/:id', resellerAuthenticate, async (req: any, re
             where: {
                 id,
                 ...(req.user.isAdmin ? {} : { resellerId: req.user.userId })
-            },
-            include: { instances: true }
+            }
         });
 
         if (!targetClient) {
             return res.status(404).json({ error: 'Client account not found or unauthorized' });
         }
 
-        // Clean up socket sessions for all instances belonging to this client
-        for (const inst of targetClient.instances) {
-            try {
-                await deleteInstanceSession(inst.id);
-            } catch (err) {
-                console.error(`Failed to delete session for instance ${inst.id}:`, err);
-            }
-        }
+        // Perform complete cascade deletion
+        await deleteUserAccountHierarchy(id);
 
-        // Delete instances belonging to user first (to satisfy FK constraints)
-        await prisma.instance.deleteMany({ where: { userId: id } });
-        await prisma.user.delete({ where: { id } });
         res.json({ success: true, message: 'Client deleted successfully' });
     } catch (e: any) {
+        console.error('Error deleting reseller client:', e);
         res.status(500).json({ error: e.message || 'Failed to delete client' });
     }
 });

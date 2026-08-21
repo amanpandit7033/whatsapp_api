@@ -30,7 +30,9 @@ import {
   GlassCalendarIcon,
   GlassSendIcon,
   GlassInstanceIcon,
-  GlassBoltIcon
+  GlassBoltIcon,
+  GlassWarningIcon,
+  GlassTrashIcon
 } from '../components/GlassIcons';
 
 const S: Record<string, React.CSSProperties> = {

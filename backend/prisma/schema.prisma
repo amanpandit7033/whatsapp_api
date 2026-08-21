@@ -59,7 +59,7 @@ model DailyUsageStat {
 model Instance {
   id             String       @id // This is the instance_id
   userId         String
-  user           User         @relation(fields: [userId], references: [id])
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   status         String       @default("disconnected") // connected, disconnected
   phoneNumber    String?
   profilePicUrl  String?
